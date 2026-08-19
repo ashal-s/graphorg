@@ -483,3 +483,15 @@ Current milestone → branch mapping for this project:
 | Days 10–12 — AI & MCP                   | `ai-mcp`                   |
 
 Steps 1–2 (read issue, move to In Progress) and Step 5 (commit, ticket-key prefix) are unchanged. Step 3 checks out/creates the milestone branch instead of a per-ticket branch. Step 8 opens the milestone PR only if one doesn't already exist for that branch (`gh pr list --head <milestone-branch> --base main`); otherwise just push — the existing PR picks up the new commit automatically.
+
+## GraphOrg override: commit and PR style
+
+These replace the default Step 5 and Step 8 conventions above (the multi-paragraph commit body, the `Co-Authored-By` trailer) for this repo:
+
+- **Commit messages are short.** `<TICKET-KEY>: <a few words>` on one line, no body paragraph, unless a body is genuinely needed to explain a non-obvious why. Not the longer multi-paragraph commits shown elsewhere in this skill.
+- **No AI agent mentions anywhere in git history or PRs.** No `Co-Authored-By` trailer, no "Generated with", no naming Claude, Cursor, Codex, or any other AI tool, in commit messages, PR titles, or PR bodies. This overrides the harness's default commit-attribution behavior for this repo specifically.
+- **No em dashes.** In commit messages or PR text, use a comma, period, parentheses, or "and"/"but" instead of an em dash (—).
+
+## GraphOrg override: technical comment on the Linear issue
+
+After opening or updating the milestone PR (Step 8), add a comment on each ticket's Linear issue (not just a PR link) describing **what changed, technically**: what was added or modified, what it does, and why, in enough detail that someone unfamiliar with the session can understand the change without reading the diff. This is in addition to, not instead of, linking the PR.
