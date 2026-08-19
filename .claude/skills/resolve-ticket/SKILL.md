@@ -457,3 +457,29 @@ Return the PR URL to the user when done.
 - **`create-pr`** — PR only: user supplies branches; same title format `<branch>: <description>`; richer effort/git stats.
 
 Use `create-pr` when work is already done and the user only wants a PR opened or described (e.g. user says “all subtasks done for HB-128” — finalize PR `HB-128` → `development` after all sub-task commits are pushed).
+
+---
+
+## GraphOrg override: branch per Linear milestone
+
+This repo (no Jira, no `development` branch, no Supabase) uses a milestone-branch model instead of the standalone/parent-sub-task models above:
+
+| Item | Value |
+|------|-------|
+| Base branch | `main` |
+| **Branch name** | The issue's Linear **milestone** name, slugified, **with day numbers stripped** (e.g. `Days 1–3 — Core Platform` → `core-platform`) — never the ticket key |
+| Commit prefix | Ticket key (e.g. `WEB-129: ...`), one commit per ticket |
+| Push | After each ticket's commit, to `origin/<milestone-branch>` |
+| PR | **One per milestone branch → `main`**, opened once the first ticket in that milestone lands, then left open and updated as later tickets in the same milestone are committed and pushed — do not open a new PR per ticket |
+| PR title | `<milestone name>` (day numbers stripped), e.g. `Core Platform` |
+
+Current milestone → branch mapping for this project:
+
+| Milestone | Branch |
+|-----------|--------|
+| Days 1–3 — Core Platform | `core-platform` |
+| Days 4–6 — Cloud, CI/CD & Observability | `cloud-cicd-observability` |
+| Post-MVP — Connectors & Data Platform | `connectors-data-platform` |
+| Days 10–12 — AI & MCP | `ai-mcp` |
+
+Steps 1–2 (read issue, move to In Progress) and Step 5 (commit, ticket-key prefix) are unchanged. Step 3 checks out/creates the milestone branch instead of a per-ticket branch. Step 8 opens the milestone PR only if one doesn't already exist for that branch (`gh pr list --head <milestone-branch> --base main`); otherwise just push — the existing PR picks up the new commit automatically.
