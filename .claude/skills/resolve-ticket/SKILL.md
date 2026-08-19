@@ -477,10 +477,12 @@ Current milestone → branch mapping for this project:
 
 | Milestone                               | Branch                     |
 | --------------------------------------- | -------------------------- |
-| Days 1–3 — Core Platform                | `core-platform`            |
-| Days 4–6 — Cloud, CI/CD & Observability | `cloud-cicd-observability` |
+| MVP — Core Product                      | `core-platform`            |
+| Post-MVP — Cloud, CI/CD & Observability | `cloud-cicd-observability` |
 | Post-MVP — Connectors & Data Platform   | `connectors-data-platform` |
-| Days 10–12 — AI & MCP                   | `ai-mcp`                   |
+| Post-MVP — AI & MCP                     | `ai-mcp`                   |
+
+Branch names were chosen before the "Days N–M" milestone framing was dropped in favor of MVP/Post-MVP; they're kept as-is (e.g. `core-platform` for "MVP — Core Product") to avoid rewriting already-pushed history. Match milestones to branches by this table, not by literally slugifying the current milestone name.
 
 Steps 1–2 (read issue, move to In Progress) and Step 5 (commit, ticket-key prefix) are unchanged. Step 3 checks out/creates the milestone branch instead of a per-ticket branch. Step 8 opens the milestone PR only if one doesn't already exist for that branch (`gh pr list --head <milestone-branch> --base main`); otherwise just push — the existing PR picks up the new commit automatically.
 
