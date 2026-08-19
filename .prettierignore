@@ -1,5 +1,0 @@
-.next/
-node_modules/
-.venv/
-__pycache__/
-package-lock.json
