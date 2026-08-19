@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, development]
+    branches: [main]
   pull_request:
 
 jobs:
@@ -21,6 +21,7 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run test --workspace=apps/web
       - run: npm run build --workspace=apps/web
 
   ai-worker:

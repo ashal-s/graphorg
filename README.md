@@ -58,9 +58,10 @@ Run from the repo root:
 ```bash
 npm run lint          # eslint (apps/web)
 npm run typecheck      # tsc --noEmit across all workspaces
-npm run format          # prettier --write
-npm run format:check    # prettier --check
-npm run build            # next build
+npm run test            # jest + React Testing Library (apps/web)
+npm run format            # prettier --write
+npm run format:check        # prettier --check
+npm run build                 # next build
 ```
 
 For the Python worker (from `services/ai-worker`, with the virtualenv active):
