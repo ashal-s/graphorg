@@ -9,7 +9,7 @@ jobs:
   web:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgresql://graphorg:graphorg@localhost:5432/graphorg
+      DATABASE_URL: postgresql://graphorg:graphorg@localhost:5433/graphorg
       REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@v4

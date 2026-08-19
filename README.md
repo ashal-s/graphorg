@@ -30,10 +30,16 @@ docs/                 Repo-local reference docs
    ```bash
    cp apps/web/.env.example apps/web/.env
    ```
-3. Start local services:
+3. Start local services (needs Docker Desktop running):
+
    ```bash
    docker compose up -d
    ```
+
+   Postgres is exposed on host port **5433**, not 5432, so it doesn't collide with a Postgres you might already have running locally (Homebrew, Postgres.app, another project). `apps/web/.env.example` already points at 5433. Redis is on the standard 6379.
+
+   Check both are up: `docker compose ps`. Stop them: `docker compose down` (add `-v` to also drop the data volumes).
+
 4. Start the web app:
 
    ```bash
