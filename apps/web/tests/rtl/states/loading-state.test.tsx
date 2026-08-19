@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 
-import { LoadingState } from "./loading-state";
+import { LoadingState } from "@/components/states/loading-state";
 
 describe("LoadingState", () => {
   it("announces a loading status", () => {

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { ErrorState } from "./error-state";
+import { ErrorState } from "@/components/states/error-state";
 
 describe("ErrorState", () => {
   it("renders the title and description", () => {

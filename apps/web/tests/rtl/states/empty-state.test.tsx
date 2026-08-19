@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 
-import { EmptyState } from "./empty-state";
+import { EmptyState } from "@/components/states/empty-state";
 
 describe("EmptyState", () => {
   it("renders the title, description and action", () => {

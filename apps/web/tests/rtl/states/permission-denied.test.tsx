@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 
-import { PermissionDenied } from "./permission-denied";
+import { PermissionDenied } from "@/components/states/permission-denied";
 
 describe("PermissionDenied", () => {
   it("renders the default access-denied message and a link home", () => {

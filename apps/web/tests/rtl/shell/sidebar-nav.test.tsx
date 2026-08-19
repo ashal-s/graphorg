@@ -5,7 +5,7 @@ jest.mock("next/navigation", () => ({
   usePathname: () => "/directory",
 }));
 
-import { SidebarNav } from "./sidebar-nav";
+import { SidebarNav } from "@/components/shell/sidebar-nav";
 
 describe("SidebarNav", () => {
   it("renders a link for every nav item", () => {

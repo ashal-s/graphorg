@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 
-import { WorkspaceSwitcher } from "./workspace-switcher";
+import { WorkspaceSwitcher } from "@/components/shell/workspace-switcher";
 
 describe("WorkspaceSwitcher", () => {
   it("shows the default active workspace on the trigger", () => {
