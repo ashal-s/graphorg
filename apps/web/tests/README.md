@@ -5,6 +5,8 @@ Tests live here, in `apps/web/tests/`, separate from the source they test, split
 ```
 tests/
 ├── unit/   plain-function tests: no rendering, no DOM
+│   ├── db/
+│   │   └── schema.test.ts    schema structure (tables, tenant FKs, checks)
 │   └── lib/
 │       ├── env.test.ts     envSchema validation
 │       └── utils.test.ts   cn() class-name merging
@@ -33,6 +35,18 @@ Each folder mirrors `src/`: a file at `src/lib/env.ts` has its test at `tests/un
 Import the thing under test with the `@/` alias (e.g. `@/components/shell/sidebar-nav`), not a relative path. Tests no longer sit next to their source file, so relative imports would break.
 
 ## What each test covers
+
+### `unit/db/schema.test.ts` — schema structure (`src/db/schema/`)
+
+Structural checks on the Drizzle schema: no database connection, nothing here proves a constraint actually _behaves_ correctly against real data (that's verified manually against a live Postgres instance, see the WEB-130 Linear comment; live-DB integration tests are WEB-135's job, it owns test database isolation).
+
+| Test                                                                                | What it does                                        | Expected outcome                                                                   |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| exports `<table>` mapped to the `<table_name>` table (one case per table, 12 total) | Reads each schema export via `getTableConfig`       | The export exists and its Postgres table name matches the expected snake_case name |
+| gives every tenant-scoped table an `organization_id` foreign key to organizations   | Inspects columns on all 9 tenant tables             | Each has an `organization_id` column, and it's `NOT NULL`                          |
+| prevents a service from depending on itself at the schema level                     | Inspects `service_dependencies`'s check constraints | The `service_dependencies_no_self_reference` check exists                          |
+
+Why it matters: catches an accidental table rename, a dropped `organization_id` column, or a deleted check constraint, before it reaches a migration.
 
 ### `unit/lib/env.test.ts` — `envSchema` (`src/lib/env.ts`)
 

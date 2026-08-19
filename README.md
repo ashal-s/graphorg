@@ -40,7 +40,16 @@ docs/                 Repo-local reference docs
 
    Check both are up: `docker compose ps`. Stop them: `docker compose down` (add `-v` to also drop the data volumes).
 
-4. Start the web app:
+4. Apply database migrations and load the demo organisation:
+
+   ```bash
+   npm run db:migrate --workspace=apps/web
+   npm run db:seed --workspace=apps/web
+   ```
+
+   See `apps/web/src/db/README.md` for the schema and migration workflow.
+
+5. Start the web app:
 
    ```bash
    npm run dev
@@ -48,7 +57,7 @@ docs/                 Repo-local reference docs
 
    → http://localhost:3000, health check at http://localhost:3000/api/health
 
-5. In a separate terminal, start the Python AI worker:
+6. In a separate terminal, start the Python AI worker:
    ```bash
    cd services/ai-worker
    python3 -m venv .venv && source .venv/bin/activate
