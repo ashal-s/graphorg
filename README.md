@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GraphOrg
 
-## Getting Started
+GraphOrg is a single company-context product that maps people, teams, tools, technologies, repositories, services, infrastructure, documentation, ownership and dependencies. New employees, consultants and approved AI agents use it to understand the organisation before working, reviewing or advising.
 
-First, run the development server:
+**MVP scope:** company context is entered and maintained manually through the product's own forms and APIs — there is no "connect a tool" option yet. Connectors and the Databricks data platform are deferred to a later Post-MVP phase. See the [GraphOrg Architecture](https://linear.app/webifex/document/graphorg-architecture-44d635b43cc2) document (WEB-127) for the full picture.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Monorepo layout
+
+```
+apps/web            Next.js app — UI + Route Handlers (primary backend)
+packages/            Shared TypeScript packages (@graphorg/types, @graphorg/tsconfig)
+services/ai-worker    Python AI worker — embeddings/retrieval/eval (scaffolded now, built out in Days 10-12)
+infra/                Terraform/Helm/Ansible (Days 4-6)
+docs/                 Repo-local reference docs
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Prerequisites
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Node.js 20+ and npm 10+
+- Python 3.12+
+- Docker (for local Postgres/Redis)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Getting started
 
-## Learn More
+1. Install JS dependencies from the repo root:
+   ```bash
+   npm install
+   ```
+2. Copy the env file and fill in values as needed:
+   ```bash
+   cp apps/web/.env.example apps/web/.env
+   ```
+3. Start local services:
+   ```bash
+   docker compose up -d
+   ```
+4. Start the web app:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm run dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   → http://localhost:3000, health check at http://localhost:3000/api/health
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+5. In a separate terminal, start the Python AI worker:
+   ```bash
+   cd services/ai-worker
+   python3 -m venv .venv && source .venv/bin/activate
+   pip install -e ".[dev]"
+   uvicorn ai_worker.main:app --reload --port 8000
+   ```
+   → health check at http://localhost:8000/health
 
-## Deploy on Vercel
+## Common commands
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Run from the repo root:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint          # eslint (apps/web)
+npm run typecheck      # tsc --noEmit across all workspaces
+npm run format          # prettier --write
+npm run format:check    # prettier --check
+npm run build            # next build
+```
+
+For the Python worker (from `services/ai-worker`, with the virtualenv active):
+
+```bash
+pytest
+```
+
+## CI
+
+`.github/workflows/ci.yml` installs dependencies, checks formatting, lints, type-checks and builds `apps/web`, and separately installs and tests `services/ai-worker`, on every push and pull request.
