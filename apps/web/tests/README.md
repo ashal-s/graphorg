@@ -50,7 +50,7 @@ Why it matters: catches an accidental table rename, a dropped `organization_id` 
 
 ### `unit/lib/env.test.ts` — `envSchema` (`src/lib/env.ts`)
 
-The zod schema that validates `DATABASE_URL`, `REDIS_URL` and `NODE_ENV`. This is the schema itself (`envSchema.safeParse`), not the eagerly-parsed `env` singleton, so a bad input here doesn't throw or crash the test process.
+The zod schema that validates `DATABASE_URL`, `REDIS_URL` and `NODE_ENV`. This tests the schema itself (`envSchema.safeParse` against a plain object), not `getEnv()`, so it needs no real database credentials and doesn't touch `process.env` at all.
 
 | Test                                            | Input                                           | Expected outcome                                                  |
 | ----------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
@@ -140,11 +140,13 @@ From the repo root, or from `apps/web`:
 
 ```bash
 npm run test          # run once
-npm run test:watch    # watch mode
+npm run test:watch    # watch mode (jest --watchAll: runs everything, then re-runs on file changes)
 ```
+
+`test:watch` uses `--watchAll`, not Jest's default `--watch`: `--watch` only re-runs tests related to files changed since the last commit, so on a clean working tree it finds nothing to run. `--watchAll` always runs the full suite first.
 
 `jest.config.mjs` uses `next/jest`, which discovers every `*.test.ts`/`*.test.tsx` under this folder automatically, no per-file registration needed.
 
 ## Environment
 
-`apps/web/.env.test` holds dummy `DATABASE_URL`/`REDIS_URL` values. `next/jest` loads it automatically whenever `NODE_ENV=test` (which Jest sets itself), so importing `@/lib/env` in a test doesn't need real database credentials. It's committed like `.env.example`; real secrets never go in it.
+No env file is needed to run the tests. `apps/web/.env.local` holds the real local `DATABASE_URL`/`REDIS_URL` (see the root README), but it's the _only_ env file in the repo, and Next deliberately does not load `.env.local` when `NODE_ENV=test` (Jest sets this itself) — tests should produce the same result for everyone, not depend on whatever happens to be in a developer's local config. That's safe here because `src/lib/env.ts`'s `getEnv()` only reads `process.env` when something actually calls it, and nothing in the current test suite does; `env.test.ts` above tests `envSchema` directly against a plain object instead.

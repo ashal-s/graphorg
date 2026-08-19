@@ -39,7 +39,7 @@ scripts/seed.ts                 populates the "Acme Corp" demo organisation
 
 ## Workflow
 
-All commands run from `apps/web` (or the repo root with `--workspace=apps/web`), and need `apps/web/.env.local` to exist (`cp .env.example .env.local`) since `drizzle-kit`/`tsx` don't load Next's env files themselves — the `db:*` scripts source it via `dotenv-cli`.
+All commands run from `apps/web` (or the repo root with `--workspace=apps/web`), and need `apps/web/.env.local` to exist (see the root README's Getting Started) since `drizzle-kit`/`tsx` don't load Next's env files themselves — the `db:*` scripts source it via `dotenv-cli`.
 
 ```bash
 npm run db:generate       # after changing schema/*.ts: generate a new SQL migration

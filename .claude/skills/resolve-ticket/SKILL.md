@@ -492,6 +492,24 @@ These replace the default Step 5 and Step 8 conventions above (the multi-paragra
 - **No AI agent mentions anywhere in git history or PRs.** No `Co-Authored-By` trailer, no "Generated with", no naming Claude, Cursor, Codex, or any other AI tool, in commit messages, PR titles, or PR bodies. This overrides the harness's default commit-attribution behavior for this repo specifically.
 - **No em dashes.** In commit messages or PR text, use a comma, period, parentheses, or "and"/"but" instead of an em dash (—).
 
-## GraphOrg override: technical comment on the Linear issue
+## GraphOrg override: beginner-level explanation comment on the Linear issue
 
-After opening or updating the milestone PR (Step 8), add a comment on each ticket's Linear issue (not just a PR link) describing **what changed, technically**: what was added or modified, what it does, and why, in enough detail that someone unfamiliar with the session can understand the change without reading the diff. This is in addition to, not instead of, linking the PR.
+After opening or updating the milestone PR (Step 8), add a comment on each ticket's Linear issue (not just a PR link) explaining the work for a beginner: someone who doesn't already know the tools or patterns involved. This is in addition to, not instead of, linking the PR.
+
+For every non-trivial thing added or changed, cover:
+
+- **What it is**, in plain terms, before naming it technically.
+- **Why it's there** — the problem it solves, what breaks or goes wrong without it. Not just "added a CHECK constraint on role" but "so a bad value can never reach the database even if the application has a bug."
+- **How it fits the rest of the system** — what depends on it, what it depends on, which other ticket picks up where this one leaves off, if relevant.
+
+Concretely, structure it like a short walkthrough, not a changelog:
+
+- One paragraph up top on what problem the ticket was actually solving, before any file names appear.
+- A section per major piece added, each explaining what it is and why it exists before showing the technical name (file path, function, table, etc.).
+- Any non-obvious tool or library choice gets a sentence on why that one, not an alternative.
+- Any constraint, validation, or safety mechanism gets its failure mode spelled out: what bad thing it prevents, concretely.
+- A closing section on how the work was actually verified: not "tests pass" alone, but what was manually checked against the real system (a real database, a real running server, ...) and what the result was, so the reader can trust the claim rather than take it on faith.
+
+Avoid jargon left unexplained: if a term (tenant boundary, migration, join table, idempotent, trigger) is used, explain what it means in context the first time, not just the term itself. Assume the reader is smart but has never touched this specific stack.
+
+This is a full explanation, not a summary. Long is fine and expected. Terseness is not a virtue here, clarity is.

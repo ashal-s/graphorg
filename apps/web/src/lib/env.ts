@@ -10,9 +10,20 @@ export const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
+let _env: Env | null = null;
+
 /**
- * Parsed once at server startup (see src/instrumentation.ts). Throws with a
- * readable message if a required variable is missing or malformed, instead
- * of failing later with a raw `undefined` deep in a connection call.
+ * Validates process.env on first call, then caches the result. Lazy on
+ * purpose: importing this module (directly, or via anything that imports
+ * it, like the db client) must never trigger validation as a side effect,
+ * only calling getEnv() does. src/instrumentation.ts calls it once at
+ * server startup so a missing/malformed variable fails fast with a
+ * readable message, instead of failing later with a raw `undefined` deep
+ * in a connection call.
  */
-export const env: Env = envSchema.parse(process.env);
+export function getEnv(): Env {
+  if (!_env) {
+    _env = envSchema.parse(process.env);
+  }
+  return _env;
+}

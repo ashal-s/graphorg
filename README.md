@@ -26,9 +26,12 @@ docs/                 Repo-local reference docs
    ```bash
    npm install
    ```
-2. Copy the env file and fill in values as needed:
+2. Create `apps/web/.env.local` (gitignored — this is the only env file in the repo; nothing is committed):
    ```bash
-   cp apps/web/.env.example apps/web/.env
+   cat > apps/web/.env.local <<'EOF'
+   DATABASE_URL=postgresql://graphorg:graphorg@localhost:5433/graphorg
+   REDIS_URL=redis://localhost:6379
+   EOF
    ```
 3. Start local services (needs Docker Desktop running):
 
@@ -36,7 +39,7 @@ docs/                 Repo-local reference docs
    docker compose up -d
    ```
 
-   Postgres is exposed on host port **5433**, not 5432, so it doesn't collide with a Postgres you might already have running locally (Homebrew, Postgres.app, another project). `apps/web/.env.example` already points at 5433. Redis is on the standard 6379.
+   Postgres is exposed on host port **5433**, not 5432, so it doesn't collide with a Postgres you might already have running locally (Homebrew, Postgres.app, another project) — that's why `.env.local` above points at 5433. Redis is on the standard 6379.
 
    Check both are up: `docker compose ps`. Stop them: `docker compose down` (add `-v` to also drop the data volumes).
 
@@ -74,6 +77,7 @@ Run from the repo root:
 npm run lint          # eslint (apps/web)
 npm run typecheck      # tsc --noEmit across all workspaces
 npm run test            # jest + React Testing Library (apps/web)
+npm run test:watch       # same, in watch mode
 npm run format            # prettier --write
 npm run format:check        # prettier --check
 npm run build                 # next build
