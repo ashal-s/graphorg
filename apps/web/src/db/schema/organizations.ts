@@ -11,6 +11,7 @@ import { teams } from "./teams";
 import { technologies } from "./technologies";
 import { tools } from "./tools";
 import { users } from "./users";
+import { workflows } from "./workflows";
 
 export const organizations = pgTable("organizations", {
   id: id(),
@@ -29,4 +30,5 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   services: many(services),
   repositories: many(repositories),
   documents: many(documents),
+  workflows: many(workflows),
 }));

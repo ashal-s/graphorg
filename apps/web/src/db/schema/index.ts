@@ -10,3 +10,6 @@ export * from "./services";
 export * from "./service-technologies";
 export * from "./service-dependencies";
 export * from "./documents";
+export * from "./workflows";
+export * from "./workflow-steps";
+export * from "./workflow-assignees";

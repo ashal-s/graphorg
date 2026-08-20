@@ -26,6 +26,9 @@ const expectedTables: Record<
   serviceTechnologies: "service_technologies",
   serviceDependencies: "service_dependencies",
   documents: "documents",
+  workflows: "workflows",
+  workflowSteps: "workflow_steps",
+  workflowAssignees: "workflow_assignees",
 };
 
 describe("schema", () => {
@@ -49,6 +52,7 @@ describe("schema", () => {
       "repositories",
       "services",
       "documents",
+      "workflows",
     ] as const;
 
     for (const tableName of tenantTables) {
@@ -66,5 +70,26 @@ describe("schema", () => {
     expect(
       checks.some((c) => c.name === "service_dependencies_no_self_reference"),
     ).toBe(true);
+  });
+
+  it("orders workflow steps uniquely within a workflow", () => {
+    const { uniqueConstraints } = getTableConfig(schema.workflowSteps);
+    expect(
+      uniqueConstraints.some(
+        (c) =>
+          c.columns.map((col) => col.name).sort().join(",") ===
+          "step_order,workflow_id",
+      ),
+    ).toBe(true);
+  });
+
+  it("scopes workflow_steps and workflow_assignees via workflow_id, not their own organization_id", () => {
+    for (const table of [
+      schema.workflowSteps,
+      schema.workflowAssignees,
+    ] as const) {
+      const { columns } = getTableConfig(table);
+      expect(columns.some((c) => c.name === "organization_id")).toBe(false);
+    }
   });
 });

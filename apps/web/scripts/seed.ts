@@ -2,7 +2,8 @@
  * Seeds a representative demo organisation ("Acme Corp") exercising every
  * table and relationship in the relational context model: teams, a manager
  * hierarchy, product accounts, a technology/tool catalog, systems, services
- * with tech stacks and dependencies, repositories and documents.
+ * with tech stacks and dependencies, repositories, documents, and workflows
+ * with ordered steps and assignees.
  *
  * Re-runnable: deletes the demo org (organizations.slug = "acme") first, if
  * it exists. The ON DELETE CASCADE on organization_id takes care of every
@@ -26,6 +27,9 @@ import {
   technologies,
   tools,
   users,
+  workflowAssignees,
+  workflows,
+  workflowSteps,
 } from "../src/db/schema";
 
 async function main() {
@@ -453,6 +457,95 @@ async function main() {
     )
     .returning();
   console.log(`Created ${documentRows.length} documents`);
+
+  // --- Workflows, with steps and assignees ------------------------------
+
+  const workflowSpecs = [
+    {
+      name: "New service needs a tech stack",
+      description:
+        "Flags newly created services that have no technologies recorded yet.",
+      triggerType: "entity_created" as const,
+      triggerConfig: { entityType: "service" },
+      owner: "Alex Kim",
+      createdBy: "Priya Shah",
+      status: "active" as const,
+      steps: [
+        {
+          kind: "condition" as const,
+          type: "field_empty",
+          config: { field: "technologies" },
+        },
+        {
+          kind: "action" as const,
+          type: "notify",
+          config: {
+            message: "New service has no tech stack recorded.",
+            channel: "team",
+          },
+        },
+      ],
+      assignees: ["Jordan Lee", "Dana Whitfield"],
+    },
+    {
+      name: "Escalate stale runbooks",
+      description:
+        "Weekly check for runbooks that haven't been reviewed in a while.",
+      triggerType: "scheduled" as const,
+      triggerConfig: { cron: "0 9 * * 1" },
+      owner: "Sam Rivera",
+      createdBy: "Alex Kim",
+      status: "draft" as const,
+      steps: [
+        {
+          kind: "condition" as const,
+          type: "field_older_than",
+          config: { field: "updatedAt", days: 90 },
+        },
+        {
+          kind: "action" as const,
+          type: "notify",
+          config: { message: "Runbook hasn't been reviewed in 90 days." },
+        },
+      ],
+      assignees: ["Taylor Brooks", "Riley Chen"],
+    },
+  ];
+
+  for (const spec of workflowSpecs) {
+    const [workflowRow] = await db
+      .insert(workflows)
+      .values({
+        organizationId: org.id,
+        name: spec.name,
+        description: spec.description,
+        triggerType: spec.triggerType,
+        triggerConfig: spec.triggerConfig,
+        ownerPersonId: personByName.get(spec.owner)!.id,
+        createdByPersonId: personByName.get(spec.createdBy)!.id,
+        status: spec.status,
+      })
+      .returning();
+    if (!workflowRow) throw new Error(`Failed to insert workflow ${spec.name}`);
+
+    await db.insert(workflowSteps).values(
+      spec.steps.map((step, index) => ({
+        workflowId: workflowRow.id,
+        stepOrder: index + 1,
+        kind: step.kind,
+        type: step.type,
+        config: step.config,
+      })),
+    );
+
+    await db.insert(workflowAssignees).values(
+      spec.assignees.map((personName) => ({
+        workflowId: workflowRow.id,
+        personId: personByName.get(personName)!.id,
+      })),
+    );
+  }
+  console.log(`Created ${workflowSpecs.length} workflows with steps and assignees`);
 
   console.log("\nSeed complete.");
 }
