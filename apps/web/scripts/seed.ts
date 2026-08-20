@@ -545,7 +545,9 @@ async function main() {
       })),
     );
   }
-  console.log(`Created ${workflowSpecs.length} workflows with steps and assignees`);
+  console.log(
+    `Created ${workflowSpecs.length} workflows with steps and assignees`,
+  );
 
   console.log("\nSeed complete.");
 }

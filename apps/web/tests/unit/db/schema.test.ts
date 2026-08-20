@@ -77,8 +77,10 @@ describe("schema", () => {
     expect(
       uniqueConstraints.some(
         (c) =>
-          c.columns.map((col) => col.name).sort().join(",") ===
-          "step_order,workflow_id",
+          c.columns
+            .map((col) => col.name)
+            .sort()
+            .join(",") === "step_order,workflow_id",
       ),
     ).toBe(true);
   });
