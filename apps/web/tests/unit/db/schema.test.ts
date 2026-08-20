@@ -28,7 +28,7 @@ const expectedTables: Record<
   documents: "documents",
   workflows: "workflows",
   workflowSteps: "workflow_steps",
-  workflowAssignees: "workflow_assignees",
+  workflowPeople: "workflow_people",
 };
 
 describe("schema", () => {
@@ -72,26 +72,35 @@ describe("schema", () => {
     ).toBe(true);
   });
 
-  it("orders workflow steps uniquely within a workflow", () => {
+  it("does not restrict workflow steps to a unique order within a workflow", () => {
     const { uniqueConstraints } = getTableConfig(schema.workflowSteps);
     expect(
-      uniqueConstraints.some(
-        (c) =>
-          c.columns
-            .map((col) => col.name)
-            .sort()
-            .join(",") === "step_order,workflow_id",
+      uniqueConstraints.some((c) =>
+        c.columns.some((col) => col.name === "step_order"),
       ),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it("scopes workflow_steps and workflow_assignees via workflow_id, not their own organization_id", () => {
+  it("scopes workflow_steps and workflow_people via workflow_id, not their own organization_id", () => {
     for (const table of [
       schema.workflowSteps,
-      schema.workflowAssignees,
+      schema.workflowPeople,
     ] as const) {
       const { columns } = getTableConfig(table);
       expect(columns.some((c) => c.name === "organization_id")).toBe(false);
     }
+  });
+
+  it("lets a workflow have more than one owner, creator, or worker", () => {
+    const { columns, primaryKeys, checks } = getTableConfig(
+      schema.workflowPeople,
+    );
+    expect(columns.some((c) => c.name === "workflow_id")).toBe(true);
+    expect(columns.some((c) => c.name === "person_id")).toBe(true);
+    const pkColumns = primaryKeys[0]?.columns.map((c) => c.name).sort();
+    expect(pkColumns).toEqual(["person_id", "role", "workflow_id"]);
+    expect(checks.some((c) => c.name === "workflow_people_role_check")).toBe(
+      true,
+    );
   });
 });

@@ -6,7 +6,6 @@ import {
   jsonb,
   pgTable,
   text,
-  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -19,6 +18,10 @@ import { workflows } from "./workflows";
  * deliberately loose (a plain string and jsonb) rather than an enum/wide
  * table, since the fields a given condition or action needs vary a lot by
  * type (e.g. "field equals" needs a field/value, "notify" needs a message).
+ * `step_order` is not required to be unique per workflow: this is a
+ * documentation record, not an executed program, and different teams
+ * document the "same step" of their process differently, including
+ * intentionally parallel/tied steps.
  * No `organization_id`: scoped indirectly via `workflow_id`, same as
  * `service_technologies`/`service_dependencies` are scoped via `service_id`.
  */
@@ -36,7 +39,6 @@ export const workflowSteps = pgTable(
     ...timestamps(),
   },
   (table) => [
-    unique().on(table.workflowId, table.stepOrder),
     index("workflow_steps_workflow_id_idx").on(table.workflowId),
     check(
       "workflow_steps_kind_check",

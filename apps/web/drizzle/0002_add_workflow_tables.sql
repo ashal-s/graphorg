@@ -5,8 +5,6 @@ CREATE TABLE "workflows" (
 	"description" text,
 	"trigger_type" text NOT NULL,
 	"trigger_config" jsonb DEFAULT '{}'::jsonb NOT NULL,
-	"owner_person_id" uuid,
-	"created_by_person_id" uuid,
 	"status" text DEFAULT 'draft' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -24,23 +22,21 @@ CREATE TABLE "workflow_steps" (
 	"config" jsonb DEFAULT '{}'::jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "workflow_steps_workflow_id_step_order_unique" UNIQUE("workflow_id","step_order"),
 	CONSTRAINT "workflow_steps_kind_check" CHECK ("workflow_steps"."kind" in ('condition', 'action'))
 );
 --> statement-breakpoint
-CREATE TABLE "workflow_assignees" (
+CREATE TABLE "workflow_people" (
 	"workflow_id" uuid NOT NULL,
 	"person_id" uuid NOT NULL,
-	CONSTRAINT "workflow_assignees_workflow_id_person_id_pk" PRIMARY KEY("workflow_id","person_id")
+	"role" text NOT NULL,
+	CONSTRAINT "workflow_people_workflow_id_person_id_role_pk" PRIMARY KEY("workflow_id","person_id","role"),
+	CONSTRAINT "workflow_people_role_check" CHECK ("workflow_people"."role" in ('owner', 'creator', 'worker'))
 );
 --> statement-breakpoint
 ALTER TABLE "workflows" ADD CONSTRAINT "workflows_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "workflows" ADD CONSTRAINT "workflows_owner_person_id_people_id_fk" FOREIGN KEY ("owner_person_id") REFERENCES "public"."people"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "workflows" ADD CONSTRAINT "workflows_created_by_person_id_people_id_fk" FOREIGN KEY ("created_by_person_id") REFERENCES "public"."people"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workflow_steps" ADD CONSTRAINT "workflow_steps_workflow_id_workflows_id_fk" FOREIGN KEY ("workflow_id") REFERENCES "public"."workflows"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "workflow_assignees" ADD CONSTRAINT "workflow_assignees_workflow_id_workflows_id_fk" FOREIGN KEY ("workflow_id") REFERENCES "public"."workflows"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "workflow_assignees" ADD CONSTRAINT "workflow_assignees_person_id_people_id_fk" FOREIGN KEY ("person_id") REFERENCES "public"."people"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "workflow_people" ADD CONSTRAINT "workflow_people_workflow_id_workflows_id_fk" FOREIGN KEY ("workflow_id") REFERENCES "public"."workflows"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "workflow_people" ADD CONSTRAINT "workflow_people_person_id_people_id_fk" FOREIGN KEY ("person_id") REFERENCES "public"."people"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "workflows_organization_id_idx" ON "workflows" USING btree ("organization_id");--> statement-breakpoint
-CREATE INDEX "workflows_owner_person_id_idx" ON "workflows" USING btree ("owner_person_id");--> statement-breakpoint
-CREATE INDEX "workflows_created_by_person_id_idx" ON "workflows" USING btree ("created_by_person_id");--> statement-breakpoint
-CREATE INDEX "workflow_steps_workflow_id_idx" ON "workflow_steps" USING btree ("workflow_id");
+CREATE INDEX "workflow_steps_workflow_id_idx" ON "workflow_steps" USING btree ("workflow_id");--> statement-breakpoint
+CREATE INDEX "workflow_people_person_id_idx" ON "workflow_people" USING btree ("person_id");

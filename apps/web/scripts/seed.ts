@@ -3,7 +3,7 @@
  * table and relationship in the relational context model: teams, a manager
  * hierarchy, product accounts, a technology/tool catalog, systems, services
  * with tech stacks and dependencies, repositories, documents, and workflows
- * with ordered steps and assignees.
+ * with steps and role-based people (owners, creators, workers).
  *
  * Re-runnable: deletes the demo org (organizations.slug = "acme") first, if
  * it exists. The ON DELETE CASCADE on organization_id takes care of every
@@ -27,7 +27,7 @@ import {
   technologies,
   tools,
   users,
-  workflowAssignees,
+  workflowPeople,
   workflows,
   workflowSteps,
 } from "../src/db/schema";
@@ -458,7 +458,7 @@ async function main() {
     .returning();
   console.log(`Created ${documentRows.length} documents`);
 
-  // --- Workflows, with steps and assignees ------------------------------
+  // --- Workflows, with steps and role-based people --------------------
 
   const workflowSpecs = [
     {
@@ -467,8 +467,6 @@ async function main() {
         "Flags newly created services that have no technologies recorded yet.",
       triggerType: "entity_created" as const,
       triggerConfig: { entityType: "service" },
-      owner: "Alex Kim",
-      createdBy: "Priya Shah",
       status: "active" as const,
       steps: [
         {
@@ -485,7 +483,10 @@ async function main() {
           },
         },
       ],
-      assignees: ["Jordan Lee", "Dana Whitfield"],
+      // Two owners, to show a workflow isn't limited to one.
+      owners: ["Alex Kim", "Priya Shah"],
+      creators: ["Priya Shah"],
+      workers: ["Jordan Lee", "Dana Whitfield"],
     },
     {
       name: "Escalate stale runbooks",
@@ -493,8 +494,6 @@ async function main() {
         "Weekly check for runbooks that haven't been reviewed in a while.",
       triggerType: "scheduled" as const,
       triggerConfig: { cron: "0 9 * * 1" },
-      owner: "Sam Rivera",
-      createdBy: "Alex Kim",
       status: "draft" as const,
       steps: [
         {
@@ -508,7 +507,11 @@ async function main() {
           config: { message: "Runbook hasn't been reviewed in 90 days." },
         },
       ],
-      assignees: ["Taylor Brooks", "Riley Chen"],
+      owners: ["Sam Rivera"],
+      // Two creators, and Sam is both the owner above and a creator here,
+      // to show one person can hold more than one role on a workflow.
+      creators: ["Alex Kim", "Sam Rivera"],
+      workers: ["Taylor Brooks", "Riley Chen"],
     },
   ];
 
@@ -521,8 +524,6 @@ async function main() {
         description: spec.description,
         triggerType: spec.triggerType,
         triggerConfig: spec.triggerConfig,
-        ownerPersonId: personByName.get(spec.owner)!.id,
-        createdByPersonId: personByName.get(spec.createdBy)!.id,
         status: spec.status,
       })
       .returning();
@@ -538,15 +539,30 @@ async function main() {
       })),
     );
 
-    await db.insert(workflowAssignees).values(
-      spec.assignees.map((personName) => ({
+    const roleAssignments = [
+      ...spec.owners.map((personName) => ({
+        personName,
+        role: "owner" as const,
+      })),
+      ...spec.creators.map((personName) => ({
+        personName,
+        role: "creator" as const,
+      })),
+      ...spec.workers.map((personName) => ({
+        personName,
+        role: "worker" as const,
+      })),
+    ];
+    await db.insert(workflowPeople).values(
+      roleAssignments.map(({ personName, role }) => ({
         workflowId: workflowRow.id,
         personId: personByName.get(personName)!.id,
+        role,
       })),
     );
   }
   console.log(
-    `Created ${workflowSpecs.length} workflows with steps and assignees`,
+    `Created ${workflowSpecs.length} workflows with steps and role-based people`,
   );
 
   console.log("\nSeed complete.");

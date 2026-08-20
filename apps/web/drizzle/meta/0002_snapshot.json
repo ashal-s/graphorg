@@ -1,5 +1,5 @@
 {
-  "id": "54d8395d-8970-4ec7-bbae-d092fdd5142e",
+  "id": "4fa299d5-a861-4f14-8e14-e748ac47d83a",
   "prevId": "c94d0986-c677-490f-bb5c-3b2b0b03ac89",
   "version": "7",
   "dialect": "postgresql",
@@ -1271,18 +1271,6 @@
           "notNull": true,
           "default": "'{}'::jsonb"
         },
-        "owner_person_id": {
-          "name": "owner_person_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by_person_id": {
-          "name": "created_by_person_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "status": {
           "name": "status",
           "type": "text",
@@ -1320,36 +1308,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "workflows_owner_person_id_idx": {
-          "name": "workflows_owner_person_id_idx",
-          "columns": [
-            {
-              "expression": "owner_person_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "workflows_created_by_person_id_idx": {
-          "name": "workflows_created_by_person_id_idx",
-          "columns": [
-            {
-              "expression": "created_by_person_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -1360,24 +1318,6 @@
           "columnsFrom": ["organization_id"],
           "columnsTo": ["id"],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "workflows_owner_person_id_people_id_fk": {
-          "name": "workflows_owner_person_id_people_id_fk",
-          "tableFrom": "workflows",
-          "tableTo": "people",
-          "columnsFrom": ["owner_person_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "workflows_created_by_person_id_people_id_fk": {
-          "name": "workflows_created_by_person_id_people_id_fk",
-          "tableFrom": "workflows",
-          "tableTo": "people",
-          "columnsFrom": ["created_by_person_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1488,13 +1428,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "workflow_steps_workflow_id_step_order_unique": {
-          "name": "workflow_steps_workflow_id_step_order_unique",
-          "nullsNotDistinct": false,
-          "columns": ["workflow_id", "step_order"]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
         "workflow_steps_kind_check": {
@@ -1504,8 +1438,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.workflow_assignees": {
-      "name": "workflow_assignees",
+    "public.workflow_people": {
+      "name": "workflow_people",
       "schema": "",
       "columns": {
         "workflow_id": {
@@ -1519,22 +1453,44 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "workflow_people_person_id_idx": {
+          "name": "workflow_people_person_id_idx",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "workflow_assignees_workflow_id_workflows_id_fk": {
-          "name": "workflow_assignees_workflow_id_workflows_id_fk",
-          "tableFrom": "workflow_assignees",
+        "workflow_people_workflow_id_workflows_id_fk": {
+          "name": "workflow_people_workflow_id_workflows_id_fk",
+          "tableFrom": "workflow_people",
           "tableTo": "workflows",
           "columnsFrom": ["workflow_id"],
           "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "workflow_assignees_person_id_people_id_fk": {
-          "name": "workflow_assignees_person_id_people_id_fk",
-          "tableFrom": "workflow_assignees",
+        "workflow_people_person_id_people_id_fk": {
+          "name": "workflow_people_person_id_people_id_fk",
+          "tableFrom": "workflow_people",
           "tableTo": "people",
           "columnsFrom": ["person_id"],
           "columnsTo": ["id"],
@@ -1543,14 +1499,19 @@
         }
       },
       "compositePrimaryKeys": {
-        "workflow_assignees_workflow_id_person_id_pk": {
-          "name": "workflow_assignees_workflow_id_person_id_pk",
-          "columns": ["workflow_id", "person_id"]
+        "workflow_people_workflow_id_person_id_role_pk": {
+          "name": "workflow_people_workflow_id_person_id_role_pk",
+          "columns": ["workflow_id", "person_id", "role"]
         }
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "workflow_people_role_check": {
+          "name": "workflow_people_role_check",
+          "value": "\"workflow_people\".\"role\" in ('owner', 'creator', 'worker')"
+        }
+      },
       "isRLSEnabled": false
     }
   },

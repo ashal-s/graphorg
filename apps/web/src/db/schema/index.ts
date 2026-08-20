@@ -12,4 +12,4 @@ export * from "./service-dependencies";
 export * from "./documents";
 export * from "./workflows";
 export * from "./workflow-steps";
-export * from "./workflow-assignees";
+export * from "./workflow-people";
