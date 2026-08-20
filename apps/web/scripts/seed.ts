@@ -11,6 +11,7 @@
  *
  * Run with `npm run db:seed` (from apps/web).
  */
+import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 
 import { getDb } from "../src/db";
@@ -177,6 +178,11 @@ async function main() {
 
   // --- Users (product accounts, linked back to a subset of people) ----
 
+  // Demo-only credential, shared by every seeded account, so login can be
+  // exercised locally without a real signup. Never used outside this script.
+  const DEMO_PASSWORD = "acme-demo-password";
+  const demoPasswordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+
   const userSpecs = [
     { person: "Priya Shah", role: "owner" as const },
     { person: "Alex Kim", role: "admin" as const },
@@ -190,6 +196,7 @@ async function main() {
         organizationId: org.id,
         email: personByName.get(spec.person)!.email,
         name: spec.person,
+        passwordHash: demoPasswordHash,
         role: spec.role,
       })),
     )
@@ -200,7 +207,9 @@ async function main() {
       .set({ userId: userRow.id })
       .where(eq(people.email, userRow.email));
   }
-  console.log(`Created ${userRows.length} users`);
+  console.log(
+    `Created ${userRows.length} users (log in with workspace "acme", any of their emails, password "${DEMO_PASSWORD}")`,
+  );
 
   // --- Technologies and tools (flat catalogs) --------------------------
 

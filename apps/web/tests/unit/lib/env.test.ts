@@ -1,11 +1,14 @@
 import { envSchema } from "@/lib/env";
 
+const AUTH_SECRET = "a".repeat(32);
+
 describe("envSchema", () => {
-  it("accepts a valid DATABASE_URL and REDIS_URL", () => {
+  it("accepts a valid DATABASE_URL, REDIS_URL and AUTH_SECRET", () => {
     const result = envSchema.safeParse({
       NODE_ENV: "test",
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
       REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
     });
 
     expect(result.success).toBe(true);
@@ -15,6 +18,7 @@ describe("envSchema", () => {
     const result = envSchema.safeParse({
       NODE_ENV: "test",
       REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
     });
 
     expect(result.success).toBe(false);
@@ -25,6 +29,18 @@ describe("envSchema", () => {
       NODE_ENV: "test",
       DATABASE_URL: "not-a-url",
       REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an AUTH_SECRET shorter than 32 characters", () => {
+    const result = envSchema.safeParse({
+      NODE_ENV: "test",
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET: "too-short",
     });
 
     expect(result.success).toBe(false);
@@ -34,6 +50,7 @@ describe("envSchema", () => {
     const result = envSchema.safeParse({
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
       REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
     });
 
     expect(result.success).toBe(true);

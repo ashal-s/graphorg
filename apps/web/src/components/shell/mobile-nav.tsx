@@ -14,7 +14,7 @@ import {
 import { SidebarNav } from "@/components/shell/sidebar-nav";
 import { WorkspaceSwitcher } from "@/components/shell/workspace-switcher";
 
-export function MobileNav() {
+export function MobileNav({ workspaceName }: { workspaceName: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -36,7 +36,7 @@ export function MobileNav() {
           <SheetTitle>GraphOrg</SheetTitle>
         </SheetHeader>
         <div className="px-3 py-4">
-          <WorkspaceSwitcher />
+          <WorkspaceSwitcher workspaceName={workspaceName} />
         </div>
         <div className="px-3">
           <SidebarNav onNavigate={() => setOpen(false)} />

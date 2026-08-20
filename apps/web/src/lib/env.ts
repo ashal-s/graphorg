@@ -6,6 +6,7 @@ export const envSchema = z.object({
     .default("development"),
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
+  AUTH_SECRET: z.string().min(32),
 });
 
 export type Env = z.infer<typeof envSchema>;

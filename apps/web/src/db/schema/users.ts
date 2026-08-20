@@ -5,8 +5,13 @@ import { id, organizationId, timestamps } from "./_columns";
 import { organizations } from "./organizations";
 
 /**
- * Product accounts. WEB-133 adds Auth.js sessions and enforces `role` on top
- * of this table; this is just the schema and tenant boundary.
+ * Product accounts. `(organization_id, email)` is the natural key: the same
+ * email can exist in more than one organization as separate rows (each with
+ * its own password), the same way the same person could have separate
+ * accounts on separate Slack workspaces, there's no single cross-org
+ * identity. Auth.js (WEB-133) authenticates against `password_hash` with a
+ * Credentials provider and issues a JWT carrying this row's id, role and
+ * organization_id.
  */
 export const users = pgTable(
   "users",
@@ -15,6 +20,7 @@ export const users = pgTable(
     organizationId: organizationId(),
     email: text("email").notNull(),
     name: text("name").notNull(),
+    passwordHash: text("password_hash").notNull(),
     role: text("role", { enum: ["owner", "admin", "editor", "viewer"] })
       .notNull()
       .default("viewer"),
