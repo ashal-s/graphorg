@@ -33,7 +33,5 @@ declare module "next-auth/jwt" {
     organizationName: string;
     organizationSlug: string;
     role: Role;
-    /** Epoch ms the jwt callback last re-checked organizationName/organizationSlug against the database. */
-    organizationRefreshedAt: number;
   }
 }

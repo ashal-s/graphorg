@@ -11,6 +11,7 @@ import {
   jsonValidationError,
   readJsonBody,
   requireNonEmptyPatch,
+  requireUuidParam,
 } from "@/lib/api/http";
 import {
   CircularManagerError,
@@ -32,6 +33,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   if (!session) return jsonError(401, "Unauthorized");
 
   const { id } = await params;
+  const idError = requireUuidParam(id);
+  if (idError) return idError;
+
   const db = getDb();
   const person = await db.query.people.findFirst({
     where: and(
@@ -54,6 +58,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!hasRole(session.role, "editor")) return jsonError(403, "Forbidden");
 
   const { id } = await params;
+  const idError = requireUuidParam(id);
+  if (idError) return idError;
+
   const db = getDb();
   const existing = await db.query.people.findFirst({
     where: and(
@@ -171,6 +178,9 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   if (!hasRole(session.role, "editor")) return jsonError(403, "Forbidden");
 
   const { id } = await params;
+  const idError = requireUuidParam(id);
+  if (idError) return idError;
+
   const db = getDb();
   const existing = await db.query.people.findFirst({
     where: and(
