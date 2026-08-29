@@ -11,6 +11,13 @@ import { Textarea } from "@/components/ui/textarea";
 export interface WorkflowStepDraft {
   /** Client-only React key; never sent to the API. */
   key: string;
+  /**
+   * step_order is intentionally non-unique in this schema (ties and gaps
+   * are valid, documented input, not legacy noise), so it's preserved as
+   * loaded rather than re-derived from array position on every save. Only
+   * `move` below changes it, by swapping it between the two moved slots.
+   */
+  stepOrder: number;
   kind: "condition" | "action";
   type: string;
   /**
@@ -60,17 +67,34 @@ export function StepListEditor({
   function move(index: number, direction: -1 | 1) {
     const target = index + direction;
     if (target < 0 || target >= steps.length) return;
+    const a = steps[index]!;
+    const b = steps[target]!;
+    // Swaps content between the two positions while each position keeps its
+    // own stepOrder: this is the one edit allowed to change stepOrder, and
+    // only for the two steps actually being moved, not a renumbering of the
+    // whole list. For two tied steps (equal stepOrder), this still moves
+    // them locally but is a no-op on save, since there's no order between
+    // ties to persist in the first place.
     const next = [...steps];
-    const [item] = next.splice(index, 1);
-    if (!item) return;
-    next.splice(target, 0, item);
+    next[index] = { ...b, stepOrder: a.stepOrder, key: a.key };
+    next[target] = { ...a, stepOrder: b.stepOrder, key: b.key };
     onChange(next);
   }
 
   function add(kind: "condition" | "action") {
+    const maxOrder = steps.reduce(
+      (max, step) => Math.max(max, step.stepOrder),
+      -1,
+    );
     onChange([
       ...steps,
-      { key: crypto.randomUUID(), kind, type: "", configText: "{}" },
+      {
+        key: crypto.randomUUID(),
+        stepOrder: maxOrder + 1,
+        kind,
+        type: "",
+        configText: "{}",
+      },
     ]);
   }
 

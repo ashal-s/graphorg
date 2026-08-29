@@ -70,6 +70,12 @@ function stepsFromDetail(steps: WorkflowDetail["steps"]): WorkflowStepDraft[] {
     .sort((a, b) => a.stepOrder - b.stepOrder)
     .map((step) => ({
       key: step.id,
+      // Preserved as-is unless the user explicitly reorders (StepListEditor
+      // swaps this between two slots on a move): step_order is intentionally
+      // non-unique and can be tied or non-contiguous (see src/db/README.md),
+      // so re-deriving it from array position on every save would silently
+      // renumber a deliberately tied or gapped sequence into 0..n-1.
+      stepOrder: step.stepOrder,
       kind: step.kind,
       type: step.type,
       // Round-trips the step's full config, not just a field or two this UI
@@ -112,6 +118,13 @@ export function WorkflowBuilder({
       ? workflow.triggerConfig.cron
       : "",
   );
+  // The entityType/cron fields above are the only pieces of triggerConfig
+  // this UI knows how to edit, but the column is deliberately freeform
+  // jsonb: a workflow created via the API (or by another tool) can carry
+  // other fields, like a schedule's timezone or an entity trigger's filter.
+  // Kept fixed at the value loaded on mount and merged back in on submit,
+  // so saving an unrelated edit never silently drops those extra fields.
+  const [originalTriggerConfig] = useState(workflow?.triggerConfig ?? {});
   const [status, setStatus] = useState<WorkflowStatus>(
     workflow?.status ?? "draft",
   );
@@ -184,19 +197,20 @@ export function WorkflowBuilder({
         config = parsed as Record<string, unknown>;
       }
       parsedSteps.push({
-        stepOrder: index,
+        stepOrder: step.stepOrder,
         kind: step.kind,
         type: step.type.trim(),
         config,
       });
     }
 
-    const triggerConfig: Record<string, unknown> =
+    const triggerConfigOverlay: Record<string, unknown> =
       triggerType === "entity_created" || triggerType === "entity_updated"
         ? { entityType }
         : triggerType === "scheduled"
           ? { cron: cron.trim() }
           : {};
+    const triggerConfig = { ...originalTriggerConfig, ...triggerConfigOverlay };
 
     const payload = {
       name: name.trim(),
