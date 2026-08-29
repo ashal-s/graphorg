@@ -1,14 +1,21 @@
 /**
  * @jest-environment node
  */
+import { NextRequest } from "next/server";
+
 import { teams } from "@/db/schema";
-import { GET } from "@/app/api/teams/route";
+import { GET, POST } from "@/app/api/teams/route";
 
 // jest.mock's specifier is a plain string argument, not an import statement,
 // so Next's SWC path-alias rewrite never touches it — it must be relative.
 const findManyMock = jest.fn();
+const returningMock = jest.fn();
+const valuesMock = jest.fn(() => ({ returning: returningMock }));
 jest.mock("../../../src/db", () => ({
-  getDb: () => ({ query: { teams: { findMany: findManyMock } } }),
+  getDb: () => ({
+    query: { teams: { findMany: findManyMock } },
+    insert: () => ({ values: valuesMock }),
+  }),
 }));
 
 const getSessionMock = jest.fn();
@@ -26,24 +33,35 @@ jest.mock("drizzle-orm", () => ({
   eq: (...args: unknown[]) => eqSpy(...args),
 }));
 
-const session = (organizationId: string) => ({
+const session = (
+  organizationId: string,
+  role: "viewer" | "editor" = "editor",
+) => ({
   userId: "user-1",
   organizationId,
   organizationName: organizationId,
   organizationSlug: organizationId,
-  role: "viewer" as const,
+  role,
   name: "Test",
   email: "test@example.com",
 });
 
+function getRequest(query = "") {
+  return new NextRequest(`http://localhost/api/teams${query}`);
+}
+
+function postRequest(body: unknown) {
+  return new NextRequest("http://localhost/api/teams", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 /**
- * Structural checks on the route handler's authorization logic, mocking the
- * db and session (no live database — same boundary as
- * tests/unit/db/schema.test.ts, live-DB integration testing is WEB-135's
- * job). This is what "automated tests cover cross-tenant access attempts"
- * means for this ticket: the handler rejects signed-out requests before
- * touching the database, and always scopes its query by the caller's *own*
- * organization_id, never a hardcoded or unrelated one.
+ * Same shape of coverage as tests/unit/api/systems.test.ts: rejects
+ * unauthenticated access before touching the database, and always scopes by
+ * the caller's own organization_id. A live-DB integration suite (real
+ * pagination behavior against real rows) is WEB-135's job.
  */
 describe("GET /api/teams", () => {
   beforeEach(() => {
@@ -55,7 +73,7 @@ describe("GET /api/teams", () => {
   it("rejects unauthenticated requests without querying the database", async () => {
     getSessionMock.mockResolvedValue(null);
 
-    const response = await GET();
+    const response = await GET(getRequest());
 
     expect(response.status).toBe(401);
     expect(findManyMock).not.toHaveBeenCalled();
@@ -64,7 +82,7 @@ describe("GET /api/teams", () => {
   it("scopes the query by the caller's own organization_id", async () => {
     getSessionMock.mockResolvedValue(session("org-a"));
 
-    const response = await GET();
+    const response = await GET(getRequest());
 
     expect(response.status).toBe(200);
     expect(eqSpy).toHaveBeenCalledWith(teams.organizationId, "org-a");
@@ -73,9 +91,70 @@ describe("GET /api/teams", () => {
   it("scopes a different caller by their own organization_id, not another's", async () => {
     getSessionMock.mockResolvedValue(session("org-b"));
 
-    await GET();
+    await GET(getRequest());
 
     expect(eqSpy).toHaveBeenCalledWith(teams.organizationId, "org-b");
     expect(eqSpy).not.toHaveBeenCalledWith(teams.organizationId, "org-a");
+  });
+
+  it("rejects a limit outside 1-100 without querying the database", async () => {
+    getSessionMock.mockResolvedValue(session("org-a"));
+
+    const response = await GET(getRequest("?limit=0"));
+
+    expect(response.status).toBe(400);
+    expect(findManyMock).not.toHaveBeenCalled();
+  });
+
+  it("returns a page shape with items and nextCursor", async () => {
+    getSessionMock.mockResolvedValue(session("org-a"));
+    findManyMock.mockResolvedValue([{ id: "1", name: "Payments" }]);
+
+    const response = await GET(getRequest());
+    const body = await response.json();
+
+    expect(body).toEqual({
+      items: [{ id: "1", name: "Payments" }],
+      nextCursor: null,
+    });
+  });
+});
+
+describe("POST /api/teams", () => {
+  beforeEach(() => {
+    valuesMock.mockClear();
+    returningMock
+      .mockReset()
+      .mockResolvedValue([{ id: "team-1", name: "Payments" }]);
+    getSessionMock.mockReset();
+  });
+
+  it("rejects unauthenticated requests without touching the database", async () => {
+    getSessionMock.mockResolvedValue(null);
+
+    const response = await POST(postRequest({ name: "Payments" }));
+
+    expect(response.status).toBe(401);
+    expect(valuesMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a viewer (below the editor role required to write)", async () => {
+    getSessionMock.mockResolvedValue(session("org-a", "viewer"));
+
+    const response = await POST(postRequest({ name: "Payments" }));
+
+    expect(response.status).toBe(403);
+    expect(valuesMock).not.toHaveBeenCalled();
+  });
+
+  it("inserts scoped to the caller's own organization_id", async () => {
+    getSessionMock.mockResolvedValue(session("org-a"));
+
+    const response = await POST(postRequest({ name: "Payments" }));
+
+    expect(response.status).toBe(201);
+    expect(valuesMock).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Payments", organizationId: "org-a" }),
+    );
   });
 });
