@@ -10,7 +10,13 @@ import {
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation } from "@/lib/api/db-errors";
-import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
+import {
+  jsonError,
+  jsonValidationError,
+  readJsonBody,
+  requireNonEmptyPatch,
+  requireUuidParam,
+} from "@/lib/api/http";
 import {
   findCyclicDependencies,
   loadDependencyGraph,
@@ -30,6 +36,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   if (!session) return jsonError(401, "Unauthorized");
 
   const { id } = await params;
+  const idError = requireUuidParam(id);
+  if (idError) return idError;
+
   const detail = await fetchServiceDetail(session.organizationId, id);
   if (!detail) return jsonError(404, "Service not found");
 
@@ -42,6 +51,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!hasRole(session.role, "editor")) return jsonError(403, "Forbidden");
 
   const { id } = await params;
+  const idError = requireUuidParam(id);
+  if (idError) return idError;
+
   const db = getDb();
   const existing = await db.query.services.findFirst({
     where: and(
@@ -54,6 +66,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const parsed = updateServiceSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
+  const emptyPatchError = requireNonEmptyPatch(parsed.data);
+  if (emptyPatchError) return emptyPatchError;
   const { technologyIds, dependsOnServiceIds, ...values } = parsed.data;
 
   const refError = await validateServiceRefs(session.organizationId, {
@@ -130,6 +144,9 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   if (!hasRole(session.role, "editor")) return jsonError(403, "Forbidden");
 
   const { id } = await params;
+  const idError = requireUuidParam(id);
+  if (idError) return idError;
+
   const db = getDb();
   const existing = await db.query.services.findFirst({
     where: and(

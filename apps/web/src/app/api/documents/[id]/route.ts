@@ -5,7 +5,13 @@ import { getDb } from "@/db";
 import { documents, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
-import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
+import {
+  jsonError,
+  jsonValidationError,
+  readJsonBody,
+  requireNonEmptyPatch,
+  requireUuidParam,
+} from "@/lib/api/http";
 import { findMissingInOrg } from "@/lib/api/org-refs";
 
 import { createDocumentSchema } from "../schema";
@@ -21,6 +27,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   if (!session) return jsonError(401, "Unauthorized");
 
   const { id } = await params;
+  const idError = requireUuidParam(id);
+  if (idError) return idError;
+
   const db = getDb();
   const row = await db.query.documents.findFirst({
     where: and(
@@ -40,6 +49,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!hasRole(session.role, "editor")) return jsonError(403, "Forbidden");
 
   const { id } = await params;
+  const idError = requireUuidParam(id);
+  if (idError) return idError;
+
   const db = getDb();
   const existing = await db.query.documents.findFirst({
     where: and(
@@ -52,6 +64,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const parsed = updateDocumentSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
+  const emptyPatchError = requireNonEmptyPatch(parsed.data);
+  if (emptyPatchError) return emptyPatchError;
 
   if (parsed.data.ownerTeamId) {
     const missing = await findMissingInOrg(
@@ -82,6 +96,9 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   if (!hasRole(session.role, "editor")) return jsonError(403, "Forbidden");
 
   const { id } = await params;
+  const idError = requireUuidParam(id);
+  if (idError) return idError;
+
   const db = getDb();
   const existing = await db.query.documents.findFirst({
     where: and(

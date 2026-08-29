@@ -13,6 +13,27 @@ import { loginSchema } from "@/lib/auth/schemas";
  * A workspace (organization) is identified by its slug, not guessed from
  * email, since `(organization_id, email)` is the unique key on `users` and
  * the same email can exist in more than one organization.
+ *
+ * `organizationName`/`organizationSlug` are set once, at sign-in, and are
+ * NOT re-checked against the database on later requests: `getSession()`
+ * (src/lib/auth/session.ts) always calls the zero-argument `auth()` form,
+ * which — per next-auth's own `lib/index.js` — discards any Set-Cookie the
+ * `jwt` callback's return value would imply, since a React Server Component
+ * (and, transitively, this codebase's Route Handlers, which reuse the same
+ * `getSession()`) has no response to attach it to. A `jwt` callback that
+ * "refreshes" these claims by mutating and returning the token therefore
+ * cannot actually persist that change to the browser's cookie; it only
+ * looks like it works if tested against next-auth's own built-in
+ * `/api/auth/session` route (which does have real request/response
+ * handling), while every other caller keeps re-deriving from the original,
+ * unchanged cookie — which, worse, makes a "TTL-bounded" refresh silently
+ * degrade into a database lookup on every request once the TTL has passed,
+ * since the cookie's own "last refreshed" marker can never advance either.
+ * Consequence: after `PATCH /api/organization` renames the workspace,
+ * already-signed-in members see the old name/slug until they sign out and
+ * back in. Fixing that for real needs either cookie-writing middleware on
+ * every request or a server-side session store (e.g. Redis, WEB-134), not
+ * a JWT-callback-only change — out of scope here.
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
