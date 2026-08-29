@@ -2,20 +2,31 @@ import { and, eq } from "drizzle-orm";
 import type { NextResponse } from "next/server";
 
 import { getDb } from "@/db";
-import { repositories, services, systems, teams, technologies } from "@/db/schema";
+import {
+  repositories,
+  services,
+  systems,
+  teams,
+  technologies,
+} from "@/db/schema";
 import { jsonError } from "@/lib/api/http";
 import { findMissingInOrg } from "@/lib/api/org-refs";
 
 /** A service with its owner, system, repository, tech stack and direct dependencies resolved. */
 export async function fetchServiceDetail(organizationId: string, id: string) {
   const row = await getDb().query.services.findFirst({
-    where: and(eq(services.id, id), eq(services.organizationId, organizationId)),
+    where: and(
+      eq(services.id, id),
+      eq(services.organizationId, organizationId),
+    ),
     with: {
       system: { columns: { id: true, name: true } },
       repository: { columns: { id: true, name: true, url: true } },
       ownerTeam: { columns: { id: true, name: true } },
       technologies: {
-        with: { technology: { columns: { id: true, name: true, category: true } } },
+        with: {
+          technology: { columns: { id: true, name: true, category: true } },
+        },
       },
       dependencies: {
         with: { dependsOnService: { columns: { id: true, name: true } } },
@@ -24,7 +35,11 @@ export async function fetchServiceDetail(organizationId: string, id: string) {
   });
   if (!row) return null;
 
-  const { technologies: techLinks, dependencies: dependencyLinks, ...service } = row;
+  const {
+    technologies: techLinks,
+    dependencies: dependencyLinks,
+    ...service
+  } = row;
   return {
     ...service,
     technologies: techLinks.map((link) => link.technology),
@@ -57,7 +72,10 @@ export async function validateServiceRefs(
       [refs.systemId],
     );
     if (missing.length > 0) {
-      return jsonError(400, "systemId does not reference a system in this organization");
+      return jsonError(
+        400,
+        "systemId does not reference a system in this organization",
+      );
     }
   }
 
@@ -84,7 +102,10 @@ export async function validateServiceRefs(
       [refs.ownerTeamId],
     );
     if (missing.length > 0) {
-      return jsonError(400, "ownerTeamId does not reference a team in this organization");
+      return jsonError(
+        400,
+        "ownerTeamId does not reference a team in this organization",
+      );
     }
   }
 

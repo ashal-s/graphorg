@@ -31,7 +31,10 @@ jest.mock("drizzle-orm", () => ({
   eq: (...args: unknown[]) => eqSpy(...args),
 }));
 
-const session = (organizationId: string, role: "viewer" | "editor" = "editor") => ({
+const session = (
+  organizationId: string,
+  role: "viewer" | "editor" = "editor",
+) => ({
   userId: "user-1",
   organizationId,
   organizationName: organizationId,
@@ -84,7 +87,9 @@ describe("GET /api/systems", () => {
 describe("POST /api/systems", () => {
   beforeEach(() => {
     valuesMock.mockClear();
-    returningMock.mockReset().mockResolvedValue([{ id: "system-1", name: "Checkout" }]);
+    returningMock
+      .mockReset()
+      .mockResolvedValue([{ id: "system-1", name: "Checkout" }]);
     getSessionMock.mockReset();
     eqSpy.mockClear();
   });

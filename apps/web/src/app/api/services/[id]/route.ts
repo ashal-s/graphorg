@@ -2,7 +2,11 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import { serviceDependencies, serviceTechnologies, services } from "@/db/schema";
+import {
+  serviceDependencies,
+  serviceTechnologies,
+  services,
+} from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation } from "@/lib/api/db-errors";
@@ -40,7 +44,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const db = getDb();
   const existing = await db.query.services.findFirst({
-    where: and(eq(services.id, id), eq(services.organizationId, session.organizationId)),
+    where: and(
+      eq(services.id, id),
+      eq(services.organizationId, session.organizationId),
+    ),
     columns: { id: true },
   });
   if (!existing) return jsonError(404, "Service not found");
@@ -83,9 +90,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           .delete(serviceTechnologies)
           .where(eq(serviceTechnologies.serviceId, id));
         if (technologyIds.length > 0) {
-          await tx
-            .insert(serviceTechnologies)
-            .values(technologyIds.map((technologyId) => ({ serviceId: id, technologyId })));
+          await tx.insert(serviceTechnologies).values(
+            technologyIds.map((technologyId) => ({
+              serviceId: id,
+              technologyId,
+            })),
+          );
         }
       }
 
@@ -122,7 +132,10 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const db = getDb();
   const existing = await db.query.services.findFirst({
-    where: and(eq(services.id, id), eq(services.organizationId, session.organizationId)),
+    where: and(
+      eq(services.id, id),
+      eq(services.organizationId, session.organizationId),
+    ),
     columns: { id: true },
   });
   if (!existing) return jsonError(404, "Service not found");

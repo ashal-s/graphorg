@@ -24,7 +24,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const db = getDb();
   const row = await db.query.systems.findFirst({
-    where: and(eq(systems.id, id), eq(systems.organizationId, session.organizationId)),
+    where: and(
+      eq(systems.id, id),
+      eq(systems.organizationId, session.organizationId),
+    ),
     with: { ownerTeam: { columns: { id: true, name: true } } },
   });
   if (!row) return jsonError(404, "System not found");
@@ -40,7 +43,10 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const db = getDb();
   const existing = await db.query.systems.findFirst({
-    where: and(eq(systems.id, id), eq(systems.organizationId, session.organizationId)),
+    where: and(
+      eq(systems.id, id),
+      eq(systems.organizationId, session.organizationId),
+    ),
     columns: { id: true },
   });
   if (!existing) return jsonError(404, "System not found");
@@ -86,7 +92,10 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
   const db = getDb();
   const existing = await db.query.systems.findFirst({
-    where: and(eq(systems.id, id), eq(systems.organizationId, session.organizationId)),
+    where: and(
+      eq(systems.id, id),
+      eq(systems.organizationId, session.organizationId),
+    ),
     columns: { id: true },
   });
   if (!existing) return jsonError(404, "System not found");

@@ -53,7 +53,11 @@ export async function POST(request: NextRequest) {
   try {
     const [row] = await db
       .insert(systems)
-      .values({ ...values, ownerTeamId, organizationId: session.organizationId })
+      .values({
+        ...values,
+        ownerTeamId,
+        organizationId: session.organizationId,
+      })
       .returning();
     return NextResponse.json({ system: row }, { status: 201 });
   } catch (error) {
