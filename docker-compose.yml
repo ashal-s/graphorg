@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: graphorg
+      POSTGRES_PASSWORD: graphorg
+      POSTGRES_DB: graphorg
+    ports:
+      # Host port 5433, not 5432: many dev machines already have a local
+      # Postgres bound to 5432 (Homebrew, Postgres.app, another project's
+      # Docker stack, ...), and this avoids colliding with it.
+      - "5433:5432"
+    volumes:
+      - graphorg-postgres:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - graphorg-redis:/data
+
+volumes:
+  graphorg-postgres:
+  graphorg-redis:
