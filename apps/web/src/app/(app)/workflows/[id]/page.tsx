@@ -9,6 +9,7 @@ import {
 } from "@/components/workflows/workflow-builder";
 import { getDb } from "@/db";
 import { people } from "@/db/schema";
+import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 
 interface PageProps {
@@ -17,6 +18,7 @@ interface PageProps {
 
 export default async function WorkflowDetailPage({ params }: PageProps) {
   const session = await requireSession();
+  const readOnly = !hasRole(session.role, "editor");
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) notFound();
 
@@ -38,14 +40,14 @@ export default async function WorkflowDetailPage({ params }: PageProps) {
           {workflow.name}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Edit this workflow&apos;s trigger, steps, and who&apos;s
-          responsible.
+          Edit this workflow&apos;s trigger, steps, and who&apos;s responsible.
         </p>
       </div>
       <WorkflowBuilder
         mode="edit"
         workflow={workflow as unknown as WorkflowDetail}
         people={directory}
+        readOnly={readOnly}
       />
     </div>
   );

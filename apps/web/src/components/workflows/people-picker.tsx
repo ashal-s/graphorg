@@ -36,11 +36,13 @@ export function PeoplePicker({
   people,
   selectedIds,
   onChange,
+  readOnly = false,
 }: {
   label: string;
   people: WorkflowPersonOption[];
   selectedIds: string[];
   onChange: (ids: string[]) => void;
+  readOnly?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const selected = people.filter((person) => selectedIds.includes(person.id));
@@ -70,82 +72,91 @@ export function PeoplePicker({
         {selected.map((person) => (
           <Badge key={person.id} variant="secondary" className="gap-1 pr-1">
             {person.name}
-            <button
-              type="button"
-              onClick={() => toggle(person.id)}
-              aria-label={`Remove ${person.name} from ${label.toLowerCase()}`}
-              className="rounded-full p-0.5 hover:bg-foreground/10"
-            >
-              <X className="size-3" />
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => toggle(person.id)}
+                aria-label={`Remove ${person.name} from ${label.toLowerCase()}`}
+                className="rounded-full p-0.5 hover:bg-foreground/10"
+              >
+                <X className="size-3" />
+              </button>
+            )}
           </Badge>
         ))}
       </div>
-      <Sheet>
-        <SheetTrigger
-          render={
-            <Button type="button" variant="outline" size="sm" className="w-fit" />
-          }
-        >
-          <UserPlus aria-hidden="true" />
-          Add {label.toLowerCase()}
-        </SheetTrigger>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>{label}</SheetTitle>
-            <SheetDescription>
-              Choose who from the directory should be {label.toLowerCase()} on
-              this workflow.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="flex min-h-0 flex-1 flex-col gap-3 px-4">
-            <Input
-              placeholder="Search by name or email"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-            <div className="flex-1 space-y-1 overflow-y-auto">
-              {filtered.length === 0 && (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  No matching people.
-                </p>
-              )}
-              {filtered.map((person) => {
-                const isSelected = selectedIds.includes(person.id);
-                return (
-                  <button
-                    key={person.id}
-                    type="button"
-                    onClick={() => toggle(person.id)}
-                    aria-pressed={isSelected}
-                    className={cn(
-                      "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-muted",
-                      isSelected && "bg-muted",
-                    )}
-                  >
-                    <span>
-                      <span className="block font-medium">{person.name}</span>
-                      <span className="block text-xs text-muted-foreground">
-                        {person.email}
-                        {person.title ? ` · ${person.title}` : ""}
+      {!readOnly && (
+        <Sheet>
+          <SheetTrigger
+            render={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit"
+              />
+            }
+          >
+            <UserPlus aria-hidden="true" />
+            Add {label.toLowerCase()}
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>{label}</SheetTitle>
+              <SheetDescription>
+                Choose who from the directory should be {label.toLowerCase()} on
+                this workflow.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="flex min-h-0 flex-1 flex-col gap-3 px-4">
+              <Input
+                placeholder="Search by name or email"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+              <div className="flex-1 space-y-1 overflow-y-auto">
+                {filtered.length === 0 && (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    No matching people.
+                  </p>
+                )}
+                {filtered.map((person) => {
+                  const isSelected = selectedIds.includes(person.id);
+                  return (
+                    <button
+                      key={person.id}
+                      type="button"
+                      onClick={() => toggle(person.id)}
+                      aria-pressed={isSelected}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-muted",
+                        isSelected && "bg-muted",
+                      )}
+                    >
+                      <span>
+                        <span className="block font-medium">{person.name}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {person.email}
+                          {person.title ? ` · ${person.title}` : ""}
+                        </span>
                       </span>
-                    </span>
-                    {isSelected && (
-                      <Check
-                        className="size-4 shrink-0 text-primary"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </button>
-                );
-              })}
+                      {isSelected && (
+                        <Check
+                          className="size-4 shrink-0 text-primary"
+                          aria-hidden="true"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-          <SheetFooter>
-            <SheetClose render={<Button type="button" />}>Done</SheetClose>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+            <SheetFooter>
+              <SheetClose render={<Button type="button" />}>Done</SheetClose>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }

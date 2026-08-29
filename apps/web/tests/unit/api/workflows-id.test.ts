@@ -11,7 +11,9 @@ const findFirstMock = jest.fn();
 const updateWhereMock = jest.fn().mockResolvedValue(undefined);
 const setMock = jest.fn(() => ({ where: updateWhereMock }));
 const updateMock = jest.fn(() => ({ set: setMock }));
-const insertMock = jest.fn(() => ({ values: jest.fn().mockResolvedValue(undefined) }));
+const insertMock = jest.fn(() => ({
+  values: jest.fn().mockResolvedValue(undefined),
+}));
 const txDeleteWhereMock = jest.fn().mockResolvedValue(undefined);
 const txDeleteMock = jest.fn(() => ({ where: txDeleteWhereMock }));
 const transactionMock = jest.fn(
@@ -21,12 +23,15 @@ const transactionMock = jest.fn(
       insert: typeof insertMock;
       delete: typeof txDeleteMock;
     }) => Promise<unknown>,
-  ) => callback({ update: updateMock, insert: insertMock, delete: txDeleteMock }),
+  ) =>
+    callback({ update: updateMock, insert: insertMock, delete: txDeleteMock }),
 );
 const dbDeleteWhereMock = jest.fn().mockResolvedValue(undefined);
 const dbDeleteMock = jest.fn(() => ({ where: dbDeleteWhereMock }));
 const selectWhereMock = jest.fn().mockResolvedValue([]);
-const selectMock = jest.fn(() => ({ from: () => ({ where: selectWhereMock }) }));
+const selectMock = jest.fn(() => ({
+  from: () => ({ where: selectWhereMock }),
+}));
 
 jest.mock("../../../src/db", () => ({
   getDb: () => ({
@@ -184,7 +189,10 @@ describe("PATCH /api/workflows/[id]", () => {
     getSessionMock.mockResolvedValue(session("org-a"));
     findFirstMock.mockResolvedValue({ id: VALID_ID });
 
-    const response = await PATCH(patchRequest(VALID_ID, {}), routeParams(VALID_ID));
+    const response = await PATCH(
+      patchRequest(VALID_ID, {}),
+      routeParams(VALID_ID),
+    );
 
     expect(response.status).toBe(400);
     expect(transactionMock).not.toHaveBeenCalled();

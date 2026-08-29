@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/states/empty-state";
 import { getDb } from "@/db";
 import { workflows } from "@/db/schema";
+import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
@@ -25,6 +26,7 @@ const TRIGGER_LABELS: Record<string, string> = {
 
 export default async function WorkflowsPage() {
   const session = await requireSession();
+  const canEdit = hasRole(session.role, "editor");
 
   const rows = await getDb().query.workflows.findMany({
     where: eq(workflows.organizationId, session.organizationId),
@@ -44,10 +46,12 @@ export default async function WorkflowsPage() {
             on a schedule.
           </p>
         </div>
-        <Button render={<Link href="/workflows/new" />}>
-          <Plus aria-hidden="true" />
-          New workflow
-        </Button>
+        {canEdit && (
+          <Button render={<Link href="/workflows/new" />} nativeButton={false}>
+            <Plus aria-hidden="true" />
+            New workflow
+          </Button>
+        )}
       </div>
 
       {rows.length === 0 ? (
@@ -59,11 +63,21 @@ export default async function WorkflowsPage() {
             />
           }
           title="No workflows yet"
-          description="Create your first workflow to document a trigger, its steps, and who's responsible."
+          description={
+            canEdit
+              ? "Create your first workflow to document a trigger, its steps, and who's responsible."
+              : "Nobody has created a workflow yet."
+          }
           action={
-            <Button size="sm" render={<Link href="/workflows/new" />}>
-              New workflow
-            </Button>
+            canEdit && (
+              <Button
+                size="sm"
+                render={<Link href="/workflows/new" />}
+                nativeButton={false}
+              >
+                New workflow
+              </Button>
+            )
           }
         />
       ) : (
@@ -78,9 +92,7 @@ export default async function WorkflowsPage() {
                   <CardContent className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="truncate font-medium">
-                          {workflow.name}
-                        </p>
+                        <p className="truncate font-medium">{workflow.name}</p>
                         <Badge
                           variant={STATUS_VARIANT[workflow.status] ?? "outline"}
                         >

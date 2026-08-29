@@ -6,13 +6,21 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export interface WorkflowStepDraft {
   /** Client-only React key; never sent to the API. */
   key: string;
   kind: "condition" | "action";
   type: string;
-  details: string;
+  /**
+   * Raw JSON text for the step's `config` object, edited as-is rather than
+   * through a fixed set of fields: `config`'s shape varies by `type` (a
+   * condition might need `field`/`days`, an action might need
+   * `channel`/`message`), and a UI that only understood one shape would
+   * silently drop whatever else was already there on every save.
+   */
+  configText: string;
 }
 
 const TYPE_SUGGESTIONS: Record<"condition" | "action", string[]> = {
@@ -33,9 +41,11 @@ const TYPE_SUGGESTIONS: Record<"condition" | "action", string[]> = {
 export function StepListEditor({
   steps,
   onChange,
+  readOnly = false,
 }: {
   steps: WorkflowStepDraft[];
   onChange: (steps: WorkflowStepDraft[]) => void;
+  readOnly?: boolean;
 }) {
   function update(index: number, patch: Partial<WorkflowStepDraft>) {
     onChange(
@@ -60,7 +70,7 @@ export function StepListEditor({
   function add(kind: "condition" | "action") {
     onChange([
       ...steps,
-      { key: crypto.randomUUID(), kind, type: "", details: "" },
+      { key: crypto.randomUUID(), kind, type: "", configText: "{}" },
     ]);
   }
 
@@ -68,8 +78,9 @@ export function StepListEditor({
     <div className="flex flex-col gap-3">
       {steps.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          No steps yet. Add a condition to gate the workflow, or an action for
-          it to take.
+          {readOnly
+            ? "No steps."
+            : "No steps yet. Add a condition to gate the workflow, or an action for it to take."}
         </p>
       )}
       <ol className="flex flex-col gap-2">
@@ -79,42 +90,46 @@ export function StepListEditor({
               <CardContent className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <Badge
-                    variant={step.kind === "condition" ? "outline" : "secondary"}
+                    variant={
+                      step.kind === "condition" ? "outline" : "secondary"
+                    }
                   >
                     {index + 1}.{" "}
                     {step.kind === "condition" ? "Condition" : "Action"}
                   </Badge>
-                  <div className="ml-auto flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      disabled={index === 0}
-                      onClick={() => move(index, -1)}
-                      aria-label="Move step up"
-                    >
-                      <ArrowUp aria-hidden="true" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      disabled={index === steps.length - 1}
-                      onClick={() => move(index, 1)}
-                      aria-label="Move step down"
-                    >
-                      <ArrowDown aria-hidden="true" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => remove(index)}
-                      aria-label="Remove step"
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </Button>
-                  </div>
+                  {!readOnly && (
+                    <div className="ml-auto flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={index === 0}
+                        onClick={() => move(index, -1)}
+                        aria-label="Move step up"
+                      >
+                        <ArrowUp aria-hidden="true" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={index === steps.length - 1}
+                        onClick={() => move(index, 1)}
+                        aria-label="Move step down"
+                      >
+                        <ArrowDown aria-hidden="true" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => remove(index)}
+                        aria-label="Remove step"
+                      >
+                        <Trash2 aria-hidden="true" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <div className="grid gap-2 sm:grid-cols-[1fr_2fr]">
                   <Input
@@ -129,14 +144,17 @@ export function StepListEditor({
                       update(index, { type: event.target.value })
                     }
                     aria-label={`Step ${index + 1} type`}
+                    disabled={readOnly}
                   />
-                  <Input
-                    placeholder="Details (optional)"
-                    value={step.details}
+                  <Textarea
+                    placeholder="{}"
+                    value={step.configText}
                     onChange={(event) =>
-                      update(index, { details: event.target.value })
+                      update(index, { configText: event.target.value })
                     }
-                    aria-label={`Step ${index + 1} details`}
+                    aria-label={`Step ${index + 1} config (JSON)`}
+                    disabled={readOnly}
+                    className="min-h-8 font-mono text-xs"
                   />
                 </div>
               </CardContent>
@@ -154,24 +172,26 @@ export function StepListEditor({
           <option key={suggestion} value={suggestion} />
         ))}
       </datalist>
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => add("condition")}
-        >
-          Add condition
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => add("action")}
-        >
-          Add action
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => add("condition")}
+          >
+            Add condition
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => add("action")}
+          >
+            Add action
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

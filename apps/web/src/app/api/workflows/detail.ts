@@ -17,7 +17,9 @@ export async function fetchWorkflowDetail(organizationId: string, id: string) {
       steps: { orderBy: (step, { asc }) => asc(step.stepOrder) },
       people: {
         with: {
-          person: { columns: { id: true, name: true, email: true, title: true } },
+          person: {
+            columns: { id: true, name: true, email: true, title: true },
+          },
         },
       },
     },

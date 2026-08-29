@@ -26,7 +26,10 @@ export async function GET() {
 
   const items = rows.map(({ people: peopleLinks, ...workflow }) => ({
     ...workflow,
-    people: peopleLinks.map((link) => ({ role: link.role, person: link.person })),
+    people: peopleLinks.map((link) => ({
+      role: link.role,
+      person: link.person,
+    })),
   }));
 
   return NextResponse.json({ workflows: items });

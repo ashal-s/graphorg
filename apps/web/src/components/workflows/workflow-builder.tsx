@@ -4,11 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,11 +26,7 @@ import {
   type WorkflowStepDraft,
 } from "@/components/workflows/step-list-editor";
 
-type TriggerType =
-  | "manual"
-  | "entity_created"
-  | "entity_updated"
-  | "scheduled";
+type TriggerType = "manual" | "entity_created" | "entity_updated" | "scheduled";
 type WorkflowStatus = "draft" | "active" | "archived";
 
 export interface WorkflowDetail {
@@ -80,8 +72,11 @@ function stepsFromDetail(steps: WorkflowDetail["steps"]): WorkflowStepDraft[] {
       key: step.id,
       kind: step.kind,
       type: step.type,
-      details:
-        typeof step.config.details === "string" ? step.config.details : "",
+      // Round-trips the step's full config, not just a field or two this UI
+      // understands, so saving an unrelated change (renaming the workflow,
+      // say) never silently drops structured data another tool (or the seed
+      // script) put in config.
+      configText: JSON.stringify(step.config ?? {}, null, 2),
     }));
 }
 
@@ -89,10 +84,16 @@ export function WorkflowBuilder({
   mode,
   workflow,
   people,
+  readOnly = false,
 }: {
   mode: "create" | "edit";
   workflow?: WorkflowDetail;
   people: WorkflowPersonOption[];
+  /** Viewers can see a workflow's detail page but can't write to it: the
+   * write API routes require the editor role, so a viewer submitting this
+   * form would always get a 403 anyway. Rendering the whole form disabled
+   * (rather than blocking the page) still lets a viewer read every field. */
+  readOnly?: boolean;
 }) {
   const router = useRouter();
 
@@ -127,6 +128,15 @@ export function WorkflowBuilder({
       .filter((assignment) => assignment.role === "worker")
       .map((assignment) => assignment.person.id),
   );
+  // The builder only exposes owner/worker pickers (creator isn't something
+  // anyone reassigns), but people is a full-replacement list on save: if
+  // creator assignments weren't carried through unchanged here, saving any
+  // other edit would silently wipe out who created the workflow.
+  const [creators] = useState(
+    (workflow?.people ?? []).filter(
+      (assignment) => assignment.role === "creator",
+    ),
+  );
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -145,6 +155,42 @@ export function WorkflowBuilder({
       return;
     }
 
+    const parsedSteps: {
+      stepOrder: number;
+      kind: "condition" | "action";
+      type: string;
+      config: Record<string, unknown>;
+    }[] = [];
+    for (let index = 0; index < steps.length; index++) {
+      const step = steps[index]!;
+      const text = step.configText.trim();
+      let config: Record<string, unknown> = {};
+      if (text.length > 0) {
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          setError(`Step ${index + 1}'s config must be valid JSON.`);
+          return;
+        }
+        if (
+          typeof parsed !== "object" ||
+          parsed === null ||
+          Array.isArray(parsed)
+        ) {
+          setError(`Step ${index + 1}'s config must be a JSON object.`);
+          return;
+        }
+        config = parsed as Record<string, unknown>;
+      }
+      parsedSteps.push({
+        stepOrder: index,
+        kind: step.kind,
+        type: step.type.trim(),
+        config,
+      });
+    }
+
     const triggerConfig: Record<string, unknown> =
       triggerType === "entity_created" || triggerType === "entity_updated"
         ? { entityType }
@@ -158,16 +204,12 @@ export function WorkflowBuilder({
       triggerType,
       triggerConfig,
       status,
-      steps: steps.map((step, index) => ({
-        stepOrder: index,
-        kind: step.kind,
-        type: step.type.trim(),
-        config:
-          step.details.trim().length > 0
-            ? { details: step.details.trim() }
-            : {},
-      })),
+      steps: parsedSteps,
       people: [
+        ...creators.map((assignment) => ({
+          personId: assignment.person.id,
+          role: "creator" as const,
+        })),
         ...ownerIds.map((personId) => ({ personId, role: "owner" as const })),
         ...workerIds.map((personId) => ({
           personId,
@@ -204,9 +246,7 @@ export function WorkflowBuilder({
 
   async function handleDelete() {
     if (!workflow) return;
-    if (
-      !window.confirm(`Delete "${workflow.name}"? This can't be undone.`)
-    ) {
+    if (!window.confirm(`Delete "${workflow.name}"? This can't be undone.`)) {
       return;
     }
 
@@ -227,6 +267,15 @@ export function WorkflowBuilder({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {readOnly && (
+        <Alert>
+          <AlertTitle>View-only</AlertTitle>
+          <AlertDescription>
+            You have viewer access, so this workflow can be viewed but not
+            changed.
+          </AlertDescription>
+        </Alert>
+      )}
       {error && (
         <Alert variant="destructive">
           <AlertTitle>Couldn&apos;t save</AlertTitle>
@@ -237,7 +286,9 @@ export function WorkflowBuilder({
       <Card>
         <CardHeader>
           <CardTitle>Details</CardTitle>
-          <CardDescription>What this workflow is and why it exists.</CardDescription>
+          <CardDescription>
+            What this workflow is and why it exists.
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
@@ -248,6 +299,7 @@ export function WorkflowBuilder({
               onChange={(event) => setName(event.target.value)}
               placeholder="e.g. New service onboarding"
               required
+              disabled={readOnly}
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -257,6 +309,7 @@ export function WorkflowBuilder({
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="What is this workflow for?"
+              disabled={readOnly}
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -268,6 +321,7 @@ export function WorkflowBuilder({
                 setStatus(event.target.value as WorkflowStatus)
               }
               className="max-w-48"
+              disabled={readOnly}
             >
               <option value="draft">Draft</option>
               <option value="active">Active</option>
@@ -292,6 +346,7 @@ export function WorkflowBuilder({
                 setTriggerType(event.target.value as TriggerType)
               }
               className="max-w-72"
+              disabled={readOnly}
             >
               {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -309,6 +364,7 @@ export function WorkflowBuilder({
                 value={entityType}
                 onChange={(event) => setEntityType(event.target.value)}
                 className="max-w-72"
+                disabled={readOnly}
               >
                 {ENTITY_TYPES.map((entity) => (
                   <option key={entity.value} value={entity.value}>
@@ -327,6 +383,7 @@ export function WorkflowBuilder({
                 onChange={(event) => setCron(event.target.value)}
                 placeholder="0 9 * * 1"
                 className="max-w-72"
+                disabled={readOnly}
               />
             </div>
           )}
@@ -341,7 +398,11 @@ export function WorkflowBuilder({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <StepListEditor steps={steps} onChange={setSteps} />
+          <StepListEditor
+            steps={steps}
+            onChange={setSteps}
+            readOnly={readOnly}
+          />
         </CardContent>
       </Card>
 
@@ -353,6 +414,12 @@ export function WorkflowBuilder({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
+          {creators.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Created by{" "}
+              {creators.map((assignment) => assignment.person.name).join(", ")}
+            </p>
+          )}
           <div className="flex flex-col gap-1.5">
             <Label>Owner</Label>
             <PeoplePicker
@@ -360,6 +427,7 @@ export function WorkflowBuilder({
               people={people}
               selectedIds={ownerIds}
               onChange={setOwnerIds}
+              readOnly={readOnly}
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -369,6 +437,7 @@ export function WorkflowBuilder({
               people={people}
               selectedIds={workerIds}
               onChange={setWorkerIds}
+              readOnly={readOnly}
             />
           </div>
         </CardContent>
@@ -376,18 +445,33 @@ export function WorkflowBuilder({
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex gap-2">
-          <Button type="submit" disabled={saving || deleting}>
-            {saving ? "Saving…" : mode === "create" ? "Create workflow" : "Save changes"}
-          </Button>
+          {!readOnly && (
+            <Button type="submit" disabled={saving || deleting}>
+              {saving
+                ? "Saving…"
+                : mode === "create"
+                  ? "Create workflow"
+                  : "Save changes"}
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"
-            render={<Link href={mode === "create" ? "/workflows" : `/workflows/${workflow?.id}`} />}
+            nativeButton={false}
+            render={
+              <Link
+                href={
+                  mode === "create"
+                    ? "/workflows"
+                    : `/workflows/${workflow?.id}`
+                }
+              />
+            }
           >
-            Cancel
+            {readOnly ? "Back" : "Cancel"}
           </Button>
         </div>
-        {mode === "edit" && (
+        {mode === "edit" && !readOnly && (
           <Button
             type="button"
             variant="destructive"
