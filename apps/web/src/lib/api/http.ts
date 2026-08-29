@@ -27,3 +27,16 @@ export async function readJsonBody(request: NextRequest): Promise<unknown> {
     return undefined;
   }
 }
+
+/**
+ * 400 if a successfully-parsed PATCH body has no keys at all (e.g. `{}`).
+ * Every field on a `.partial()` update schema is optional, so this is the
+ * one case zod itself accepts but the route still needs to reject: Drizzle's
+ * `update(...).set({})` throws a raw `"No values to set"` error rather than
+ * running a no-op update, which would otherwise surface as an unhandled 500.
+ */
+export function requireNonEmptyPatch(data: object): NextResponse | null {
+  return Object.keys(data).length === 0
+    ? jsonError(400, "request body must include at least one field to update")
+    : null;
+}

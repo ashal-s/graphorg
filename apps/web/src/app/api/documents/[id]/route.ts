@@ -5,7 +5,12 @@ import { getDb } from "@/db";
 import { documents, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
-import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
+import {
+  jsonError,
+  jsonValidationError,
+  readJsonBody,
+  requireNonEmptyPatch,
+} from "@/lib/api/http";
 import { findMissingInOrg } from "@/lib/api/org-refs";
 
 import { createDocumentSchema } from "../schema";
@@ -52,6 +57,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const parsed = updateDocumentSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
+  const emptyPatchError = requireNonEmptyPatch(parsed.data);
+  if (emptyPatchError) return emptyPatchError;
 
   if (parsed.data.ownerTeamId) {
     const missing = await findMissingInOrg(

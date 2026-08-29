@@ -10,7 +10,12 @@ import {
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation } from "@/lib/api/db-errors";
-import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
+import {
+  jsonError,
+  jsonValidationError,
+  readJsonBody,
+  requireNonEmptyPatch,
+} from "@/lib/api/http";
 import {
   findCyclicDependencies,
   loadDependencyGraph,
@@ -54,6 +59,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const parsed = updateServiceSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
+  const emptyPatchError = requireNonEmptyPatch(parsed.data);
+  if (emptyPatchError) return emptyPatchError;
   const { technologyIds, dependsOnServiceIds, ...values } = parsed.data;
 
   const refError = await validateServiceRefs(session.organizationId, {
