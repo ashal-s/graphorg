@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
@@ -13,6 +13,7 @@ import {
   requireNonEmptyPatch,
 } from "@/lib/api/http";
 import {
+  CircularManagerError,
   loadManagerChain,
   wouldCreateManagerCycle,
 } from "@/lib/api/manager-chain";
@@ -97,7 +98,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
   }
-
   if (managerId) {
     if (managerId === id) {
       return jsonError(400, "a person cannot manage themselves");
@@ -114,25 +114,46 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         "managerId does not reference a person in this organization",
       );
     }
-    const chain = await loadManagerChain(session.organizationId);
-    if (wouldCreateManagerCycle(chain, id, managerId)) {
-      return jsonError(
-        400,
-        "managerId would create a circular reporting chain (this person is already this manager's manager, directly or transitively)",
-      );
-    }
   }
 
   const patch = { ...values, teamId, managerId, userId };
 
   try {
-    const [person] = await db
-      .update(people)
-      .set(patch)
-      .where(eq(people.id, id))
-      .returning();
+    const person = await db.transaction(async (tx) => {
+      if (managerId) {
+        // Serializes concurrent managerId updates within this
+        // organization: without this, two concurrent requests (e.g. "set
+        // A's manager to B" and, at the same time, "set B's manager to A")
+        // could each load an acyclic snapshot via loadManagerChain, both
+        // pass wouldCreateManagerCycle, and commit a cycle between them.
+        // pg_advisory_xact_lock blocks until it can acquire the lock and
+        // releases it automatically at commit or rollback, so this only
+        // serializes other managerId-changing PATCHes on this org, not
+        // reads or unrelated field updates.
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(hashtext(${session.organizationId}))`,
+        );
+        const chain = await loadManagerChain(tx, session.organizationId);
+        if (wouldCreateManagerCycle(chain, id, managerId)) {
+          throw new CircularManagerError();
+        }
+      }
+
+      const [row] = await tx
+        .update(people)
+        .set(patch)
+        .where(eq(people.id, id))
+        .returning();
+      return row;
+    });
     return NextResponse.json({ person });
   } catch (error) {
+    if (error instanceof CircularManagerError) {
+      return jsonError(
+        400,
+        "managerId would create a circular reporting chain (this person is already this manager's manager, directly or transitively)",
+      );
+    }
     if (isUniqueViolation(error)) {
       const constraint = pgConstraintName(error);
       if (constraint?.includes("user_id")) {

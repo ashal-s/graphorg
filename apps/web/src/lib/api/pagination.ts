@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, or } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { jsonError } from "./http";
 
@@ -12,6 +13,13 @@ interface CursorValue {
   id: string;
 }
 
+// `id` is validated as a UUID, not just any string: every table's `id`
+// column this cursor gets compared against (`afterCursorPredicate`, via
+// `gt(idColumn, page.after.id)`) is a Postgres `uuid` column, and handing it
+// a non-UUID string would fail the query with an uncaught cast error instead
+// of the intended 400 "cursor is invalid" response.
+const cursorSchema = z.object({ name: z.string(), id: z.string().uuid() });
+
 /** Opaque, URL-safe cursor: base64 of `{ name, id }`, the keyset position. */
 function encodeCursor(value: CursorValue): string {
   return Buffer.from(JSON.stringify(value)).toString("base64url");
@@ -22,14 +30,8 @@ function decodeCursor(raw: string): CursorValue | null {
     const parsed: unknown = JSON.parse(
       Buffer.from(raw, "base64url").toString("utf8"),
     );
-    if (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      typeof (parsed as CursorValue).name === "string" &&
-      typeof (parsed as CursorValue).id === "string"
-    ) {
-      return parsed as CursorValue;
-    }
+    const result = cursorSchema.safeParse(parsed);
+    return result.success ? result.data : null;
   } catch {
     // Falls through to null below: an invalid cursor is a 400, not a crash.
   }

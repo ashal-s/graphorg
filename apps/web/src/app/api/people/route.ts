@@ -1,5 +1,6 @@
 import { and, eq, ilike, or } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
+import { z } from "zod";
 
 import { getDb } from "@/db";
 import { people, teams, users } from "@/db/schema";
@@ -25,8 +26,19 @@ export async function GET(request: NextRequest) {
   if (page instanceof NextResponse) return page;
 
   const q = request.nextUrl.searchParams.get("q");
-  const teamId = request.nextUrl.searchParams.get("teamId");
-  const managerId = request.nextUrl.searchParams.get("managerId");
+
+  const teamIdRaw = request.nextUrl.searchParams.get("teamId");
+  const teamId = teamIdRaw ? z.string().uuid().safeParse(teamIdRaw) : null;
+  if (teamId && !teamId.success)
+    return jsonError(400, "teamId is not a valid id");
+
+  const managerIdRaw = request.nextUrl.searchParams.get("managerId");
+  const managerId = managerIdRaw
+    ? z.string().uuid().safeParse(managerIdRaw)
+    : null;
+  if (managerId && !managerId.success) {
+    return jsonError(400, "managerId is not a valid id");
+  }
 
   const db = getDb();
   const rows = await db.query.people.findMany({
@@ -35,8 +47,8 @@ export async function GET(request: NextRequest) {
       q
         ? or(ilike(people.name, `%${q}%`), ilike(people.email, `%${q}%`))
         : undefined,
-      teamId ? eq(people.teamId, teamId) : undefined,
-      managerId ? eq(people.managerId, managerId) : undefined,
+      teamId ? eq(people.teamId, teamId.data) : undefined,
+      managerId ? eq(people.managerId, managerId.data) : undefined,
       afterCursorPredicate(people.name, people.id, page),
     ),
     orderBy: (row) => orderByNameThenId(row.name, row.id),

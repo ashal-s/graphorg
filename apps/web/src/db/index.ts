@@ -10,7 +10,7 @@ function createDb() {
   return drizzle(client, { schema, casing: "snake_case" });
 }
 
-type Database = ReturnType<typeof createDb>;
+export type Database = ReturnType<typeof createDb>;
 
 let _db: Database | null = null;
 

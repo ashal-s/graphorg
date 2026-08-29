@@ -36,11 +36,14 @@ describe("parsePageParams", () => {
     },
   );
 
+  const idA = "11111111-1111-4111-8111-111111111111";
+  const idB = "22222222-2222-4222-8222-222222222222";
+
   it("decodes a cursor round-tripped through toPage", () => {
     const page = toPage(
       [
-        { id: "1", name: "a" },
-        { id: "2", name: "b" },
+        { id: idA, name: "a" },
+        { id: idB, name: "b" },
       ],
       1,
     );
@@ -51,13 +54,35 @@ describe("parsePageParams", () => {
     );
     expect(result).toEqual({
       limit: DEFAULT_PAGE_SIZE,
-      after: { name: "a", id: "1" },
+      after: { name: "a", id: idA },
     });
   });
 
   it("rejects a malformed cursor as a 400 response", async () => {
     const result = parsePageParams(
       new URLSearchParams("cursor=not-base64-json"),
+    );
+    expect(result).not.toHaveProperty("after");
+    // @ts-expect-error -- narrowed at runtime, not by the compiler
+    expect(result.status).toBe(400);
+  });
+
+  it("rejects a well-formed cursor whose id is not a UUID as a 400 response", async () => {
+    // Every id column this cursor gets compared against is a Postgres
+    // `uuid` column (afterCursorPredicate); a non-UUID id would otherwise
+    // reach the database and fail as an uncaught cast error instead of
+    // this documented 400.
+    const page = toPage(
+      [
+        { id: "not-a-uuid", name: "a" },
+        { id: idB, name: "b" },
+      ],
+      1,
+    );
+    expect(page.nextCursor).not.toBeNull();
+
+    const result = parsePageParams(
+      new URLSearchParams(`cursor=${page.nextCursor}`),
     );
     expect(result).not.toHaveProperty("after");
     // @ts-expect-error -- narrowed at runtime, not by the compiler

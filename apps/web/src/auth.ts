@@ -9,6 +9,17 @@ import type { Role } from "@/lib/auth/roles";
 import { loginSchema } from "@/lib/auth/schemas";
 
 /**
+ * How long a session's `organizationName`/`organizationSlug` claims are
+ * trusted before the `jwt` callback re-checks them against the database.
+ * Bounds how stale they can get after an admin renames the workspace
+ * (`PATCH /api/organization`) without refetching on literally every
+ * request — there's no caching layer yet (planned for WEB-134), so an
+ * unconditional refresh here would add a database round trip to every
+ * page load and API call across the whole app, not just the rare rename.
+ */
+const ORG_CLAIMS_TTL_MS = 5 * 60 * 1000;
+
+/**
  * Credentials-only, JWT sessions: no accounts/sessions tables, no adapter.
  * A workspace (organization) is identified by its slug, not guessed from
  * email, since `(organization_id, email)` is the unique key on `users` and
@@ -57,15 +68,45 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
       if (user) {
         token.userId = user.id as string;
         token.organizationId = user.organizationId;
         token.organizationName = user.organizationName;
         token.organizationSlug = user.organizationSlug;
         token.role = user.role;
+        token.organizationRefreshedAt = Date.now();
+        return token;
       }
-      return token;
+
+      // Cast, not a bare read: same rough edge as the session() callback
+      // below — the JWT type augmentation in src/types/next-auth.d.ts
+      // doesn't reach this callback's `token` param type, even though the
+      // fields really are present at runtime (set by the branch above at
+      // sign-in).
+      const jwt = token as typeof token & {
+        organizationId: string;
+        organizationRefreshedAt: number;
+      };
+
+      // Not the initial sign-in: `user` is only populated once, at sign-in,
+      // so without this the token would keep whatever
+      // organizationName/organizationSlug it had then, even after an admin
+      // renames the workspace. Re-check at most once per ORG_CLAIMS_TTL_MS.
+      const refreshedAt = jwt.organizationRefreshedAt ?? 0;
+      if (jwt.organizationId && Date.now() - refreshedAt > ORG_CLAIMS_TTL_MS) {
+        const db = getDb();
+        const org = await db.query.organizations.findFirst({
+          where: eq(organizations.id, jwt.organizationId),
+          columns: { name: true, slug: true },
+        });
+        if (org) {
+          jwt.organizationName = org.name;
+          jwt.organizationSlug = org.slug;
+        }
+        jwt.organizationRefreshedAt = Date.now();
+      }
+      return jwt;
     },
     session({ session, token }) {
       // Cast, not a bare read: next-auth/jwt re-exports its JWT type from
