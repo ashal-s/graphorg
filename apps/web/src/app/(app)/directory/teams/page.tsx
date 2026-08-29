@@ -1,0 +1,107 @@
+import { and, eq, ilike } from "drizzle-orm";
+import Link from "next/link";
+import { Plus, Users2 } from "lucide-react";
+
+import { EmptyState } from "@/components/states/empty-state";
+import { SearchBar } from "@/components/shared/search-bar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { getDb } from "@/db";
+import { teams } from "@/db/schema";
+import { hasRole } from "@/lib/auth/roles";
+import { requireSession } from "@/lib/auth/session";
+
+interface PageProps {
+  searchParams: Promise<{ q?: string }>;
+}
+
+export default async function TeamsPage({ searchParams }: PageProps) {
+  const session = await requireSession();
+  const canEdit = hasRole(session.role, "editor");
+  const { q } = await searchParams;
+
+  const rows = await getDb().query.teams.findMany({
+    where: and(
+      eq(teams.organizationId, session.organizationId),
+      q ? ilike(teams.name, `%${q}%`) : undefined,
+    ),
+    with: { people: { columns: { id: true } } },
+    orderBy: (row, { asc }) => asc(row.name),
+  });
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Teams</h1>
+          <p className="text-sm text-muted-foreground">
+            Who owns what across your organisation.
+          </p>
+        </div>
+        {canEdit && (
+          <Button
+            render={<Link href="/directory/teams/new" />}
+            nativeButton={false}
+          >
+            <Plus aria-hidden="true" />
+            New team
+          </Button>
+        )}
+      </div>
+
+      <SearchBar defaultValue={q} placeholder="Search teams" />
+
+      {rows.length === 0 ? (
+        <EmptyState
+          icon={
+            <Users2
+              className="h-8 w-8 text-muted-foreground"
+              aria-hidden="true"
+            />
+          }
+          title={q ? "No teams match your search" : "No teams yet"}
+          description={
+            canEdit
+              ? "Create a team to start organising people and ownership."
+              : "Nobody has created a team yet."
+          }
+          action={
+            canEdit &&
+            !q && (
+              <Button
+                size="sm"
+                render={<Link href="/directory/teams/new" />}
+                nativeButton={false}
+              >
+                New team
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {rows.map((team) => (
+            <Link key={team.id} href={`/directory/teams/${team.id}`}>
+              <Card className="transition-colors hover:bg-muted/50">
+                <CardContent className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{team.name}</p>
+                    {team.description && (
+                      <p className="truncate text-sm text-muted-foreground">
+                        {team.description}
+                      </p>
+                    )}
+                  </div>
+                  <p className="shrink-0 text-sm text-muted-foreground">
+                    {team.people.length}{" "}
+                    {team.people.length === 1 ? "person" : "people"}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
