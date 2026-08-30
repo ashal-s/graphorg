@@ -3,18 +3,20 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
-export function ThemeToggleItem() {
+export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
 
   return (
-    <DropdownMenuItem
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      aria-label="Toggle theme"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
       <Sun className="hidden dark:block" aria-hidden="true" />
       <Moon className="block dark:hidden" aria-hidden="true" />
-      Toggle theme
-    </DropdownMenuItem>
+    </Button>
   );
 }

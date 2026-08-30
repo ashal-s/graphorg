@@ -1,22 +1,10 @@
-import { and, eq, ne } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { PersonForm } from "@/components/directory/person-form";
-import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
-import { EntityChipList } from "@/components/shared/entity-row";
-import { PageHeader } from "@/components/shared/page-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { getDb } from "@/db";
-import { people, teams } from "@/db/schema";
 import { PersonProfileRelationships } from "@/components/directory/person-profile-relationships";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
+import { PageHeader } from "@/components/shared/page-header";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 import { loadPersonProfile } from "@/lib/directory/load-person-profile";
@@ -62,71 +50,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
         readOnly={readOnly}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Team</CardTitle>
-          <CardDescription>
-            {person.team ? "This person's team." : "Not on a team."}
-          </CardDescription>
-        </CardHeader>
-        {person.team && (
-          <CardContent>
-            <EntityChipList
-              items={[
-                {
-                  key: person.team.id,
-                  href: `/directory/teams/${person.team.id}`,
-                  label: person.team.name,
-                },
-              ]}
-            />
-          </CardContent>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Manager</CardTitle>
-          <CardDescription>
-            {person.manager ? "Who this person reports to." : "No manager set."}
-          </CardDescription>
-        </CardHeader>
-        {person.manager && (
-          <CardContent>
-            <EntityChipList
-              items={[
-                {
-                  key: person.manager.id,
-                  href: `/directory/people/${person.manager.id}`,
-                  label: person.manager.name,
-                },
-              ]}
-            />
-          </CardContent>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Direct reports</CardTitle>
-          <CardDescription>
-            {directReports.length === 0
-              ? "Nobody reports to this person."
-              : `${directReports.length} ${directReports.length === 1 ? "person reports" : "people report"} to this person.`}
-          </CardDescription>
-        </CardHeader>
-        {directReports.length > 0 && (
-          <CardContent>
-            <EntityChipList
-              items={directReports.map((report) => ({
-                key: report.id,
-                href: `/directory/people/${report.id}`,
-                label: report.name,
-              }))}
-            />
-          </CardContent>
-        )}
-      </Card>
+      <PersonProfileRelationships profile={profile} />
     </div>
   );
 }
