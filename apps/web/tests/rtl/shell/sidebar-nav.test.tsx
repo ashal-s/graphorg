@@ -12,7 +12,7 @@ describe("SidebarNav", () => {
     render(<SidebarNav />);
 
     expect(
-      screen.getByRole("link", { name: /dashboard/i }),
+      screen.getByRole("link", { name: /overview/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /directory/i }),
@@ -29,7 +29,7 @@ describe("SidebarNav", () => {
       "page",
     );
     expect(
-      screen.getByRole("link", { name: /dashboard/i }),
+      screen.getByRole("link", { name: /overview/i }),
     ).not.toHaveAttribute("aria-current");
   });
 
@@ -38,7 +38,7 @@ describe("SidebarNav", () => {
     const user = userEvent.setup();
     render(<SidebarNav onNavigate={onNavigate} />);
 
-    await user.click(screen.getByRole("link", { name: /dashboard/i }));
+    await user.click(screen.getByRole("link", { name: /overview/i }));
 
     expect(onNavigate).toHaveBeenCalledTimes(1);
   });
