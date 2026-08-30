@@ -163,8 +163,7 @@ export default async function OverviewPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
           <p className="text-sm text-muted-foreground">
-            An overview of {session.organizationName} lands here once it
-            exists.
+            An overview of {session.organizationName} lands here once it exists.
           </p>
         </div>
         <EmptyState
@@ -193,7 +192,10 @@ export default async function OverviewPage() {
       count,
     }))
     .sort((a, b) => b.count - a.count);
-  const maxCategoryCount = Math.max(1, ...categoryBreakdown.map((c) => c.count));
+  const maxCategoryCount = Math.max(
+    1,
+    ...categoryBreakdown.map((c) => c.count),
+  );
 
   const usageByTechnology = new Map<string, { name: string; count: number }>();
   for (const service of serviceRows) {
@@ -218,8 +220,8 @@ export default async function OverviewPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
         <p className="text-sm text-muted-foreground">
-          The whole of {session.organizationName} in one view: who&apos;s
-          here, what runs, and how it&apos;s built.
+          The whole of {session.organizationName} in one view: who&apos;s here,
+          what runs, and how it&apos;s built.
         </p>
       </div>
 
