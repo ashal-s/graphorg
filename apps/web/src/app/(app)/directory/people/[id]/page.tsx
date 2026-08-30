@@ -15,8 +15,11 @@ import {
 } from "@/components/ui/card";
 import { getDb } from "@/db";
 import { people, teams } from "@/db/schema";
+import { PersonProfileRelationships } from "@/components/directory/person-profile-relationships";
+import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { loadPersonProfile } from "@/lib/directory/load-person-profile";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -28,35 +31,10 @@ export default async function PersonDetailPage({ params }: PageProps) {
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) notFound();
 
-  const orgId = session.organizationId;
-  const [person, teamOptions, managerOptions, directReports] =
-    await Promise.all([
-      getDb().query.people.findFirst({
-        where: and(eq(people.id, id), eq(people.organizationId, orgId)),
-        with: {
-          team: { columns: { id: true, name: true } },
-          manager: { columns: { id: true, name: true } },
-        },
-      }),
-      getDb().query.teams.findMany({
-        where: eq(teams.organizationId, orgId),
-        columns: { id: true, name: true },
-        orderBy: (row, { asc }) => asc(row.name),
-      }),
-      getDb().query.people.findMany({
-        // Nobody can manage themselves, so this person is excluded from
-        // their own manager picker.
-        where: and(eq(people.organizationId, orgId), ne(people.id, id)),
-        columns: { id: true, name: true },
-        orderBy: (row, { asc }) => asc(row.name),
-      }),
-      getDb().query.people.findMany({
-        where: and(eq(people.managerId, id), eq(people.organizationId, orgId)),
-        orderBy: (row, { asc }) => asc(row.name),
-      }),
-    ]);
+  const loaded = await loadPersonProfile(session.organizationId, id);
+  if (!loaded) notFound();
 
-  if (!person) notFound();
+  const { person, teamOptions, managerOptions, profile } = loaded;
 
   return (
     <div className="flex flex-col gap-6">
