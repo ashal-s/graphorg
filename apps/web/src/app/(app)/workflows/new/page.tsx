@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 
+import { PageHeader } from "@/components/shared/page-header";
 import { WorkflowBuilder } from "@/components/workflows/workflow-builder";
 import { getDb } from "@/db";
 import { people } from "@/db/schema";
@@ -19,12 +20,10 @@ export default async function NewWorkflowPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">New workflow</h1>
-        <p className="text-sm text-muted-foreground">
-          Pick a trigger, add steps, and assign who&apos;s responsible.
-        </p>
-      </div>
+      <PageHeader
+        title="New workflow"
+        description="Pick a trigger, add steps, and assign who's responsible."
+      />
       <WorkflowBuilder mode="create" people={directory} />
     </div>
   );

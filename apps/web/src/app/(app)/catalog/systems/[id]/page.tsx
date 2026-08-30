@@ -1,10 +1,11 @@
 import { and, eq } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { SystemForm } from "@/components/catalog/system-form";
+import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
+import { EntityChipList } from "@/components/shared/entity-row";
+import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -54,24 +55,21 @@ export default async function SystemDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {system.name}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Edit this system&apos;s details, or see its services below.
-          </p>
-        </div>
-        {!readOnly && (
-          <DeleteEntityButton
-            entityLabel="system"
-            entityName={system.name}
-            apiPath={`/api/systems/${system.id}`}
-            redirectTo="/catalog/systems"
-          />
-        )}
-      </div>
+      <PageHeader
+        title={system.name}
+        description="Edit this system's details, or see its services below."
+        align="start"
+        actions={
+          !readOnly && (
+            <DeleteEntityButton
+              entityLabel="system"
+              entityName={system.name}
+              apiPath={`/api/systems/${system.id}`}
+              redirectTo="/catalog/systems"
+            />
+          )
+        }
+      />
 
       <SystemForm
         mode="edit"
@@ -90,21 +88,23 @@ export default async function SystemDetailPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         {systemServices.length > 0 && (
-          <CardContent className="flex flex-col gap-2">
-            {systemServices.map((service) => (
-              <Link
-                key={service.id}
-                href={`/catalog/services/${service.id}`}
-                className="flex flex-wrap items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-              >
-                <span className="font-medium">{service.name}</span>
-                {service.technologies.map((link) => (
-                  <Badge key={link.technology.id} variant="outline">
-                    {link.technology.name}
-                  </Badge>
-                ))}
-              </Link>
-            ))}
+          <CardContent>
+            <EntityChipList
+              items={systemServices.map((service) => ({
+                key: service.id,
+                href: `/catalog/services/${service.id}`,
+                label: (
+                  <>
+                    <span className="font-medium">{service.name}</span>
+                    {service.technologies.map((link) => (
+                      <Badge key={link.technology.id} variant="outline">
+                        {link.technology.name}
+                      </Badge>
+                    ))}
+                  </>
+                ),
+              }))}
+            />
           </CardContent>
         )}
       </Card>

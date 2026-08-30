@@ -1,10 +1,11 @@
 import { and, eq, ne } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { PersonForm } from "@/components/directory/person-form";
+import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
+import { EntityChipList } from "@/components/shared/entity-row";
+import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
   CardContent,
@@ -59,24 +60,21 @@ export default async function PersonDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {person.name}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Edit this person&apos;s details, or see who they work with below.
-          </p>
-        </div>
-        {!readOnly && (
-          <DeleteEntityButton
-            entityLabel="person"
-            entityName={person.name}
-            apiPath={`/api/people/${person.id}`}
-            redirectTo="/directory/people"
-          />
-        )}
-      </div>
+      <PageHeader
+        title={person.name}
+        description="Edit this person's details, or see who they work with below."
+        align="start"
+        actions={
+          !readOnly && (
+            <DeleteEntityButton
+              entityLabel="person"
+              entityName={person.name}
+              apiPath={`/api/people/${person.id}`}
+              redirectTo="/directory/people"
+            />
+          )
+        }
+      />
 
       <PersonForm
         mode="edit"
@@ -95,12 +93,15 @@ export default async function PersonDetailPage({ params }: PageProps) {
         </CardHeader>
         {person.team && (
           <CardContent>
-            <Link
-              href={`/directory/teams/${person.team.id}`}
-              className="inline-block rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-            >
-              {person.team.name}
-            </Link>
+            <EntityChipList
+              items={[
+                {
+                  key: person.team.id,
+                  href: `/directory/teams/${person.team.id}`,
+                  label: person.team.name,
+                },
+              ]}
+            />
           </CardContent>
         )}
       </Card>
@@ -114,12 +115,15 @@ export default async function PersonDetailPage({ params }: PageProps) {
         </CardHeader>
         {person.manager && (
           <CardContent>
-            <Link
-              href={`/directory/people/${person.manager.id}`}
-              className="inline-block rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-            >
-              {person.manager.name}
-            </Link>
+            <EntityChipList
+              items={[
+                {
+                  key: person.manager.id,
+                  href: `/directory/people/${person.manager.id}`,
+                  label: person.manager.name,
+                },
+              ]}
+            />
           </CardContent>
         )}
       </Card>
@@ -134,16 +138,14 @@ export default async function PersonDetailPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         {directReports.length > 0 && (
-          <CardContent className="flex flex-wrap gap-2">
-            {directReports.map((report) => (
-              <Link
-                key={report.id}
-                href={`/directory/people/${report.id}`}
-                className="rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-              >
-                {report.name}
-              </Link>
-            ))}
+          <CardContent>
+            <EntityChipList
+              items={directReports.map((report) => ({
+                key: report.id,
+                href: `/directory/people/${report.id}`,
+                label: report.name,
+              }))}
+            />
           </CardContent>
         )}
       </Card>

@@ -1,10 +1,11 @@
 import { and, eq, inArray } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { TeamForm } from "@/components/directory/team-form";
+import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
+import { EntityChipList, EntityRow } from "@/components/shared/entity-row";
+import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -153,23 +154,21 @@ export default async function TeamDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{team.name}</h1>
-          <p className="text-sm text-muted-foreground">
-            Edit this team&apos;s details, or see everything it&apos;s connected
-            to below.
-          </p>
-        </div>
-        {!readOnly && (
-          <DeleteEntityButton
-            entityLabel="team"
-            entityName={team.name}
-            apiPath={`/api/teams/${team.id}`}
-            redirectTo="/directory/teams"
-          />
-        )}
-      </div>
+      <PageHeader
+        title={team.name}
+        description="Edit this team's details, or see everything it's connected to below."
+        align="start"
+        actions={
+          !readOnly && (
+            <DeleteEntityButton
+              entityLabel="team"
+              entityName={team.name}
+              apiPath={`/api/teams/${team.id}`}
+              redirectTo="/directory/teams"
+            />
+          )
+        }
+      />
 
       <TeamForm mode="edit" team={team} readOnly={readOnly} />
 
@@ -183,16 +182,14 @@ export default async function TeamDetailPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         {teamPeople.length > 0 && (
-          <CardContent className="flex flex-wrap gap-2">
-            {teamPeople.map((person) => (
-              <Link
-                key={person.id}
-                href={`/directory/people/${person.id}`}
-                className="rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-              >
-                {person.name}
-              </Link>
-            ))}
+          <CardContent>
+            <EntityChipList
+              items={teamPeople.map((person) => ({
+                key: person.id,
+                href: `/directory/people/${person.id}`,
+                label: person.name,
+              }))}
+            />
           </CardContent>
         )}
       </Card>
@@ -207,16 +204,14 @@ export default async function TeamDetailPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         {teamSystems.length > 0 && (
-          <CardContent className="flex flex-wrap gap-2">
-            {teamSystems.map((system) => (
-              <Link
-                key={system.id}
-                href={`/catalog/systems/${system.id}`}
-                className="rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-              >
-                {system.name}
-              </Link>
-            ))}
+          <CardContent>
+            <EntityChipList
+              items={teamSystems.map((system) => ({
+                key: system.id,
+                href: `/catalog/systems/${system.id}`,
+                label: system.name,
+              }))}
+            />
           </CardContent>
         )}
       </Card>
@@ -231,21 +226,23 @@ export default async function TeamDetailPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         {teamServices.length > 0 && (
-          <CardContent className="flex flex-col gap-2">
-            {teamServices.map((service) => (
-              <Link
-                key={service.id}
-                href={`/catalog/services/${service.id}`}
-                className="flex flex-wrap items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-              >
-                <span className="font-medium">{service.name}</span>
-                {service.technologies.map((link) => (
-                  <Badge key={link.technology.id} variant="outline">
-                    {link.technology.name}
-                  </Badge>
-                ))}
-              </Link>
-            ))}
+          <CardContent>
+            <EntityChipList
+              items={teamServices.map((service) => ({
+                key: service.id,
+                href: `/catalog/services/${service.id}`,
+                label: (
+                  <>
+                    <span className="font-medium">{service.name}</span>
+                    {service.technologies.map((link) => (
+                      <Badge key={link.technology.id} variant="outline">
+                        {link.technology.name}
+                      </Badge>
+                    ))}
+                  </>
+                ),
+              }))}
+            />
           </CardContent>
         )}
       </Card>
@@ -262,28 +259,28 @@ export default async function TeamDetailPage({ params }: PageProps) {
         {teamWorkflows.length > 0 && (
           <CardContent className="flex flex-col gap-2">
             {teamWorkflows.map((workflow) => (
-              <Link
+              <EntityRow
                 key={workflow.id}
                 href={`/workflows/${workflow.id}`}
-                className="flex flex-col gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{workflow.name}</span>
+                title={workflow.name}
+                titleBadge={
                   <Badge variant={STATUS_VARIANT[workflow.status] ?? "outline"}>
                     {workflow.status}
                   </Badge>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {workflow.members.map((member) => (
-                    <Badge
-                      key={`${member.personId}-${member.role}`}
-                      variant="outline"
-                    >
-                      {member.name} · {member.role}
-                    </Badge>
-                  ))}
-                </div>
-              </Link>
+                }
+                footer={
+                  <div className="flex flex-wrap gap-1.5">
+                    {workflow.members.map((member) => (
+                      <Badge
+                        key={`${member.personId}-${member.role}`}
+                        variant="outline"
+                      >
+                        {member.name} · {member.role}
+                      </Badge>
+                    ))}
+                  </div>
+                }
+              />
             ))}
           </CardContent>
         )}
@@ -319,29 +316,20 @@ export default async function TeamDetailPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         {teamDocuments.length > 0 && (
-          <CardContent className="flex flex-col gap-2">
-            {teamDocuments.map((document) =>
-              document.url ? (
-                <a
-                  key={document.id}
-                  href={document.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex flex-wrap items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-                >
-                  <span className="font-medium">{document.title}</span>
-                  <Badge variant="outline">{document.type}</Badge>
-                </a>
-              ) : (
-                <div
-                  key={document.id}
-                  className="flex flex-wrap items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm"
-                >
-                  <span className="font-medium">{document.title}</span>
-                  <Badge variant="outline">{document.type}</Badge>
-                </div>
-              ),
-            )}
+          <CardContent>
+            <EntityChipList
+              items={teamDocuments.map((document) => ({
+                key: document.id,
+                href: document.url ?? undefined,
+                external: true,
+                label: (
+                  <>
+                    <span className="font-medium">{document.title}</span>
+                    <Badge variant="outline">{document.type}</Badge>
+                  </>
+                ),
+              }))}
+            />
           </CardContent>
         )}
       </Card>
@@ -356,27 +344,15 @@ export default async function TeamDetailPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         {teamRepositories.length > 0 && (
-          <CardContent className="flex flex-wrap gap-2">
-            {teamRepositories.map((repository) =>
-              repository.url ? (
-                <a
-                  key={repository.id}
-                  href={repository.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-                >
-                  {repository.name}
-                </a>
-              ) : (
-                <span
-                  key={repository.id}
-                  className="rounded-lg border border-border px-2.5 py-1.5 text-sm"
-                >
-                  {repository.name}
-                </span>
-              ),
-            )}
+          <CardContent>
+            <EntityChipList
+              items={teamRepositories.map((repository) => ({
+                key: repository.id,
+                href: repository.url ?? undefined,
+                external: true,
+                label: repository.name,
+              }))}
+            />
           </CardContent>
         )}
       </Card>

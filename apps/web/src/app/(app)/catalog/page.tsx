@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { ArrowRight, Boxes, Layers } from "lucide-react";
 
+import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
   CardDescription,
@@ -29,12 +30,10 @@ export default async function CatalogPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Catalog</h1>
-        <p className="text-sm text-muted-foreground">
-          Systems, services, and the tech stack behind them.
-        </p>
-      </div>
+      <PageHeader
+        title="Catalog"
+        description="Systems, services, and the tech stack behind them."
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <Link href="/catalog/systems">
           <Card className="h-full transition-colors hover:bg-muted/50">

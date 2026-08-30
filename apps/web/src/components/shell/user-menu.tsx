@@ -2,6 +2,7 @@
 
 import { LogOut } from "lucide-react";
 
+import { ThemeToggleItem } from "@/components/shell/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,6 +26,8 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
         <DropdownMenuLabel className="truncate font-normal text-muted-foreground">
           {email}
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <ThemeToggleItem />
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => void logout()}>
           <LogOut aria-hidden="true" />

@@ -1,16 +1,15 @@
 import { Settings } from "lucide-react";
 
+import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/states/empty-state";
 
 export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Workspace, member and integration settings.
-        </p>
-      </div>
+      <PageHeader
+        title="Settings"
+        description="Workspace, member and integration settings."
+      />
       <EmptyState
         icon={
           <Settings

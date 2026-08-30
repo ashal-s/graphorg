@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { ArrowRight, Users, Users2 } from "lucide-react";
 
+import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
   CardDescription,
@@ -29,12 +30,10 @@ export default async function DirectoryPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Directory</h1>
-        <p className="text-sm text-muted-foreground">
-          People and teams in your organisation.
-        </p>
-      </div>
+      <PageHeader
+        title="Directory"
+        description="People and teams in your organisation."
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <Link href="/directory/people">
           <Card className="h-full transition-colors hover:bg-muted/50">

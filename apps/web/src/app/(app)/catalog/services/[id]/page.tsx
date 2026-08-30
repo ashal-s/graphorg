@@ -1,14 +1,15 @@
 import { and, eq, ne } from "drizzle-orm";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { fetchServiceDetail } from "@/app/api/services/detail";
-import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import {
   ServiceForm,
   type ServiceDetail,
 } from "@/components/catalog/service-form";
+import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
+import { EntityChipList } from "@/components/shared/entity-row";
+import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
   CardContent,
@@ -88,25 +89,21 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {service.name}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Edit this service&apos;s details, or see how it fits the rest of the
-            catalog below.
-          </p>
-        </div>
-        {!readOnly && (
-          <DeleteEntityButton
-            entityLabel="service"
-            entityName={service.name}
-            apiPath={`/api/services/${service.id}`}
-            redirectTo="/catalog/services"
-          />
-        )}
-      </div>
+      <PageHeader
+        title={service.name}
+        description="Edit this service's details, or see how it fits the rest of the catalog below."
+        align="start"
+        actions={
+          !readOnly && (
+            <DeleteEntityButton
+              entityLabel="service"
+              entityName={service.name}
+              apiPath={`/api/services/${service.id}`}
+              redirectTo="/catalog/services"
+            />
+          )
+        }
+      />
 
       <ServiceForm
         mode="edit"
@@ -124,42 +121,44 @@ export default async function ServiceDetailPage({ params }: PageProps) {
           <CardTitle>Where this fits</CardTitle>
           <CardDescription>System, repository, and owner team.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          {service.system && (
-            <Link
-              href={`/catalog/systems/${service.system.id}`}
-              className="rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-            >
-              System: {service.system.name}
-            </Link>
-          )}
-          {service.repository &&
-            (service.repository.url ? (
-              <a
-                href={service.repository.url}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-              >
-                Repository: {service.repository.name}
-              </a>
-            ) : (
-              <span className="rounded-lg border border-border px-2.5 py-1.5 text-sm">
-                Repository: {service.repository.name}
-              </span>
-            ))}
-          {service.ownerTeam && (
-            <Link
-              href={`/directory/teams/${service.ownerTeam.id}`}
-              className="rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-            >
-              Team: {service.ownerTeam.name}
-            </Link>
-          )}
-          {!service.system && !service.repository && !service.ownerTeam && (
+        <CardContent>
+          {!service.system && !service.repository && !service.ownerTeam ? (
             <p className="text-sm text-muted-foreground">
               Not linked to a system, repository, or team yet.
             </p>
+          ) : (
+            <EntityChipList
+              items={[
+                ...(service.system
+                  ? [
+                      {
+                        key: "system",
+                        href: `/catalog/systems/${service.system.id}`,
+                        label: `System: ${service.system.name}`,
+                      },
+                    ]
+                  : []),
+                ...(service.repository
+                  ? [
+                      {
+                        key: "repository",
+                        href: service.repository.url ?? undefined,
+                        external: Boolean(service.repository.url),
+                        label: `Repository: ${service.repository.name}`,
+                      },
+                    ]
+                  : []),
+                ...(service.ownerTeam
+                  ? [
+                      {
+                        key: "team",
+                        href: `/directory/teams/${service.ownerTeam.id}`,
+                        label: `Team: ${service.ownerTeam.name}`,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
           )}
         </CardContent>
       </Card>
@@ -174,16 +173,14 @@ export default async function ServiceDetailPage({ params }: PageProps) {
           </CardDescription>
         </CardHeader>
         {dependents.length > 0 && (
-          <CardContent className="flex flex-wrap gap-2">
-            {dependents.map((dependent) => (
-              <Link
-                key={dependent.id}
-                href={`/catalog/services/${dependent.id}`}
-                className="rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-              >
-                {dependent.name}
-              </Link>
-            ))}
+          <CardContent>
+            <EntityChipList
+              items={dependents.map((dependent) => ({
+                key: dependent.id,
+                href: `/catalog/services/${dependent.id}`,
+                label: dependent.name,
+              }))}
+            />
           </CardContent>
         )}
       </Card>

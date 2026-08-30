@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { PersonForm } from "@/components/directory/person-form";
+import { PageHeader } from "@/components/shared/page-header";
 import { getDb } from "@/db";
 import { people, teams } from "@/db/schema";
 import { requireRole } from "@/lib/auth/session";
@@ -27,12 +28,10 @@ export default async function NewPersonPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">New person</h1>
-        <p className="text-sm text-muted-foreground">
-          Add someone to your directory.
-        </p>
-      </div>
+      <PageHeader
+        title="New person"
+        description="Add someone to your directory."
+      />
       <PersonForm mode="create" teams={teamOptions} managers={managerOptions} />
     </div>
   );
