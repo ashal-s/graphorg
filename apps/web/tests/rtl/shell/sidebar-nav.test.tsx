@@ -11,9 +11,7 @@ describe("SidebarNav", () => {
   it("renders a link for every nav item", () => {
     render(<SidebarNav />);
 
-    expect(
-      screen.getByRole("link", { name: /dashboard/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /overview/i })).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /directory/i }),
     ).toBeInTheDocument();
@@ -28,9 +26,9 @@ describe("SidebarNav", () => {
       "aria-current",
       "page",
     );
-    expect(
-      screen.getByRole("link", { name: /dashboard/i }),
-    ).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: /overview/i })).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 
   it("calls onNavigate when a link is clicked", async () => {
@@ -38,7 +36,7 @@ describe("SidebarNav", () => {
     const user = userEvent.setup();
     render(<SidebarNav onNavigate={onNavigate} />);
 
-    await user.click(screen.getByRole("link", { name: /dashboard/i }));
+    await user.click(screen.getByRole("link", { name: /overview/i }));
 
     expect(onNavigate).toHaveBeenCalledTimes(1);
   });
