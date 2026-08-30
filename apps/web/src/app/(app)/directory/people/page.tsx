@@ -3,10 +3,11 @@ import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 
 import { EmptyState } from "@/components/states/empty-state";
+import { EntityRow } from "@/components/shared/entity-row";
+import { PageHeader } from "@/components/shared/page-header";
 import { SearchBar } from "@/components/shared/search-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { getDb } from "@/db";
 import { people, teams } from "@/db/schema";
@@ -48,23 +49,21 @@ export default async function PeoplePage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">People</h1>
-          <p className="text-sm text-muted-foreground">
-            Everyone in your organisation&apos;s directory.
-          </p>
-        </div>
-        {canEdit && (
-          <Button
-            render={<Link href="/directory/people/new" />}
-            nativeButton={false}
-          >
-            <Plus aria-hidden="true" />
-            New person
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="People"
+        description="Everyone in your organisation's directory."
+        actions={
+          canEdit && (
+            <Button
+              render={<Link href="/directory/people/new" />}
+              nativeButton={false}
+            >
+              <Plus aria-hidden="true" />
+              New person
+            </Button>
+          )
+        }
+      />
 
       <SearchBar defaultValue={q} placeholder="Search by name or email">
         <Select name="teamId" defaultValue={teamId ?? ""} className="max-w-52">
@@ -107,24 +106,17 @@ export default async function PeoplePage({ searchParams }: PageProps) {
       ) : (
         <div className="flex flex-col gap-2">
           {rows.map((person) => (
-            <Link key={person.id} href={`/directory/people/${person.id}`}>
-              <Card className="transition-colors hover:bg-muted/50">
-                <CardContent className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{person.name}</p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {person.email}
-                      {person.title ? ` · ${person.title}` : ""}
-                    </p>
-                  </div>
-                  {person.team && (
-                    <Badge variant="outline" className="shrink-0">
-                      {person.team.name}
-                    </Badge>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
+            <EntityRow
+              key={person.id}
+              href={`/directory/people/${person.id}`}
+              title={person.name}
+              meta={`${person.email}${person.title ? ` · ${person.title}` : ""}`}
+              trailing={
+                person.team && (
+                  <Badge variant="outline">{person.team.name}</Badge>
+                )
+              }
+            />
           ))}
         </div>
       )}

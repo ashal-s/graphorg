@@ -3,9 +3,10 @@ import Link from "next/link";
 import { Plus, Users2 } from "lucide-react";
 
 import { EmptyState } from "@/components/states/empty-state";
+import { EntityRow } from "@/components/shared/entity-row";
+import { PageHeader } from "@/components/shared/page-header";
 import { SearchBar } from "@/components/shared/search-bar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { getDb } from "@/db";
 import { teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
@@ -31,23 +32,21 @@ export default async function TeamsPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Teams</h1>
-          <p className="text-sm text-muted-foreground">
-            Who owns what across your organisation.
-          </p>
-        </div>
-        {canEdit && (
-          <Button
-            render={<Link href="/directory/teams/new" />}
-            nativeButton={false}
-          >
-            <Plus aria-hidden="true" />
-            New team
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Teams"
+        description="Who owns what across your organisation."
+        actions={
+          canEdit && (
+            <Button
+              render={<Link href="/directory/teams/new" />}
+              nativeButton={false}
+            >
+              <Plus aria-hidden="true" />
+              New team
+            </Button>
+          )
+        }
+      />
 
       <SearchBar defaultValue={q} placeholder="Search teams" />
 
@@ -81,24 +80,18 @@ export default async function TeamsPage({ searchParams }: PageProps) {
       ) : (
         <div className="flex flex-col gap-2">
           {rows.map((team) => (
-            <Link key={team.id} href={`/directory/teams/${team.id}`}>
-              <Card className="transition-colors hover:bg-muted/50">
-                <CardContent className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{team.name}</p>
-                    {team.description && (
-                      <p className="truncate text-sm text-muted-foreground">
-                        {team.description}
-                      </p>
-                    )}
-                  </div>
-                  <p className="shrink-0 text-sm text-muted-foreground">
-                    {team.people.length}{" "}
-                    {team.people.length === 1 ? "person" : "people"}
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
+            <EntityRow
+              key={team.id}
+              href={`/directory/teams/${team.id}`}
+              title={team.name}
+              meta={team.description}
+              trailing={
+                <p className="text-sm text-muted-foreground">
+                  {team.people.length}{" "}
+                  {team.people.length === 1 ? "person" : "people"}
+                </p>
+              }
+            />
           ))}
         </div>
       )}

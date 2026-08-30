@@ -16,7 +16,9 @@ export function AppShell({
       <AppSidebar session={session} />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader session={session} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
+        <main className="flex-1 animate-in overflow-y-auto p-4 fade-in duration-200 md:p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

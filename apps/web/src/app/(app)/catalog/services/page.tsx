@@ -3,10 +3,11 @@ import Link from "next/link";
 import { Layers, Plus } from "lucide-react";
 
 import { EmptyState } from "@/components/states/empty-state";
+import { EntityRow } from "@/components/shared/entity-row";
+import { PageHeader } from "@/components/shared/page-header";
 import { SearchBar } from "@/components/shared/search-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { getDb } from "@/db";
 import { services, systems, teams } from "@/db/schema";
@@ -56,23 +57,21 @@ export default async function ServicesPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Services</h1>
-          <p className="text-sm text-muted-foreground">
-            What&apos;s actually running, its tech stack, and its dependencies.
-          </p>
-        </div>
-        {canEdit && (
-          <Button
-            render={<Link href="/catalog/services/new" />}
-            nativeButton={false}
-          >
-            <Plus aria-hidden="true" />
-            New service
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Services"
+        description="What's actually running, its tech stack, and its dependencies."
+        actions={
+          canEdit && (
+            <Button
+              render={<Link href="/catalog/services/new" />}
+              nativeButton={false}
+            >
+              <Plus aria-hidden="true" />
+              New service
+            </Button>
+          )
+        }
+      />
 
       <SearchBar defaultValue={q} placeholder="Search services">
         <Select
@@ -129,34 +128,28 @@ export default async function ServicesPage({ searchParams }: PageProps) {
       ) : (
         <div className="flex flex-col gap-2">
           {rows.map((service) => (
-            <Link key={service.id} href={`/catalog/services/${service.id}`}>
-              <Card className="transition-colors hover:bg-muted/50">
-                <CardContent className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{service.name}</p>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {service.system ? service.system.name : "No system"}
-                      </p>
-                    </div>
-                    {service.ownerTeam && (
-                      <Badge variant="outline" className="shrink-0">
-                        {service.ownerTeam.name}
+            <EntityRow
+              key={service.id}
+              href={`/catalog/services/${service.id}`}
+              title={service.name}
+              meta={service.system ? service.system.name : "No system"}
+              trailing={
+                service.ownerTeam && (
+                  <Badge variant="outline">{service.ownerTeam.name}</Badge>
+                )
+              }
+              footer={
+                service.technologies.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {service.technologies.map((link) => (
+                      <Badge key={link.technology.id} variant="secondary">
+                        {link.technology.name}
                       </Badge>
-                    )}
+                    ))}
                   </div>
-                  {service.technologies.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {service.technologies.map((link) => (
-                        <Badge key={link.technology.id} variant="secondary">
-                          {link.technology.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
+                )
+              }
+            />
           ))}
         </div>
       )}

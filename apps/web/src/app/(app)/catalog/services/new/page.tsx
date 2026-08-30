@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { ServiceForm } from "@/components/catalog/service-form";
+import { PageHeader } from "@/components/shared/page-header";
 import { getDb } from "@/db";
 import {
   repositories,
@@ -54,12 +55,10 @@ export default async function NewServicePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">New service</h1>
-        <p className="text-sm text-muted-foreground">
-          Add a service to your catalog.
-        </p>
-      </div>
+      <PageHeader
+        title="New service"
+        description="Add a service to your catalog."
+      />
       <ServiceForm
         mode="create"
         systems={systemOptions}

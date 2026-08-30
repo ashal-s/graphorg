@@ -1,4 +1,5 @@
 import { MobileNav } from "@/components/shell/mobile-nav";
+import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { UserMenu } from "@/components/shell/user-menu";
 import type { Session } from "@/lib/auth/session";
 
@@ -9,7 +10,10 @@ export function AppHeader({ session }: { session: Session }) {
         <MobileNav workspaceName={session.organizationName} />
         <span className="text-sm font-semibold md:hidden">GraphOrg</span>
       </div>
-      <UserMenu name={session.name} email={session.email} />
+      <div className="flex items-center gap-2">
+        <ThemeToggle />
+        <UserMenu name={session.name} email={session.email} />
+      </div>
     </header>
   );
 }

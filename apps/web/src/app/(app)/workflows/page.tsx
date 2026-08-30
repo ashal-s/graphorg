@@ -2,9 +2,10 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { Plus, Workflow as WorkflowIcon } from "lucide-react";
 
+import { EntityRow } from "@/components/shared/entity-row";
+import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/states/empty-state";
 import { getDb } from "@/db";
 import { workflows } from "@/db/schema";
@@ -38,21 +39,21 @@ export default async function WorkflowsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Workflows</h1>
-          <p className="text-sm text-muted-foreground">
-            Triggers, conditions and actions your organisation runs by hand or
-            on a schedule.
-          </p>
-        </div>
-        {canEdit && (
-          <Button render={<Link href="/workflows/new" />} nativeButton={false}>
-            <Plus aria-hidden="true" />
-            New workflow
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Workflows"
+        description="Triggers, conditions and actions your organisation runs by hand or on a schedule."
+        actions={
+          canEdit && (
+            <Button
+              render={<Link href="/workflows/new" />}
+              nativeButton={false}
+            >
+              <Plus aria-hidden="true" />
+              New workflow
+            </Button>
+          )
+        }
+      />
 
       {rows.length === 0 ? (
         <EmptyState
@@ -87,28 +88,24 @@ export default async function WorkflowsPage() {
               (assignment) => assignment.role === "owner",
             );
             return (
-              <Link key={workflow.id} href={`/workflows/${workflow.id}`}>
-                <Card className="transition-colors hover:bg-muted/50">
-                  <CardContent className="flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate font-medium">{workflow.name}</p>
-                        <Badge
-                          variant={STATUS_VARIANT[workflow.status] ?? "outline"}
-                        >
-                          {workflow.status}
-                        </Badge>
-                      </div>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {TRIGGER_LABELS[workflow.triggerType] ??
-                          workflow.triggerType}
-                        {owners.length > 0 &&
-                          ` · Owned by ${owners.map((assignment) => assignment.person.name).join(", ")}`}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
+              <EntityRow
+                key={workflow.id}
+                href={`/workflows/${workflow.id}`}
+                title={workflow.name}
+                titleBadge={
+                  <Badge variant={STATUS_VARIANT[workflow.status] ?? "outline"}>
+                    {workflow.status}
+                  </Badge>
+                }
+                meta={
+                  <>
+                    {TRIGGER_LABELS[workflow.triggerType] ??
+                      workflow.triggerType}
+                    {owners.length > 0 &&
+                      ` · Owned by ${owners.map((assignment) => assignment.person.name).join(", ")}`}
+                  </>
+                }
+              />
             );
           })}
         </div>

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/states/empty-state";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -160,12 +161,10 @@ export default async function OverviewPage() {
   if (!hasAnyContext) {
     return (
       <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
-          <p className="text-sm text-muted-foreground">
-            An overview of {session.organizationName} lands here once it exists.
-          </p>
-        </div>
+        <PageHeader
+          title="Overview"
+          description={`An overview of ${session.organizationName} lands here once it exists.`}
+        />
         <EmptyState
           icon={
             <LayoutDashboard
@@ -217,13 +216,10 @@ export default async function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
-        <p className="text-sm text-muted-foreground">
-          The whole of {session.organizationName} in one view: who&apos;s here,
-          what runs, and how it&apos;s built.
-        </p>
-      </div>
+      <PageHeader
+        title="Overview"
+        description={`The whole of ${session.organizationName} in one view: who's here, what runs, and how it's built.`}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => {
