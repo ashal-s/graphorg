@@ -53,9 +53,10 @@ describe("PersonProfileRelationships", () => {
       "href",
       "/directory/people/person-priya",
     );
-    expect(
-      screen.getByRole("link", { name: "Taylor Brooks" }),
-    ).toHaveAttribute("href", "/directory/people/person-taylor");
+    expect(screen.getByRole("link", { name: "Taylor Brooks" })).toHaveAttribute(
+      "href",
+      "/directory/people/person-taylor",
+    );
 
     const workflowLink = screen.getByRole("link", {
       name: /Escalate stale runbooks/,

@@ -26,7 +26,7 @@ export interface ProfileService extends ProfileRecord {
   description: string | null;
 }
 
-export interface ProfileTechnology extends ProfileRecord {}
+export type ProfileTechnology = ProfileRecord;
 
 export interface ProfileTool extends ProfileRecord {
   category: string;

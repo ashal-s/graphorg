@@ -51,9 +51,7 @@ export function PersonProfileRelationships({
         </CardHeader>
         {profile.manager && (
           <CardContent>
-            <RelatedRecordLink
-              href={`/directory/people/${profile.manager.id}`}
-            >
+            <RelatedRecordLink href={`/directory/people/${profile.manager.id}`}>
               {profile.manager.name}
             </RelatedRecordLink>
           </CardContent>
