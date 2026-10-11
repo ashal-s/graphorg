@@ -14,7 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect } from "@/components/ui/native-select";
+import {
+  SearchableMultiSelect,
+  SearchableSelect,
+} from "@/components/ui/searchable-select";
 
 /**
  * "New person" as a popup: fill in the details, press Save, and the list
@@ -36,7 +39,7 @@ export function AddPersonDialog({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [title, setTitle] = useState("");
-  const [teamIds, setTeamIds] = useState<Set<string>>(new Set());
+  const [teamIds, setTeamIds] = useState<string[]>([]);
   const [managerId, setManagerId] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,18 +48,9 @@ export function AddPersonDialog({
     setName("");
     setEmail("");
     setTitle("");
-    setTeamIds(new Set());
+    setTeamIds([]);
     setManagerId("");
     setError(null);
-  }
-
-  function toggleTeam(id: string) {
-    setTeamIds((previous) => {
-      const next = new Set(previous);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
   }
 
   async function save(event: React.FormEvent) {
@@ -80,7 +74,7 @@ export function AddPersonDialog({
         name: name.trim(),
         email: email.trim(),
         title: title.trim().length > 0 ? title.trim() : null,
-        teamIds: [...teamIds],
+        teamIds,
         managerId: managerId.length > 0 ? managerId : null,
       }),
     });
@@ -168,41 +162,34 @@ export function AddPersonDialog({
               />
             </div>
 
-            {teams.length > 0 && (
-              <fieldset className="flex flex-col gap-1.5">
-                <legend className="text-sm font-medium">Teams</legend>
-                <ul className="flex max-h-32 flex-col divide-y divide-border overflow-y-auto rounded-lg border border-border px-3">
-                  {teams.map((team) => (
-                    <li key={team.id}>
-                      <label className="flex cursor-pointer items-center gap-3 py-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={teamIds.has(team.id)}
-                          onChange={() => toggleTeam(team.id)}
-                          className="size-4 accent-primary"
-                        />
-                        {team.name}
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              </fieldset>
-            )}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="new-person-teams">Teams</Label>
+              <SearchableMultiSelect
+                id="new-person-teams"
+                options={teams.map((team) => ({
+                  id: team.id,
+                  label: team.name,
+                }))}
+                values={teamIds}
+                onValuesChange={setTeamIds}
+                placeholder="Search teams"
+                emptyLabel="No teams match."
+              />
+            </div>
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="new-person-manager">Manager</Label>
-              <NativeSelect
+              <SearchableSelect
                 id="new-person-manager"
+                options={managers.map((manager) => ({
+                  id: manager.id,
+                  label: manager.name,
+                }))}
                 value={managerId}
-                onChange={(event) => setManagerId(event.target.value)}
-              >
-                <option value="">No manager</option>
-                {managers.map((manager) => (
-                  <option key={manager.id} value={manager.id}>
-                    {manager.name}
-                  </option>
-                ))}
-              </NativeSelect>
+                onValueChange={setManagerId}
+                placeholder="Search people"
+                emptyLabel="No people match."
+              />
             </div>
 
             <div className="flex justify-end gap-2">

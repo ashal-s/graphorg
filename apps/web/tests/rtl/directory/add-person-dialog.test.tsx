@@ -37,8 +37,9 @@ describe("AddPersonDialog", () => {
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toBeInTheDocument();
-    expect(screen.getByLabelText("Alpha")).toBeInTheDocument();
+    expect(screen.getByLabelText("Teams")).toBeInTheDocument();
     expect(screen.getByLabelText("Manager")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
   });
 
@@ -50,7 +51,20 @@ describe("AddPersonDialog", () => {
     await user.type(screen.getByLabelText("Name"), "Jordan Lee");
     await user.type(screen.getByLabelText("Email"), "jordan@example.com");
     await user.type(screen.getByLabelText("Title"), "Engineer");
-    await user.click(screen.getByLabelText("Beta"));
+
+    // Teams: a searchable, multi-select dropdown.
+    await user.type(screen.getByLabelText("Teams"), "alp");
+    expect(
+      screen.queryByRole("option", { name: "Beta" }),
+    ).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("option", { name: "Alpha" }));
+    await user.type(screen.getByLabelText("Teams"), "bet");
+    await user.click(await screen.findByRole("option", { name: "Beta" }));
+
+    // Manager: a searchable, single-select dropdown.
+    await user.type(screen.getByLabelText("Manager"), "pri");
+    await user.click(await screen.findByRole("option", { name: "Priya Shah" }));
+
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
@@ -61,8 +75,8 @@ describe("AddPersonDialog", () => {
       name: "Jordan Lee",
       email: "jordan@example.com",
       title: "Engineer",
-      teamIds: ["team-b"],
-      managerId: null,
+      teamIds: ["team-a", "team-b"],
+      managerId: "person-1",
     });
     expect(refreshMock).toHaveBeenCalled();
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
