@@ -1,8 +1,9 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { TeamForm } from "@/components/directory/team-form";
+import { TeamMembers } from "@/components/directory/team-members";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { EntityChipList, EntityRow } from "@/components/shared/entity-row";
 import { PageHeader } from "@/components/shared/page-header";
@@ -51,6 +52,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
     teamSystems,
     teamRepositories,
     teamDocuments,
+    otherPeople,
   ] = await Promise.all([
     getDb().query.teams.findFirst({
       where: and(eq(teams.id, id), eq(teams.organizationId, orgId)),
@@ -92,9 +94,29 @@ export default async function TeamDetailPage({ params }: PageProps) {
       ),
       orderBy: (row, { asc }) => asc(row.title),
     }),
+    // Everyone not already on this team, for the "Add people" picker.
+    // Skipped for read-only viewers, who can't add anyone.
+    readOnly
+      ? Promise.resolve([])
+      : getDb().query.people.findMany({
+          where: and(
+            eq(people.organizationId, orgId),
+            or(isNull(people.teamId), ne(people.teamId, id)),
+          ),
+          columns: { id: true, name: true, title: true },
+          with: { team: { columns: { name: true } } },
+          orderBy: (row, { asc }) => asc(row.name),
+        }),
   ]);
 
   if (!team) notFound();
+
+  const candidates = otherPeople.map((person) => ({
+    id: person.id,
+    name: person.name,
+    title: person.title,
+    currentTeamName: person.team?.name ?? null,
+  }));
 
   // Workflows aren't owned by a team directly, only by the people on it
   // (workflow_people), so this is a second query keyed off the team's
@@ -172,27 +194,16 @@ export default async function TeamDetailPage({ params }: PageProps) {
 
       <TeamForm mode="edit" team={team} readOnly={readOnly} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>People</CardTitle>
-          <CardDescription>
-            {teamPeople.length === 0
-              ? "Nobody is on this team yet."
-              : `${teamPeople.length} ${teamPeople.length === 1 ? "person" : "people"} on this team.`}
-          </CardDescription>
-        </CardHeader>
-        {teamPeople.length > 0 && (
-          <CardContent>
-            <EntityChipList
-              items={teamPeople.map((person) => ({
-                key: person.id,
-                href: `/directory/people/${person.id}`,
-                label: person.name,
-              }))}
-            />
-          </CardContent>
-        )}
-      </Card>
+      <TeamMembers
+        teamId={team.id}
+        members={teamPeople.map((person) => ({
+          id: person.id,
+          name: person.name,
+          title: person.title,
+        }))}
+        candidates={candidates}
+        readOnly={readOnly}
+      />
 
       <Card>
         <CardHeader>
