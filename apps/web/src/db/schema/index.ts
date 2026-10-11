@@ -1,6 +1,7 @@
 export * from "./organizations";
 export * from "./users";
 export * from "./teams";
+export * from "./team-functions";
 export * from "./people";
 export * from "./technologies";
 export * from "./tools";

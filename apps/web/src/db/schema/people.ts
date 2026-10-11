@@ -1,6 +1,7 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
+  check,
   index,
   pgTable,
   text,
@@ -10,6 +11,7 @@ import {
 
 import { id, organizationId, timestamps } from "./_columns";
 import { organizations } from "./organizations";
+import { teamFunctions } from "./team-functions";
 import { teams } from "./teams";
 import { users } from "./users";
 
@@ -31,6 +33,14 @@ export const people = pgTable(
     managerId: uuid("manager_id").references((): AnyPgColumn => people.id, {
       onDelete: "set null",
     }),
+    /** How much responsibility they carry on their team. Any number of leads is fine: leads are peers. */
+    teamRole: text("team_role", { enum: ["lead", "member", "trainee"] })
+      .notNull()
+      .default("member"),
+    /** What they do on their team; see `team_functions`. */
+    functionId: uuid("function_id").references(() => teamFunctions.id, {
+      onDelete: "set null",
+    }),
     name: text("name").notNull(),
     email: text("email").notNull(),
     title: text("title"),
@@ -41,6 +51,10 @@ export const people = pgTable(
     index("people_organization_id_idx").on(table.organizationId),
     index("people_team_id_idx").on(table.teamId),
     index("people_manager_id_idx").on(table.managerId),
+    check(
+      "people_team_role_check",
+      sql`${table.teamRole} in ('lead', 'member', 'trainee')`,
+    ),
   ],
 );
 
@@ -56,6 +70,10 @@ export const peopleRelations = relations(people, ({ one }) => ({
   team: one(teams, {
     fields: [people.teamId],
     references: [teams.id],
+  }),
+  function: one(teamFunctions, {
+    fields: [people.functionId],
+    references: [teamFunctions.id],
   }),
   manager: one(people, {
     fields: [people.managerId],
