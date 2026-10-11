@@ -2,10 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil } from "lucide-react";
+import { KeyRound, Pencil, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -90,11 +96,15 @@ export function UserManagement({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
-  const [editPassword, setEditPassword] = useState("");
+
+  const [dialogError, setDialogError] = useState<string | null>(null);
+  const [resetTarget, setResetTarget] = useState<Member | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   async function addMember(event: React.FormEvent) {
     event.preventDefault();
-    setError(null);
+    setDialogError(null);
     setAdding(true);
     const response = await fetch("/api/users", {
       method: "POST",
@@ -108,7 +118,7 @@ export function UserManagement({
     });
     setAdding(false);
     if (!response.ok) {
-      setError(await errorMessage(response));
+      setDialogError(await errorMessage(response));
       return;
     }
     setNewName("");
@@ -116,6 +126,25 @@ export function UserManagement({
     setNewPassword("");
     setShowAdd(false);
     router.refresh();
+  }
+
+  async function submitPasswordReset(event: React.FormEvent) {
+    event.preventDefault();
+    if (!resetTarget) return;
+    setDialogError(null);
+    setResetting(true);
+    const response = await fetch(`/api/users/${resetTarget.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: resetPassword }),
+    });
+    setResetting(false);
+    if (!response.ok) {
+      setDialogError(await errorMessage(response));
+      return;
+    }
+    setResetTarget(null);
+    setResetPassword("");
   }
 
   async function patchMember(id: string, payload: Record<string, string>) {
@@ -142,7 +171,6 @@ export function UserManagement({
     if (editEmail.trim().toLowerCase() !== member.email) {
       payload.email = editEmail;
     }
-    if (editPassword) payload.password = editPassword;
     if (Object.keys(payload).length === 0) {
       setEditingId(null);
       return;
@@ -180,10 +208,12 @@ export function UserManagement({
           <Button
             type="button"
             size="sm"
-            variant={showAdd ? "outline" : "default"}
-            onClick={() => setShowAdd((open) => !open)}
+            onClick={() => {
+              setDialogError(null);
+              setShowAdd(true);
+            }}
           >
-            {showAdd ? "Cancel" : "Add member"}
+            Add member
           </Button>
         }
       />
@@ -194,12 +224,16 @@ export function UserManagement({
         </p>
       )}
 
-      {showAdd && (
-        <form
-          onSubmit={addMember}
-          className="flex flex-col gap-4 border-b border-border py-5"
-        >
-          <div className="grid gap-4 sm:grid-cols-2">
+      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+        <DialogContent>
+          <div>
+            <DialogTitle>Add a member</DialogTitle>
+            <DialogDescription>
+              Set an initial password and share it with them; they can sign in
+              straight away.
+            </DialogDescription>
+          </div>
+          <form onSubmit={addMember} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="new-name">Name</Label>
               <Input
@@ -230,8 +264,7 @@ export function UserManagement({
                 required
               />
               <p className="text-xs text-muted-foreground">
-                At least 8 characters, with a letter and a number. Share it with
-                them; they can sign in straight away.
+                At least 8 characters, with a letter and a number.
               </p>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -247,14 +280,79 @@ export function UserManagement({
                 {ROLE_HINTS[newRole]}
               </p>
             </div>
-          </div>
+            {dialogError && (
+              <p role="alert" className="text-sm text-destructive">
+                {dialogError}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAdd(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={adding}>
+                {adding ? "Adding…" : "Add member"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={resetTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setResetTarget(null);
+            setResetPassword("");
+          }
+        }}
+      >
+        <DialogContent>
           <div>
-            <Button type="submit" disabled={adding}>
-              {adding ? "Adding…" : "Add member"}
-            </Button>
+            <DialogTitle>Reset password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {resetTarget?.name}. Share it with them; it
+              replaces their current one.
+            </DialogDescription>
           </div>
-        </form>
-      )}
+          <form onSubmit={submitPasswordReset} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="reset-password">New password</Label>
+              <Input
+                id="reset-password"
+                type="password"
+                autoComplete="new-password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                At least 8 characters, with a letter and a number.
+              </p>
+            </div>
+            {dialogError && (
+              <p role="alert" className="text-sm text-destructive">
+                {dialogError}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setResetTarget(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={resetting}>
+                {resetting ? "Saving…" : "Reset password"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex flex-col divide-y divide-border">
         {members.map((member) => {
@@ -293,19 +391,6 @@ export function UserManagement({
                       required
                     />
                   </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor={`edit-password-${member.id}`}>
-                    New password
-                  </Label>
-                  <Input
-                    id={`edit-password-${member.id}`}
-                    type="password"
-                    autoComplete="new-password"
-                    value={editPassword}
-                    onChange={(e) => setEditPassword(e.target.value)}
-                    placeholder="Leave blank to keep the current password"
-                  />
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" size="sm" disabled={busy}>
@@ -371,7 +456,6 @@ export function UserManagement({
                             setEditingId(member.id);
                             setEditName(member.name);
                             setEditEmail(member.email);
-                            setEditPassword("");
                           }}
                         />
                       }
@@ -381,16 +465,47 @@ export function UserManagement({
                     <TooltipContent>Edit</TooltipContent>
                   </Tooltip>
                 )}
+                {canEdit && (
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Reset password for ${member.name}`}
+                          onClick={() => {
+                            setDialogError(null);
+                            setResetPassword("");
+                            setResetTarget(member);
+                          }}
+                        />
+                      }
+                    >
+                      <KeyRound aria-hidden="true" />
+                    </TooltipTrigger>
+                    <TooltipContent>Reset password</TooltipContent>
+                  </Tooltip>
+                )}
                 {manageable && !isSelf && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive"
-                    disabled={busy}
-                    onClick={() => removeMember(member)}
-                  >
-                    Remove
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          aria-label={`Remove ${member.name}`}
+                          disabled={busy}
+                          onClick={() => removeMember(member)}
+                        />
+                      }
+                    >
+                      <Trash2 aria-hidden="true" />
+                    </TooltipTrigger>
+                    <TooltipContent>Delete</TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             </div>
