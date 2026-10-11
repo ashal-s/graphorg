@@ -84,10 +84,10 @@ function sortRoles(roles: WorkflowRole[]) {
 }
 
 /**
- * Pure shaping of a person's profile relationships. Ownership of services
- * and documents is team-level in the schema, so those lists
- * come from the person's team. Workflows come from `workflow_people`.
- * Tools are the unique set used across the team's services.
+ * Pure shaping of a person's profile relationships. Services and documents
+ * are the ones their teams own plus any assigned to them directly (the
+ * caller supplies both). Workflows come from `workflow_people`. Tools are
+ * the unique set used across those services.
  */
 export function assemblePersonProfile(
   input: AssemblePersonProfileInput,

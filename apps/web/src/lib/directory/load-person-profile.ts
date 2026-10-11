@@ -107,16 +107,20 @@ export async function loadPersonProfile(
       },
       orderBy: (row, { asc }) => asc(row.name),
     }),
-    teamIds.length > 0
-      ? db.query.documents.findMany({
-          where: and(
-            inArray(documents.ownerTeamId, teamIds),
-            eq(documents.organizationId, orgId),
-          ),
-          columns: { id: true, title: true, type: true, url: true },
-          orderBy: (row, { asc }) => asc(row.title),
-        })
-      : Promise.resolve([]),
+    // Documents owned by one of their teams, or assigned to them directly.
+    db.query.documents.findMany({
+      where: and(
+        eq(documents.organizationId, orgId),
+        or(
+          teamIds.length > 0
+            ? inArray(documents.ownerTeamId, teamIds)
+            : undefined,
+          eq(documents.ownerPersonId, personId),
+        ),
+      ),
+      columns: { id: true, title: true, type: true, url: true },
+      orderBy: (row, { asc }) => asc(row.title),
+    }),
     db.query.servicePeople.findMany({
       where: eq(servicePeople.personId, personId),
       columns: { serviceId: true },

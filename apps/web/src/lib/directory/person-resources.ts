@@ -198,7 +198,7 @@ export function buildPersonResources(
       key: "documents",
       label: "Documents",
       singular: "document",
-      emptyText: "Their teams don't manage any documents.",
+      emptyText: "No documents are assigned to them or their teams.",
       items: profile.documents.map((document) => ({
         id: document.id,
         name: document.title,
