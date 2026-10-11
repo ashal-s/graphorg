@@ -1,13 +1,12 @@
 import { and, eq, ilike, inArray, or } from "drizzle-orm";
-import Link from "next/link";
-import { Plus, Users } from "lucide-react";
+import { Users } from "lucide-react";
 
 import { EmptyState } from "@/components/states/empty-state";
 import { EntityRow } from "@/components/shared/entity-row";
+import { AddPersonDialog } from "@/components/directory/add-person-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { SearchBar } from "@/components/shared/search-bar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { getDb } from "@/db";
 import { people, teamMembers, teams } from "@/db/schema";
@@ -24,7 +23,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
   const { q, teamId } = await searchParams;
   const orgId = session.organizationId;
 
-  const [rows, teamOptions] = await Promise.all([
+  const [rows, teamOptions, managerOptions] = await Promise.all([
     getDb().query.people.findMany({
       where: and(
         eq(people.organizationId, orgId),
@@ -54,6 +53,14 @@ export default async function PeoplePage({ searchParams }: PageProps) {
       columns: { id: true, name: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
+    // Everyone, unfiltered, for the new-person dialog's manager picker.
+    canEdit
+      ? getDb().query.people.findMany({
+          where: eq(people.organizationId, orgId),
+          columns: { id: true, name: true },
+          orderBy: (row, { asc }) => asc(row.name),
+        })
+      : Promise.resolve([]),
   ]);
 
   const hasFilters = Boolean(q || teamId);
@@ -65,13 +72,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         description="Everyone in your organisation's directory."
         actions={
           canEdit && (
-            <Button
-              render={<Link href="/directory/people/new" />}
-              nativeButton={false}
-            >
-              <Plus aria-hidden="true" />
-              New person
-            </Button>
+            <AddPersonDialog teams={teamOptions} managers={managerOptions} />
           )
         }
       />
@@ -108,13 +109,12 @@ export default async function PeoplePage({ searchParams }: PageProps) {
           action={
             canEdit &&
             !hasFilters && (
-              <Button
+              <AddPersonDialog
+                teams={teamOptions}
+                managers={managerOptions}
                 size="sm"
-                render={<Link href="/directory/people/new" />}
-                nativeButton={false}
-              >
-                New person
-              </Button>
+                withIcon={false}
+              />
             )
           }
         />
