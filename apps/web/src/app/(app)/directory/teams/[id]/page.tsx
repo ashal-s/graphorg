@@ -196,6 +196,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
           id: person.id,
           name: person.name,
           title: person.title,
+          email: person.email,
         }))}
         candidates={candidates}
         readOnly={readOnly}

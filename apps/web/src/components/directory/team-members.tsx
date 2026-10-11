@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserMinus, UserPlus } from "lucide-react";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,6 +31,7 @@ export interface TeamMember {
   id: string;
   name: string;
   title: string | null;
+  email: string;
 }
 
 export interface TeamCandidate {
@@ -38,6 +40,15 @@ export interface TeamCandidate {
   title: string | null;
   /** The team this person is on now, if any; adding them moves them. */
   currentTeamName: string | null;
+}
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const letters =
+    parts.length > 1
+      ? `${parts[0]![0]}${parts[parts.length - 1]![0]}`
+      : (parts[0]?.slice(0, 2) ?? "?");
+  return letters.toUpperCase();
 }
 
 async function setTeam(personId: string, teamId: string | null) {
@@ -149,23 +160,33 @@ export function TeamMembers({
               {error}
             </p>
           )}
-          <ul className="flex flex-col divide-y divide-border">
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {members.map((member) => (
               <li
                 key={member.id}
-                className="flex items-center justify-between gap-3 py-2"
+                className="group relative flex items-center gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/40"
               >
-                <Link
-                  href={`/directory/people/${member.id}`}
-                  className="min-w-0 hover:underline"
-                >
-                  <span className="text-sm font-medium">{member.name}</span>
+                <Avatar size="lg" className="size-12">
+                  <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
+                    {initials(member.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/directory/people/${member.id}`}
+                    className="block truncate text-sm font-medium after:absolute after:inset-0 after:rounded-xl hover:underline"
+                  >
+                    {member.name}
+                  </Link>
                   {member.title && (
-                    <span className="ml-2 text-sm text-muted-foreground">
+                    <p className="truncate text-sm text-muted-foreground">
                       {member.title}
-                    </span>
+                    </p>
                   )}
-                </Link>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {member.email}
+                  </p>
+                </div>
                 {!readOnly && (
                   <Tooltip>
                     <TooltipTrigger
@@ -174,7 +195,7 @@ export function TeamMembers({
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          className="relative z-10 self-start text-destructive hover:bg-destructive/10 hover:text-destructive"
                           aria-label={`Remove ${member.name} from this team`}
                           onClick={() => remove(member)}
                         />
@@ -187,6 +208,18 @@ export function TeamMembers({
                 )}
               </li>
             ))}
+            {!readOnly && (
+              <li>
+                <button
+                  type="button"
+                  onClick={openDialog}
+                  className="flex h-full min-h-[5.5rem] w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                >
+                  <UserPlus className="size-4" aria-hidden="true" />
+                  Add person
+                </button>
+              </li>
+            )}
           </ul>
         </CardContent>
       )}
