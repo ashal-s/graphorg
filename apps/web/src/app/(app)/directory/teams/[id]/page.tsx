@@ -2,7 +2,7 @@ import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { TeamForm } from "@/components/directory/team-form";
+import { TeamDetails } from "@/components/directory/team-details";
 import { TeamMembers } from "@/components/directory/team-members";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { EntityChipList, EntityRow } from "@/components/shared/entity-row";
@@ -178,7 +178,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={team.name}
-        description="Edit this team's details, or see everything it's connected to below."
+        description="Everything this team owns and who is on it."
         align="start"
         actions={
           !readOnly && (
@@ -192,7 +192,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
         }
       />
 
-      <TeamForm mode="edit" team={team} readOnly={readOnly} />
+      <TeamDetails team={team} readOnly={readOnly} />
 
       <TeamMembers
         teamId={team.id}
