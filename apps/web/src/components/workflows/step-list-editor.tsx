@@ -7,7 +7,8 @@ export interface WorkflowStepDraft {
    * step_order is intentionally non-unique in this schema (ties and gaps
    * are valid, documented input, not legacy noise), so it's preserved as
    * loaded rather than re-derived from array position on every save. Only
-   * `moveStep` below changes it, by swapping it between the two moved slots.
+   * `moveStep` (swapping it between the two moved slots) and `addStep`
+   * (making room for a step inserted part-way down) change it.
    */
   stepOrder: number;
   kind: "condition" | "action";
@@ -68,26 +69,45 @@ export function moveStep(
   return next;
 }
 
+/**
+ * Adds a step, at the end or part-way down the list.
+ *
+ * The saved order is the numeric `stepOrder`, not the array position, so an
+ * inserted step needs an order that sorts it where it was dropped. It takes
+ * the slot right after the step above it (or the first slot, at the top),
+ * and the steps below it are all shifted by the same amount, so their gaps
+ * and ties stay exactly as they were.
+ */
 export function addStep(
   steps: WorkflowStepDraft[],
   kind: "condition" | "action",
   atIndex?: number,
 ): WorkflowStepDraft[] {
-  const maxOrder = steps.reduce(
-    (max, step) => Math.max(max, step.stepOrder),
-    -1,
-  );
-  const step: WorkflowStepDraft = {
-    key: crypto.randomUUID(),
-    stepOrder: maxOrder + 1,
-    kind,
-    type: "",
-    configText: "{}",
-  };
+  const blank = { kind, type: "", configText: "{}" } as const;
+
   if (atIndex === undefined || atIndex >= steps.length) {
-    return [...steps, step];
+    const maxOrder = steps.reduce(
+      (max, step) => Math.max(max, step.stepOrder),
+      -1,
+    );
+    return [
+      ...steps,
+      { key: crypto.randomUUID(), stepOrder: maxOrder + 1, ...blank },
+    ];
   }
-  const next = [...steps];
-  next.splice(atIndex, 0, step);
-  return next;
+
+  const index = Math.max(0, atIndex);
+  const below = steps[index]!;
+  const stepOrder =
+    index === 0 ? below.stepOrder : steps[index - 1]!.stepOrder + 1;
+  // How far the steps below must move to sort after the new one.
+  const shift = Math.max(0, stepOrder + 1 - below.stepOrder);
+
+  return [
+    ...steps.slice(0, index),
+    { key: crypto.randomUUID(), stepOrder, ...blank },
+    ...steps
+      .slice(index)
+      .map((step) => ({ ...step, stepOrder: step.stepOrder + shift })),
+  ];
 }
