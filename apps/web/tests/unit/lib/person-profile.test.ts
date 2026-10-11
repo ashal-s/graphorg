@@ -12,7 +12,7 @@ function paymentsProfileInput(
   overrides: Partial<AssemblePersonProfileInput> = {},
 ): AssemblePersonProfileInput {
   return {
-    team: { id: "team-payments", name: "Payments" },
+    teams: [{ id: "team-payments", name: "Payments" }],
     manager: { id: "person-priya", name: "Priya Shah" },
     directReports: [{ id: "person-taylor", name: "Taylor Brooks" }],
     organizationId: "org-acme",
@@ -100,7 +100,7 @@ describe("assemblePersonProfile", () => {
   it("keeps the team, manager, and direct reports", () => {
     const profile = assemblePersonProfile(paymentsProfileInput());
 
-    expect(profile.team).toEqual({ id: "team-payments", name: "Payments" });
+    expect(profile.teams).toEqual([{ id: "team-payments", name: "Payments" }]);
     expect(profile.manager).toEqual({
       id: "person-priya",
       name: "Priya Shah",
@@ -141,6 +141,22 @@ describe("assemblePersonProfile", () => {
     );
 
     expect(profile.workflows).toEqual([]);
+  });
+
+  it("lists every team the person is on, sorted by name", () => {
+    const profile = assemblePersonProfile(
+      paymentsProfileInput({
+        teams: [
+          { id: "team-sre", name: "Site Reliability" },
+          { id: "team-payments", name: "Payments" },
+        ],
+      }),
+    );
+
+    expect(profile.teams.map((team) => team.name)).toEqual([
+      "Payments",
+      "Site Reliability",
+    ]);
   });
 
   it("dedupes tools across the team's services", () => {
@@ -223,7 +239,7 @@ describe("assemblePersonProfile", () => {
   it("returns empty relationship lists when the person has no team", () => {
     const profile = assemblePersonProfile(
       paymentsProfileInput({
-        team: null,
+        teams: [],
         services: [],
         repositories: [],
         documents: [],
@@ -231,7 +247,7 @@ describe("assemblePersonProfile", () => {
       }),
     );
 
-    expect(profile.team).toBeNull();
+    expect(profile.teams).toEqual([]);
     expect(profile.services).toEqual([]);
     expect(profile.repositories).toEqual([]);
     expect(profile.documents).toEqual([]);

@@ -16,13 +16,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { MultiSelectPicker } from "@/components/catalog/multi-select-picker";
 
 export interface PersonDetail {
   id: string;
   name: string;
   email: string;
   title: string | null;
-  teamId: string | null;
+  teamIds: string[];
   managerId: string | null;
 }
 
@@ -45,7 +46,7 @@ export function PersonForm({
   const [name, setName] = useState(person?.name ?? "");
   const [email, setEmail] = useState(person?.email ?? "");
   const [title, setTitle] = useState(person?.title ?? "");
-  const [teamId, setTeamId] = useState(person?.teamId ?? "");
+  const [teamIds, setTeamIds] = useState<string[]>(person?.teamIds ?? []);
   const [managerId, setManagerId] = useState(person?.managerId ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +68,7 @@ export function PersonForm({
       name: name.trim(),
       email: email.trim(),
       title: title.trim().length > 0 ? title.trim() : null,
-      teamId: teamId.length > 0 ? teamId : null,
+      teamIds,
       managerId: managerId.length > 0 ? managerId : null,
     };
 
@@ -157,21 +158,16 @@ export function PersonForm({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="person-team">Team</Label>
-            <NativeSelect
-              id="person-team"
-              value={teamId}
-              onChange={(event) => setTeamId(event.target.value)}
-              className="max-w-72"
+            <Label>Teams</Label>
+            <MultiSelectPicker
+              label="Teams"
+              addLabel="Add team"
+              emptyLabel="Not on any team."
+              options={teams.map((team) => ({ id: team.id, label: team.name }))}
+              selectedIds={teamIds}
+              onChange={setTeamIds}
               disabled={readOnly}
-            >
-              <option value="">No team</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              ))}
-            </NativeSelect>
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="person-manager">Manager</Label>

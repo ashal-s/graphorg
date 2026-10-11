@@ -23,6 +23,7 @@ import {
   serviceDependencies,
   services,
   serviceTools,
+  teamMembers,
   teams,
   tools,
   users,
@@ -162,7 +163,6 @@ async function main() {
       .insert(people)
       .values({
         organizationId: org.id,
-        teamId: teamByName.get(spec.team)!.id,
         managerId,
         name: spec.name,
         email: spec.email,
@@ -173,6 +173,18 @@ async function main() {
     personByName.set(spec.name, { id: row.id, email: spec.email });
   }
   console.log(`Created ${personByName.size} people`);
+
+  // A person can be on several teams: everyone's home team, plus a few
+  // people who also sit on a second one.
+  const membershipRows = [
+    ...peopleSpecs.map((spec) => ({ person: spec.name, team: spec.team })),
+    { person: "Dana Whitfield", team: "Platform Engineering" },
+  ].map((m) => ({
+    personId: personByName.get(m.person)!.id,
+    teamId: teamByName.get(m.team)!.id,
+  }));
+  await db.insert(teamMembers).values(membershipRows);
+  console.log(`Created ${membershipRows.length} team memberships`);
 
   // --- Users (product accounts, linked back to a subset of people) ----
 

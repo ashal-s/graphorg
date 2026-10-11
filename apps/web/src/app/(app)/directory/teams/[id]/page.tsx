@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
@@ -15,6 +15,7 @@ import {
   people,
   repositories,
   services,
+  teamMembers,
   teams,
   workflowPeople,
 } from "@/db/schema";
@@ -47,9 +48,9 @@ export default async function TeamDetailPage({ params }: PageProps) {
     getDb().query.teams.findFirst({
       where: and(eq(teams.id, id), eq(teams.organizationId, orgId)),
     }),
-    getDb().query.people.findMany({
-      where: and(eq(people.teamId, id), eq(people.organizationId, orgId)),
-      orderBy: (row, { asc }) => asc(row.name),
+    getDb().query.teamMembers.findMany({
+      where: eq(teamMembers.teamId, id),
+      with: { person: true },
     }),
     getDb().query.services.findMany({
       where: and(
@@ -82,30 +83,47 @@ export default async function TeamDetailPage({ params }: PageProps) {
     readOnly
       ? Promise.resolve([])
       : getDb().query.people.findMany({
-          where: and(
-            eq(people.organizationId, orgId),
-            or(isNull(people.teamId), ne(people.teamId, id)),
-          ),
+          where: eq(people.organizationId, orgId),
           columns: { id: true, name: true, title: true },
-          with: { team: { columns: { name: true } } },
+          with: {
+            memberships: {
+              columns: { teamId: true },
+              with: { team: { columns: { name: true } } },
+            },
+          },
           orderBy: (row, { asc }) => asc(row.name),
         }),
   ]);
 
   if (!team) notFound();
 
-  const candidates = otherPeople.map((person) => ({
-    id: person.id,
-    name: person.name,
-    title: person.title,
-    currentTeamName: person.team?.name ?? null,
-  }));
+  // Everyone not already on this team, noting the other teams they're on.
+  const candidates = otherPeople
+    .filter((person) => !person.memberships.some((m) => m.teamId === id))
+    .map((person) => ({
+      id: person.id,
+      name: person.name,
+      title: person.title,
+      otherTeamNames: person.memberships
+        .map((m) => m.team.name)
+        .sort((a, b) => a.localeCompare(b)),
+    }));
+  const members = teamPeople
+    .filter((membership) => membership.person.organizationId === orgId)
+    .map((membership) => ({
+      id: membership.person.id,
+      name: membership.person.name,
+      title: membership.person.title,
+      email: membership.person.email,
+      teamRole: membership.teamRole,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const teamPersonIds = members.map((member) => member.id);
 
   // Workflows aren't owned by a team directly, only by the people on it
   // (workflow_people), so this is a second query keyed off the team's
   // member ids rather than something the relational `with` API can express
   // in one pass.
-  const teamPersonIds = teamPeople.map((person) => person.id);
   const workflowAssignments = teamPersonIds.length
     ? await getDb().query.workflowPeople.findMany({
         where: inArray(workflowPeople.personId, teamPersonIds),
@@ -247,13 +265,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
 
       <TeamMembers
         teamId={team.id}
-        members={teamPeople.map((person) => ({
-          id: person.id,
-          name: person.name,
-          title: person.title,
-          email: person.email,
-          teamRole: person.teamRole,
-        }))}
+        members={members}
         candidates={candidates}
         readOnly={readOnly}
       />

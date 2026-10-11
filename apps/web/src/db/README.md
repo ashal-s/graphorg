@@ -15,6 +15,7 @@ src/db/
     ├── users.ts                product accounts (role: owner/admin/editor/viewer)
     ├── teams.ts
     ├── people.ts                directory entries; optionally linked to a user; self-referential manager
+    ├── team-members.ts          join table: which teams a person is on, and their level on each
     ├── tools.ts                 what the org uses to do its work: software, platforms, equipment (free-text category)
     ├── repositories.ts
     ├── services.ts               what the org delivers or runs: optional parent service, repository, owner team
@@ -31,14 +32,14 @@ scripts/seed.ts                 populates the "Acme Corp" demo organisation
 ## Design
 
 - **Tenant boundary**: every table except `organizations` has a required `organization_id` column (`references organizations.id, onDelete: cascade`), via the shared `organizationId()` helper. Deleting an organization removes every row that belongs to it.
-- **Ownership**: modeled as direct `owner_team_id` foreign keys (nullable, `onDelete: set null`) on `services`, `repositories` and `documents` — not a generic polymorphic ownership table. `people.team_id` and `people.manager_id` (self-referential) round out the org chart.
+- **Ownership**: modeled as direct `owner_team_id` foreign keys (nullable, `onDelete: set null`) on `services`, `repositories` and `documents` — not a generic polymorphic ownership table. `team_members` (a person can be on any number of teams, with a level of lead, member or trainee on each) and `people.manager_id` (self-referential) round out the org chart.
 - **Dependencies**: `service_dependencies` is a self-referential many-to-many join on `services`, with a `CHECK` constraint that a service can't depend on itself.
 - **Hierarchy**: `services.parent_id` is a self-reference (`onDelete: set null`), so a service can sit under another one; a "system" is just a service with children. The API rejects a parent that would create a loop.
 - **Tools**: `service_tools` is a many-to-many join between `services` and `tools`. `tools.category` is free text so each organization groups its tools its own way.
 - **Wording**: `organizations` carries optional `services_label_*`/`tools_label_*` and `*_description` columns. Null means "use the default" (see `src/lib/terminology.ts`); the app reads them wherever it names a service or tool.
 - **Workflows**: a `workflows` row holds a trigger (`trigger_type` + flexible `trigger_config` jsonb), a `name`/`description` and a `status` — a documentation record of what the workflow is, not something anything in the MVP executes. Its ordered condition/action chain lives in `workflow_steps` (`step_order`, `kind`, a flexible `type` + `config` jsonb — one row per step, not a wide table); `step_order` is intentionally _not_ unique per workflow, since this only documents a process and different teams may record it differently, including steps that tie. Who's involved is `workflow_people`, one row per `(workflow, person, role)` with `role` one of `owner`, `creator` or `worker` — a single join table rather than three, since a workflow can have more than one owner, more than one creator and more than one worker, and one person can hold more than one role on the same workflow. Only `workflows` itself carries `organization_id`; `workflow_steps` and `workflow_people` are scoped indirectly via `workflow_id`, the same pattern `service_tools`/`service_dependencies` use via `service_id`. See the GraphOrg Architecture document for the "Workflow builder" concept this models.
 - **Timestamps**: every table has `created_at`/`updated_at`. `updated_at` is kept correct at the database level by a `set_updated_at()` trigger (see `drizzle/0001_set_updated_at_triggers.sql`), not just by application code, so it stays right regardless of what writes the row.
-- **Constraints**: per-organization `UNIQUE` constraints on natural keys (e.g. `(organization_id, name)` on `teams`, `(organization_id, email)` on `users`, `(organization_id, name)` on `workflows`), `CHECK` constraints on categorical fields (`users.role`, `documents.type`, `workflows.trigger_type`, `workflows.status`, `workflow_steps.kind`, `workflow_people.role`), and on `service_dependencies` (no self-reference).
+- **Constraints**: per-organization `UNIQUE` constraints on natural keys (e.g. `(organization_id, name)` on `teams`, `(organization_id, email)` on `users`, `(organization_id, name)` on `workflows`), `CHECK` constraints on categorical fields (`users.role`, `team_members.team_role`, `documents.type`, `workflows.trigger_type`, `workflows.status`, `workflow_steps.kind`, `workflow_people.role`), and on `service_dependencies` (no self-reference).
 - **Indexes**: every `organization_id` column is indexed, along with every other foreign key that isn't already the leading column of a unique constraint.
 
 ## Workflow

@@ -15,7 +15,12 @@ export default async function OrgChartPage() {
   const rows = await getDb().query.people.findMany({
     where: eq(people.organizationId, session.organizationId),
     columns: { id: true, name: true, title: true, managerId: true },
-    with: { team: { columns: { name: true } } },
+    with: {
+      memberships: {
+        columns: {},
+        with: { team: { columns: { name: true } } },
+      },
+    },
   });
 
   const roots = buildOrgChart(
@@ -24,7 +29,11 @@ export default async function OrgChartPage() {
       name: row.name,
       title: row.title,
       managerId: row.managerId,
-      teamName: row.team?.name ?? null,
+      teamName:
+        row.memberships
+          .map((m) => m.team.name)
+          .sort((a, b) => a.localeCompare(b))
+          .join(", ") || null,
     })),
   );
   const total = countOrgChart(roots);

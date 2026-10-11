@@ -18,6 +18,7 @@ const expectedTables: Record<
   users: "users",
   teams: "teams",
   people: "people",
+  teamMembers: "team_members",
   tools: "tools",
   repositories: "repositories",
   services: "services",

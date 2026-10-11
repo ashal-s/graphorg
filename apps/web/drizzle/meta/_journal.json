@@ -64,6 +64,13 @@
       "when": 1791736012267,
       "tag": "0008_add_catalog_terminology",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791736530056,
+      "tag": "0009_add_team_members",
+      "breakpoints": true
     }
   ]
 }

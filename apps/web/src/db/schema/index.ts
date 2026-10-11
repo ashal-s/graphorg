@@ -2,6 +2,7 @@ export * from "./organizations";
 export * from "./users";
 export * from "./teams";
 export * from "./people";
+export * from "./team-members";
 export * from "./tools";
 export * from "./repositories";
 export * from "./services";

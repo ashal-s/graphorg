@@ -9,7 +9,11 @@ import { GET } from "@/app/api/people/route";
 // so Next's SWC path-alias rewrite never touches it — it must be relative.
 const findManyMock = jest.fn();
 jest.mock("../../../src/db", () => ({
-  getDb: () => ({ query: { people: { findMany: findManyMock } } }),
+  getDb: () => ({
+    query: { people: { findMany: findManyMock } },
+    // The teamId filter is a subquery over team_members.
+    select: () => ({ from: () => ({ where: () => "team-members-subquery" }) }),
+  }),
 }));
 
 const getSessionMock = jest.fn();
@@ -33,7 +37,7 @@ function getRequest(query = "") {
 
 /**
  * `teamId`/`managerId` filters are taken straight off the query string and
- * compared against `uuid` columns (`eq(people.teamId, teamId)`). A
+ * compared against `uuid` columns (via a `team_members` subquery). A
  * non-UUID value must be rejected with 400 before it ever reaches the
  * database, not passed through to fail as an uncaught Postgres cast error.
  */

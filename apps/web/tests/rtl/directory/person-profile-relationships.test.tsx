@@ -4,7 +4,10 @@ import { PersonProfileRelationships } from "@/components/directory/person-profil
 import type { AssembledPersonProfile } from "@/lib/directory/person-profile";
 
 const seededProfile: AssembledPersonProfile = {
-  team: { id: "team-payments", name: "Payments" },
+  teams: [
+    { id: "team-payments", name: "Payments" },
+    { id: "team-sre", name: "Site Reliability" },
+  ],
   manager: { id: "person-priya", name: "Priya Shah" },
   directReports: [{ id: "person-taylor", name: "Taylor Brooks" }],
   workflows: [
@@ -48,6 +51,9 @@ describe("PersonProfileRelationships", () => {
       "href",
       "/directory/teams/team-payments",
     );
+    expect(
+      screen.getByRole("link", { name: "Site Reliability" }),
+    ).toHaveAttribute("href", "/directory/teams/team-sre");
     expect(screen.getByRole("link", { name: "Priya Shah" })).toHaveAttribute(
       "href",
       "/directory/people/person-priya",
@@ -96,7 +102,7 @@ describe("PersonProfileRelationships", () => {
     render(
       <PersonProfileRelationships
         profile={{
-          team: null,
+          teams: [],
           manager: null,
           directReports: [],
           workflows: [],

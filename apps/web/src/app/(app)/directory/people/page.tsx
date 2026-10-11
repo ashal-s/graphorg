@@ -1,4 +1,4 @@
-import { and, eq, ilike, or } from "drizzle-orm";
+import { and, eq, ilike, inArray, or } from "drizzle-orm";
 import Link from "next/link";
 import { Plus, Users } from "lucide-react";
 
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { getDb } from "@/db";
-import { people, teams } from "@/db/schema";
+import { people, teamMembers, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 
@@ -31,10 +31,21 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         q
           ? or(ilike(people.name, `%${q}%`), ilike(people.email, `%${q}%`))
           : undefined,
-        teamId ? eq(people.teamId, teamId) : undefined,
+        teamId
+          ? inArray(
+              people.id,
+              getDb()
+                .select({ id: teamMembers.personId })
+                .from(teamMembers)
+                .where(eq(teamMembers.teamId, teamId)),
+            )
+          : undefined,
       ),
       with: {
-        team: { columns: { id: true, name: true } },
+        memberships: {
+          columns: {},
+          with: { team: { columns: { id: true, name: true } } },
+        },
       },
       orderBy: (row, { asc }) => asc(row.name),
     }),
@@ -116,8 +127,17 @@ export default async function PeoplePage({ searchParams }: PageProps) {
               title={person.name}
               meta={`${person.email}${person.title ? ` · ${person.title}` : ""}`}
               trailing={
-                person.team && (
-                  <Badge variant="outline">{person.team.name}</Badge>
+                person.memberships.length > 0 && (
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    {person.memberships
+                      .map((m) => m.team)
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((team) => (
+                        <Badge key={team.id} variant="outline">
+                          {team.name}
+                        </Badge>
+                      ))}
+                  </div>
                 )
               }
             />

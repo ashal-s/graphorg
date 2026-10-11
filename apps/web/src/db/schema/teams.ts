@@ -3,7 +3,7 @@ import { index, pgTable, text, unique } from "drizzle-orm/pg-core";
 
 import { id, organizationId, timestamps } from "./_columns";
 import { organizations } from "./organizations";
-import { people } from "./people";
+import { teamMembers } from "./team-members";
 
 export const teams = pgTable(
   "teams",
@@ -25,5 +25,5 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
     fields: [teams.organizationId],
     references: [organizations.id],
   }),
-  people: many(people),
+  memberships: many(teamMembers),
 }));

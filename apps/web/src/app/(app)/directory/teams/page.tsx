@@ -26,7 +26,7 @@ export default async function TeamsPage({ searchParams }: PageProps) {
       eq(teams.organizationId, session.organizationId),
       q ? ilike(teams.name, `%${q}%`) : undefined,
     ),
-    with: { people: { columns: { id: true } } },
+    with: { memberships: { columns: { personId: true } } },
     orderBy: (row, { asc }) => asc(row.name),
   });
 
@@ -87,8 +87,8 @@ export default async function TeamsPage({ searchParams }: PageProps) {
               meta={team.description}
               trailing={
                 <p className="text-sm text-muted-foreground">
-                  {team.people.length}{" "}
-                  {team.people.length === 1 ? "person" : "people"}
+                  {team.memberships.length}{" "}
+                  {team.memberships.length === 1 ? "person" : "people"}
                 </p>
               }
             />

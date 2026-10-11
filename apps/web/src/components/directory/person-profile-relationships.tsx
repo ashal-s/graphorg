@@ -26,16 +26,25 @@ export function PersonProfileRelationships({
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Team</CardTitle>
+          <CardTitle>{profile.teams.length > 1 ? "Teams" : "Team"}</CardTitle>
           <CardDescription>
-            {profile.team ? "This person's team." : "Not on a team."}
+            {profile.teams.length === 0
+              ? "Not on a team."
+              : profile.teams.length === 1
+                ? "This person's team."
+                : "The teams this person is on."}
           </CardDescription>
         </CardHeader>
-        {profile.team && (
-          <CardContent>
-            <RelatedRecordLink href={`/directory/teams/${profile.team.id}`}>
-              {profile.team.name}
-            </RelatedRecordLink>
+        {profile.teams.length > 0 && (
+          <CardContent className="flex flex-wrap gap-2">
+            {profile.teams.map((team) => (
+              <RelatedRecordLink
+                key={team.id}
+                href={`/directory/teams/${team.id}`}
+              >
+                {team.name}
+              </RelatedRecordLink>
+            ))}
           </CardContent>
         )}
       </Card>

@@ -1,4 +1,4 @@
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import {
@@ -17,13 +17,19 @@ export async function loadPersonProfile(orgId: string, personId: string) {
   const person = await db.query.people.findFirst({
     where: and(eq(people.id, personId), eq(people.organizationId, orgId)),
     with: {
-      team: { columns: { id: true, name: true } },
+      memberships: {
+        columns: {},
+        with: { team: { columns: { id: true, name: true } } },
+      },
       manager: { columns: { id: true, name: true } },
     },
   });
   if (!person) return null;
 
-  const teamId = person.teamId;
+  const personTeams = person.memberships
+    .map((membership) => membership.team)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const teamIds = personTeams.map((team) => team.id);
 
   const [
     teamOptions,
@@ -67,10 +73,10 @@ export async function loadPersonProfile(orgId: string, personId: string) {
         },
       },
     }),
-    teamId
+    teamIds.length > 0
       ? db.query.services.findMany({
           where: and(
-            eq(services.ownerTeamId, teamId),
+            inArray(services.ownerTeamId, teamIds),
             eq(services.organizationId, orgId),
           ),
           with: {
@@ -84,20 +90,20 @@ export async function loadPersonProfile(orgId: string, personId: string) {
           orderBy: (row, { asc }) => asc(row.name),
         })
       : Promise.resolve([]),
-    teamId
+    teamIds.length > 0
       ? db.query.repositories.findMany({
           where: and(
-            eq(repositories.ownerTeamId, teamId),
+            inArray(repositories.ownerTeamId, teamIds),
             eq(repositories.organizationId, orgId),
           ),
           columns: { id: true, name: true, url: true },
           orderBy: (row, { asc }) => asc(row.name),
         })
       : Promise.resolve([]),
-    teamId
+    teamIds.length > 0
       ? db.query.documents.findMany({
           where: and(
-            eq(documents.ownerTeamId, teamId),
+            inArray(documents.ownerTeamId, teamIds),
             eq(documents.organizationId, orgId),
           ),
           columns: { id: true, title: true, type: true, url: true },
@@ -106,12 +112,15 @@ export async function loadPersonProfile(orgId: string, personId: string) {
       : Promise.resolve([]),
   ]);
 
+  const { memberships: _memberships, ...personFields } = person;
+  void _memberships;
+
   return {
-    person,
+    person: { ...personFields, teamIds },
     teamOptions,
     managerOptions,
     profile: assemblePersonProfile({
-      team: person.team ?? null,
+      teams: personTeams,
       manager: person.manager ?? null,
       directReports,
       workflowLinks,

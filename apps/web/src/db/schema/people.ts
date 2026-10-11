@@ -1,7 +1,6 @@
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import {
   type AnyPgColumn,
-  check,
   index,
   pgTable,
   text,
@@ -11,7 +10,7 @@ import {
 
 import { id, organizationId, timestamps } from "./_columns";
 import { organizations } from "./organizations";
-import { teams } from "./teams";
+import { teamMembers } from "./team-members";
 import { users } from "./users";
 
 /**
@@ -26,16 +25,9 @@ export const people = pgTable(
     userId: uuid("user_id")
       .references(() => users.id, { onDelete: "set null" })
       .unique(),
-    teamId: uuid("team_id").references(() => teams.id, {
-      onDelete: "set null",
-    }),
     managerId: uuid("manager_id").references((): AnyPgColumn => people.id, {
       onDelete: "set null",
     }),
-    /** How much responsibility they carry on their team. Any number of leads is fine: leads are peers. */
-    teamRole: text("team_role", { enum: ["lead", "member", "trainee"] })
-      .notNull()
-      .default("member"),
     name: text("name").notNull(),
     email: text("email").notNull(),
     title: text("title"),
@@ -44,16 +36,11 @@ export const people = pgTable(
   (table) => [
     unique().on(table.organizationId, table.email),
     index("people_organization_id_idx").on(table.organizationId),
-    index("people_team_id_idx").on(table.teamId),
     index("people_manager_id_idx").on(table.managerId),
-    check(
-      "people_team_role_check",
-      sql`${table.teamRole} in ('lead', 'member', 'trainee')`,
-    ),
   ],
 );
 
-export const peopleRelations = relations(people, ({ one }) => ({
+export const peopleRelations = relations(people, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [people.organizationId],
     references: [organizations.id],
@@ -62,10 +49,8 @@ export const peopleRelations = relations(people, ({ one }) => ({
     fields: [people.userId],
     references: [users.id],
   }),
-  team: one(teams, {
-    fields: [people.teamId],
-    references: [teams.id],
-  }),
+  /** The teams this person is on (a person can be on several). */
+  memberships: many(teamMembers),
   manager: one(people, {
     fields: [people.managerId],
     references: [people.id],

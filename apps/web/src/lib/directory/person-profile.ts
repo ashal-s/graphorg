@@ -42,7 +42,7 @@ export interface ProfileDocument {
 }
 
 export interface AssembledPersonProfile {
-  team: ProfileRecord | null;
+  teams: ProfileRecord[];
   manager: ProfileRecord | null;
   directReports: ProfileRecord[];
   workflows: ProfileWorkflow[];
@@ -53,7 +53,7 @@ export interface AssembledPersonProfile {
 }
 
 export interface AssemblePersonProfileInput {
-  team: ProfileRecord | null;
+  teams: ProfileRecord[];
   manager: ProfileRecord | null;
   directReports: ProfileRecord[];
   workflowLinks: Array<{
@@ -142,7 +142,7 @@ export function assemblePersonProfile(
     .sort(byName);
 
   return {
-    team: input.team,
+    teams: [...input.teams].sort(byName),
     manager: input.manager,
     directReports: [...input.directReports].sort(byName),
     workflows: [...workflowsById.values()]
