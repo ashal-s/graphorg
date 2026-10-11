@@ -18,11 +18,11 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-svh">
-      <AppSidebar workspace={workspace} others={others} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <AppHeader session={session} workspace={workspace} others={others} />
-        <main className="flex-1 animate-in overflow-y-auto p-4 fade-in duration-200 md:p-6">
+    <div className="flex min-h-svh flex-col">
+      <AppHeader session={session} workspace={workspace} others={others} />
+      <div className="flex min-h-0 flex-1">
+        <AppSidebar />
+        <main className="min-w-0 flex-1 animate-in overflow-y-auto p-4 fade-in duration-200 md:p-6">
           {children}
         </main>
       </div>

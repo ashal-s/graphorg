@@ -1,7 +1,9 @@
 "use client";
 
 import { Check, ChevronDown } from "lucide-react";
+import Link from "next/link";
 
+import { GraphOrgMark } from "@/components/shell/graphorg-mark";
 import { OrganizationLogo } from "@/components/shared/organization-logo";
 import {
   DropdownMenu,
@@ -16,7 +18,7 @@ import { switchWorkspace } from "@/lib/auth/actions";
 import type { Workspace } from "@/lib/shell-workspaces";
 
 /**
- * "GraphOrg / [logo] Acme Corp ▾": the app name, then the current
+ * "[mark] GraphOrg / [logo] Acme Corp ▾": the app, then the current
  * workspace as a breadcrumb that opens a menu of workspaces. Picking
  * another one signs out and lands on its sign-in page.
  */
@@ -30,15 +32,21 @@ export function WorkspaceBreadcrumb({
   return (
     <nav
       aria-label="Workspace"
-      className="flex min-w-0 items-center gap-1 text-sm"
+      className="flex min-w-0 items-center gap-2 text-sm"
     >
-      <span className="font-semibold">GraphOrg</span>
-      <span className="text-muted-foreground" aria-hidden="true">
+      <Link
+        href="/"
+        className="flex shrink-0 items-center gap-2 rounded-md font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <GraphOrgMark className="size-6" />
+        <span className="hidden sm:inline">GraphOrg</span>
+      </Link>
+      <span className="text-muted-foreground/60" aria-hidden="true">
         /
       </span>
       <DropdownMenu>
         <DropdownMenuTrigger
-          className="flex min-w-0 items-center gap-1.5 rounded-md px-1 py-1 font-medium outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-sidebar-accent"
+          className="flex min-w-0 items-center gap-1.5 rounded-md px-1 py-1 font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-muted"
           aria-label={`Workspace: ${current.name}. Switch workspace`}
         >
           <OrganizationLogo
