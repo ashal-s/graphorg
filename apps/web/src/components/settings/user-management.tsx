@@ -2,12 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Pencil } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { SettingsSectionHeader } from "@/components/settings/setting-row";
 import type { Role } from "@/lib/auth/roles";
 import { assignableRoles, canManageRole } from "@/lib/auth/user-management";
@@ -352,20 +358,28 @@ export function UserManagement({
 
               <div className="flex gap-1">
                 {canEdit && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setError(null);
-                      setEditingId(member.id);
-                      setEditName(member.name);
-                      setEditEmail(member.email);
-                      setEditPassword("");
-                    }}
-                  >
-                    Edit
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Edit ${member.name}`}
+                          onClick={() => {
+                            setError(null);
+                            setEditingId(member.id);
+                            setEditName(member.name);
+                            setEditEmail(member.email);
+                            setEditPassword("");
+                          }}
+                        />
+                      }
+                    >
+                      <Pencil aria-hidden="true" />
+                    </TooltipTrigger>
+                    <TooltipContent>Edit</TooltipContent>
+                  </Tooltip>
                 )}
                 {manageable && !isSelf && (
                   <Button
