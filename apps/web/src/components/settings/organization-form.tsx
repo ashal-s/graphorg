@@ -12,6 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface OrganizationDetail {
   name: string;
@@ -124,19 +129,26 @@ export function OrganizationForm({
 
   function display(field: Field, value: React.ReactNode) {
     return (
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 text-sm">{value}</div>
+      <div className="flex items-start gap-1">
+        <div className="min-w-0 py-1 text-sm">{value}</div>
         {!readOnly && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Edit ${FIELD_LABELS[field].toLowerCase()}`}
-            onClick={() => startEditing(field)}
-            disabled={editing !== null}
-          >
-            <Pencil aria-hidden="true" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Edit ${FIELD_LABELS[field].toLowerCase()}`}
+                  onClick={() => startEditing(field)}
+                  disabled={editing !== null}
+                />
+              }
+            >
+              <Pencil aria-hidden="true" />
+            </TooltipTrigger>
+            <TooltipContent>Edit</TooltipContent>
+          </Tooltip>
         )}
       </div>
     );
