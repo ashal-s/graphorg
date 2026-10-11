@@ -34,13 +34,13 @@ export function WorkspaceBreadcrumb({
   return (
     <nav
       aria-label="Workspace"
-      className="flex min-w-0 items-center gap-2 text-sm"
+      className="flex min-w-0 items-center gap-2 text-[13px]"
     >
       <Link
         href="/"
         className="flex shrink-0 items-center gap-2 rounded-md font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <GraphOrgMark className="size-6" />
+        <GraphOrgMark className="size-5" />
         <span className="hidden sm:inline">GraphOrg</span>
       </Link>
       <span className="text-muted-foreground/60" aria-hidden="true">
@@ -54,11 +54,11 @@ export function WorkspaceBreadcrumb({
           <OrganizationLogo
             name={current.name}
             logoUrl={current.logoUrl}
-            className="h-5 max-w-10 text-[10px]"
+            className="h-4 max-w-8 text-[9px]"
           />
           <span className="truncate">{current.name}</span>
           <ChevronDown
-            className="size-3.5 shrink-0 text-muted-foreground"
+            className="size-3 shrink-0 text-muted-foreground"
             aria-hidden="true"
           />
         </DropdownMenuTrigger>
