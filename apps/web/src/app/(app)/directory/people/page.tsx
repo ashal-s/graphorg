@@ -1,46 +1,30 @@
-import { and, eq, ilike, inArray, or } from "drizzle-orm";
-import { Users } from "lucide-react";
+import { eq } from "drizzle-orm";
 
-import { EmptyState } from "@/components/states/empty-state";
-import { EntityRow } from "@/components/shared/entity-row";
+import { PeopleDirectory } from "@/components/directory/people-directory";
 import { PersonDialog } from "@/components/directory/person-dialog";
-import { buildOrgChart, flattenOrgChart } from "@/lib/directory/org-chart";
 import { PageHeader } from "@/components/shared/page-header";
-import { SearchBar } from "@/components/shared/search-bar";
-import { Badge } from "@/components/ui/badge";
-import { NativeSelect } from "@/components/ui/native-select";
 import { getDb } from "@/db";
-import { organizations, people, teamMembers, teams } from "@/db/schema";
+import { organizations, people, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 
-interface PageProps {
-  searchParams: Promise<{ q?: string; teamId?: string }>;
-}
-
-export default async function PeoplePage({ searchParams }: PageProps) {
+export default async function PeoplePage() {
   const session = await requireSession();
   const canEdit = hasRole(session.role, "editor");
-  const { q, teamId } = await searchParams;
   const orgId = session.organizationId;
 
-  const [rows, teamOptions, managerOptions, organization] = await Promise.all([
+  // Everyone is sent to the page once; searching and filtering happen in
+  // the browser, so results update on every keystroke.
+  const [rows, teamOptions, organization] = await Promise.all([
     getDb().query.people.findMany({
-      where: and(
-        eq(people.organizationId, orgId),
-        q
-          ? or(ilike(people.name, `%${q}%`), ilike(people.email, `%${q}%`))
-          : undefined,
-        teamId
-          ? inArray(
-              people.id,
-              getDb()
-                .select({ id: teamMembers.personId })
-                .from(teamMembers)
-                .where(eq(teamMembers.teamId, teamId)),
-            )
-          : undefined,
-      ),
+      where: eq(people.organizationId, orgId),
+      columns: {
+        id: true,
+        name: true,
+        email: true,
+        title: true,
+        managerId: true,
+      },
       with: {
         memberships: {
           columns: {},
@@ -54,36 +38,25 @@ export default async function PeoplePage({ searchParams }: PageProps) {
       columns: { id: true, name: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
-    // Everyone, unfiltered, for the new-person dialog's manager picker.
-    canEdit
-      ? getDb().query.people.findMany({
-          where: eq(people.organizationId, orgId),
-          columns: { id: true, name: true },
-          orderBy: (row, { asc }) => asc(row.name),
-        })
-      : Promise.resolve([]),
     getDb().query.organizations.findFirst({
       where: eq(organizations.id, orgId),
       columns: { emailDomain: true },
     }),
   ]);
 
-  const hasFilters = Boolean(q || teamId);
+  // The new-person dialog's manager picker offers everyone.
+  const managerOptions = canEdit
+    ? rows.map((row) => ({ id: row.id, name: row.name }))
+    : [];
 
-  // Ranked by position in the org: the top of the org chart first, then
-  // each level down. When a search or team filter hides someone's manager,
-  // they are ranked as if they were top level.
-  const byId = new Map(rows.map((row) => [row.id, row]));
-  const hierarchy = flattenOrgChart(
-    buildOrgChart(
-      rows.map((row) => ({
-        id: row.id,
-        name: row.name,
-        title: row.title,
-        managerId: row.managerId,
-      })),
-    ),
-  ).map(({ node, depth }) => ({ person: byId.get(node.id)!, depth }));
+  const directory = rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    title: row.title,
+    managerId: row.managerId,
+    teams: row.memberships.map((membership) => membership.team),
+  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -101,75 +74,20 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         }
       />
 
-      <SearchBar defaultValue={q} placeholder="Search by name or email">
-        <NativeSelect
-          name="teamId"
-          defaultValue={teamId ?? ""}
-          className="max-w-52"
-        >
-          <option value="">All teams</option>
-          {teamOptions.map((team) => (
-            <option key={team.id} value={team.id}>
-              {team.name}
-            </option>
-          ))}
-        </NativeSelect>
-      </SearchBar>
-
-      {rows.length === 0 ? (
-        <EmptyState
-          icon={
-            <Users
-              className="h-8 w-8 text-muted-foreground"
-              aria-hidden="true"
-            />
-          }
-          title={hasFilters ? "No people match your search" : "No people yet"}
-          description={
-            canEdit
-              ? "Add a person to start building your directory."
-              : "Nobody has added a person yet."
-          }
-          action={
-            canEdit &&
-            !hasFilters && (
-              <PersonDialog
-                teams={teamOptions}
-                managers={managerOptions}
-                emailDomain={organization?.emailDomain}
-                size="sm"
-                withIcon={false}
-              />
-            )
-          }
-        />
-      ) : (
-        <div className="flex flex-col gap-2">
-          {hierarchy.map(({ person }) => (
-            <div key={person.id}>
-              <EntityRow
-                href={`/directory/people/${person.id}`}
-                title={person.name}
-                meta={person.title ?? undefined}
-                trailing={
-                  person.memberships.length > 0 && (
-                    <div className="flex flex-wrap justify-end gap-1.5">
-                      {person.memberships
-                        .map((m) => m.team)
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .map((team) => (
-                          <Badge key={team.id} variant="outline">
-                            {team.name}
-                          </Badge>
-                        ))}
-                    </div>
-                  )
-                }
-              />
-            </div>
-          ))}
-        </div>
-      )}
+      <PeopleDirectory
+        people={directory}
+        teams={teamOptions}
+        canEdit={canEdit}
+        emptyAction={
+          <PersonDialog
+            teams={teamOptions}
+            managers={managerOptions}
+            emailDomain={organization?.emailDomain}
+            size="sm"
+            withIcon={false}
+          />
+        }
+      />
     </div>
   );
 }
