@@ -38,7 +38,6 @@ export interface TeamMember {
   title: string | null;
   email: string;
   teamRole: TeamRole;
-  functionId: string | null;
 }
 
 export interface TeamCandidate {
@@ -47,11 +46,6 @@ export interface TeamCandidate {
   title: string | null;
   /** The team this person is on now, if any; adding them moves them. */
   currentTeamName: string | null;
-}
-
-export interface TeamFunctionOption {
-  id: string;
-  name: string;
 }
 
 const LEVEL_LABELS: Record<TeamRole, string> = {
@@ -97,52 +91,32 @@ async function patchPerson(personId: string, body: Record<string, unknown>) {
   }
 }
 
-function LevelAndFunctionFields({
-  idPrefix,
+function LevelField({
+  id,
   level,
   onLevel,
-  functionId,
-  onFunction,
-  functions,
 }: {
-  idPrefix: string;
+  id: string;
   level: TeamRole;
   onLevel: (level: TeamRole) => void;
-  functionId: string;
-  onFunction: (id: string) => void;
-  functions: TeamFunctionOption[];
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`${idPrefix}-function`}>Function</Label>
-        <NativeSelect
-          id={`${idPrefix}-function`}
-          value={functionId}
-          onChange={(event) => onFunction(event.target.value)}
-        >
-          <option value="">None</option>
-          {functions.map((fn) => (
-            <option key={fn.id} value={fn.id}>
-              {fn.name}
-            </option>
-          ))}
-        </NativeSelect>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor={`${idPrefix}-level`}>Level</Label>
-        <NativeSelect
-          id={`${idPrefix}-level`}
-          value={level}
-          onChange={(event) => onLevel(event.target.value as TeamRole)}
-        >
-          {(Object.keys(LEVEL_LABELS) as TeamRole[]).map((value) => (
-            <option key={value} value={value}>
-              {LEVEL_LABELS[value]}
-            </option>
-          ))}
-        </NativeSelect>
-      </div>
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>Level</Label>
+      <NativeSelect
+        id={id}
+        value={level}
+        onChange={(event) => onLevel(event.target.value as TeamRole)}
+      >
+        {(Object.keys(LEVEL_LABELS) as TeamRole[]).map((value) => (
+          <option key={value} value={value}>
+            {LEVEL_LABELS[value]}
+          </option>
+        ))}
+      </NativeSelect>
+      <p className="text-xs text-muted-foreground">
+        A team can have any number of leads.
+      </p>
     </div>
   );
 }
@@ -151,13 +125,11 @@ export function TeamMembers({
   teamId,
   members,
   candidates,
-  functions,
   readOnly,
 }: {
   teamId: string;
   members: TeamMember[];
   candidates: TeamCandidate[];
-  functions: TeamFunctionOption[];
   readOnly: boolean;
 }) {
   const router = useRouter();
@@ -168,33 +140,22 @@ export function TeamMembers({
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [addLevel, setAddLevel] = useState<TeamRole>("member");
-  const [addFunction, setAddFunction] = useState("");
   const [busy, setBusy] = useState(false);
 
   // Edit-role dialog
   const [editing, setEditing] = useState<TeamMember | null>(null);
   const [editLevel, setEditLevel] = useState<TeamRole>("member");
-  const [editFunction, setEditFunction] = useState("");
 
-  const functionName = useMemo(
-    () => new Map(functions.map((fn) => [fn.id, fn.name])),
-    [functions],
-  );
-
-  // Hierarchy: leads (peers) first, then members, then trainees; within a
-  // level, by function name, then by name.
+  // Hierarchy: leads (peers) first, then members, then trainees; by name
+  // within a level.
   const sorted = useMemo(
     () =>
-      [...members].sort((a, b) => {
-        const byLevel = LEVEL_RANK[a.teamRole] - LEVEL_RANK[b.teamRole];
-        if (byLevel !== 0) return byLevel;
-        const byFunction = (
-          functionName.get(a.functionId ?? "") ?? "~"
-        ).localeCompare(functionName.get(b.functionId ?? "") ?? "~");
-        if (byFunction !== 0) return byFunction;
-        return a.name.localeCompare(b.name);
-      }),
-    [members, functionName],
+      [...members].sort(
+        (a, b) =>
+          LEVEL_RANK[a.teamRole] - LEVEL_RANK[b.teamRole] ||
+          a.name.localeCompare(b.name),
+      ),
+    [members],
   );
   const leads = sorted.filter((member) => member.teamRole === "lead");
   const others = sorted.filter((member) => member.teamRole !== "lead");
@@ -220,7 +181,6 @@ export function TeamMembers({
     setQuery("");
     setSelected(new Set());
     setAddLevel("member");
-    setAddFunction("");
     setAddOpen(true);
   }
 
@@ -230,11 +190,7 @@ export function TeamMembers({
     try {
       await Promise.all(
         [...selected].map((id) =>
-          patchPerson(id, {
-            teamId,
-            teamRole: addLevel,
-            functionId: addFunction || null,
-          }),
+          patchPerson(id, { teamId, teamRole: addLevel }),
         ),
       );
       setAddOpen(false);
@@ -252,10 +208,7 @@ export function TeamMembers({
     setBusy(true);
     setError(null);
     try {
-      await patchPerson(editing.id, {
-        teamRole: editLevel,
-        functionId: editFunction || null,
-      });
+      await patchPerson(editing.id, { teamRole: editLevel });
       setEditing(null);
       router.refresh();
     } catch (caught) {
@@ -277,7 +230,6 @@ export function TeamMembers({
   }
 
   function card(member: TeamMember) {
-    const fn = member.functionId ? functionName.get(member.functionId) : null;
     return (
       <li
         key={member.id}
@@ -296,7 +248,6 @@ export function TeamMembers({
             {member.name}
           </Link>
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-            {fn && <span className="text-sm text-foreground/80">{fn}</span>}
             {member.teamRole !== "member" && (
               <Badge
                 variant={member.teamRole === "lead" ? "default" : "secondary"}
@@ -324,19 +275,18 @@ export function TeamMembers({
                     variant="ghost"
                     size="icon-sm"
                     className="text-blue-600 hover:bg-blue-500/10 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-400"
-                    aria-label={`Edit role of ${member.name}`}
+                    aria-label={`Edit level of ${member.name}`}
                     onClick={() => {
                       setError(null);
                       setEditing(member);
                       setEditLevel(member.teamRole);
-                      setEditFunction(member.functionId ?? "");
                     }}
                   />
                 }
               >
                 <Pencil aria-hidden="true" />
               </TooltipTrigger>
-              <TooltipContent>Edit role</TooltipContent>
+              <TooltipContent>Edit level</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger
@@ -473,13 +423,10 @@ export function TeamMembers({
                   </li>
                 )}
               </ul>
-              <LevelAndFunctionFields
-                idPrefix="add"
+              <LevelField
+                id="add-level"
                 level={addLevel}
                 onLevel={setAddLevel}
-                functionId={addFunction}
-                onFunction={setAddFunction}
-                functions={functions}
               />
             </>
           )}
@@ -519,20 +466,16 @@ export function TeamMembers({
       >
         <DialogContent>
           <div>
-            <DialogTitle>Edit role</DialogTitle>
+            <DialogTitle>Edit level</DialogTitle>
             <DialogDescription>
-              {editing?.name}&rsquo;s function and level on this team. A team
-              can have any number of leads.
+              Set {editing?.name}&rsquo;s level on this team.
             </DialogDescription>
           </div>
           <form onSubmit={saveRole} className="flex flex-col gap-4">
-            <LevelAndFunctionFields
-              idPrefix="edit"
+            <LevelField
+              id="edit-level"
               level={editLevel}
               onLevel={setEditLevel}
-              functionId={editFunction}
-              onFunction={setEditFunction}
-              functions={functions}
             />
             {error && (
               <p role="alert" className="text-sm text-destructive">

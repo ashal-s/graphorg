@@ -4,8 +4,6 @@
 import { NextRequest } from "next/server";
 
 import { PATCH } from "@/app/api/people/[id]/route";
-import { DELETE } from "@/app/api/team-functions/[id]/route";
-import { POST } from "@/app/api/team-functions/route";
 
 const PERSON = "11111111-1111-4111-8111-111111111111";
 const TEAM_A = "22222222-2222-4222-8222-222222222222";
@@ -78,7 +76,7 @@ beforeEach(() => {
   getSessionMock.mockReset().mockResolvedValue(session("editor"));
 });
 
-describe("PATCH /api/people/[id] team level and function", () => {
+describe("PATCH /api/people/[id] team level", () => {
   it("sets a lead level without touching other fields", async () => {
     const response = await PATCH(
       req("PATCH", { teamRole: "lead" }),
@@ -97,26 +95,6 @@ describe("PATCH /api/people/[id] team level and function", () => {
     expect(setMock).not.toHaveBeenCalled();
   });
 
-  it("rejects a function from another organization", async () => {
-    selectRowsMock.mockResolvedValue([]);
-    const response = await PATCH(
-      req("PATCH", { functionId: FUNCTION }),
-      personParams,
-    );
-    expect(response.status).toBe(400);
-    expect(setMock).not.toHaveBeenCalled();
-  });
-
-  it("accepts a function in this organization", async () => {
-    selectRowsMock.mockResolvedValue([{ id: FUNCTION }]);
-    const response = await PATCH(
-      req("PATCH", { functionId: FUNCTION }),
-      personParams,
-    );
-    expect(response.status).toBe(200);
-    expect(setMock.mock.calls[0]![0]).toMatchObject({ functionId: FUNCTION });
-  });
-
   it("resets the level to member when moved to another team", async () => {
     selectRowsMock.mockResolvedValue([{ id: TEAM_B }]);
     await PATCH(req("PATCH", { teamId: TEAM_B }), personParams);
@@ -126,12 +104,11 @@ describe("PATCH /api/people/[id] team level and function", () => {
     });
   });
 
-  it("resets level and drops the function when removed from a team", async () => {
+  it("resets the level when removed from a team", async () => {
     await PATCH(req("PATCH", { teamId: null }), personParams);
     expect(setMock.mock.calls[0]![0]).toMatchObject({
       teamId: null,
       teamRole: "member",
-      functionId: null,
     });
   });
 
@@ -148,40 +125,5 @@ describe("PATCH /api/people/[id] team level and function", () => {
       personParams,
     );
     expect(setMock.mock.calls[0]![0]).toMatchObject({ teamRole: "lead" });
-  });
-});
-
-describe("team functions", () => {
-  it("rejects non-admins creating a function", async () => {
-    const response = await POST(req("POST", { name: "DevOps" }));
-    expect(response.status).toBe(403);
-    expect(insertValuesMock).not.toHaveBeenCalled();
-  });
-
-  it("lets an admin create one in their organization", async () => {
-    getSessionMock.mockResolvedValue(session("admin"));
-    returningMock.mockResolvedValue([{ id: FUNCTION, name: "DevOps" }]);
-    const response = await POST(req("POST", { name: "  DevOps " }));
-    expect(response.status).toBe(201);
-    expect(insertValuesMock.mock.calls[0]![0]).toEqual({
-      name: "DevOps",
-      organizationId: "org-a",
-    });
-  });
-
-  it("rejects non-admins deleting a function", async () => {
-    const response = await DELETE(req("DELETE"), {
-      params: Promise.resolve({ id: FUNCTION }),
-    });
-    expect(response.status).toBe(403);
-  });
-
-  it("404s deleting a function that isn't in this organization", async () => {
-    getSessionMock.mockResolvedValue(session("admin"));
-    deleteReturningMock.mockResolvedValue([]);
-    const response = await DELETE(req("DELETE"), {
-      params: Promise.resolve({ id: FUNCTION }),
-    });
-    expect(response.status).toBe(404);
   });
 });

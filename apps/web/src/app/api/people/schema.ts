@@ -8,8 +8,6 @@ export const createPersonSchema = z.object({
   managerId: z.string().uuid().nullable().optional(),
   /** How much responsibility they carry on their team. Resets to "member" when they change team. */
   teamRole: z.enum(["lead", "member", "trainee"]).optional(),
-  /** What they do on their team (a `team_functions` row in this organization). */
-  functionId: z.string().uuid().nullable().optional(),
   /** Links this directory entry to a product account (users). Optional: not everyone in the directory has product access. */
   userId: z.string().uuid().nullable().optional(),
 });

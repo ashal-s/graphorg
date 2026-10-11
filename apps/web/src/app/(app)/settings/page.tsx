@@ -1,13 +1,12 @@
-import { asc, count, eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { OrganizationForm } from "@/components/settings/organization-form";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
-import { TeamFunctionsSettings } from "@/components/settings/team-functions-settings";
 import { UserManagement } from "@/components/settings/user-management";
 import { getDb } from "@/db";
-import { organizations, people, teamFunctions, users } from "@/db/schema";
+import { organizations, users } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession, type Session } from "@/lib/auth/session";
 import { USER_MANAGEMENT_ROLE } from "@/lib/auth/user-management";
@@ -35,9 +34,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
       : []),
   ];
   const activeId =
-    canManageUsers && (tab === "members" || tab === "functions")
-      ? tab
-      : "organization";
+    canManageUsers && tab === "members" ? "members" : "organization";
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,8 +47,6 @@ export default async function SettingsPage({ searchParams }: PageProps) {
         <div className="min-w-0 flex-1 [&_input]:bg-transparent [&_select]:bg-transparent [&_textarea]:bg-transparent dark:[&_input]:bg-transparent dark:[&_select]:bg-transparent dark:[&_textarea]:bg-transparent">
           {activeId === "members" ? (
             <MembersTab session={session} />
-          ) : activeId === "functions" ? (
-            <FunctionsTab organizationId={session.organizationId} />
           ) : (
             <OrganizationTab
               organizationId={session.organizationId}
@@ -99,20 +94,4 @@ async function MembersTab({ session }: { session: Session }) {
       actorRole={session.role}
     />
   );
-}
-
-async function FunctionsTab({ organizationId }: { organizationId: string }) {
-  const rows = await getDb()
-    .select({
-      id: teamFunctions.id,
-      name: teamFunctions.name,
-      peopleCount: count(people.id),
-    })
-    .from(teamFunctions)
-    .leftJoin(people, eq(people.functionId, teamFunctions.id))
-    .where(eq(teamFunctions.organizationId, organizationId))
-    .groupBy(teamFunctions.id)
-    .orderBy(asc(teamFunctions.name));
-
-  return <TeamFunctionsSettings functions={rows} />;
 }

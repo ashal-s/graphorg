@@ -2,7 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import { people, teamFunctions, teams, users } from "@/db/schema";
+import { people, teams, users } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation, pgConstraintName } from "@/lib/api/db-errors";
@@ -75,22 +75,8 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!parsed.success) return jsonValidationError(parsed.error);
   const emptyPatchError = requireNonEmptyPatch(parsed.data);
   if (emptyPatchError) return emptyPatchError;
-  const { teamId, managerId, userId, functionId, ...values } = parsed.data;
+  const { teamId, managerId, userId, ...values } = parsed.data;
 
-  if (functionId) {
-    const missing = await findMissingInOrg(
-      teamFunctions.id,
-      teamFunctions.organizationId,
-      session.organizationId,
-      [functionId],
-    );
-    if (missing.length > 0) {
-      return jsonError(
-        400,
-        "functionId does not reference a function in this organization",
-      );
-    }
-  }
   if (teamId) {
     const missing = await findMissingInOrg(
       teams.id,
@@ -142,14 +128,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     teamId,
     managerId,
     userId,
-    functionId,
   };
-  // Moving to another team (or leaving one) starts over as a plain member;
-  // leaving a team also drops the function, which only means something
-  // within a team. An explicit teamRole/functionId in the same request wins.
-  if (teamId !== undefined && teamId !== existing.teamId) {
-    if (values.teamRole === undefined) patch.teamRole = "member";
-    if (teamId === null && functionId === undefined) patch.functionId = null;
+  // Moving to another team (or leaving one) starts over as a plain member,
+  // unless the same request sets a level explicitly.
+  if (
+    teamId !== undefined &&
+    teamId !== existing.teamId &&
+    values.teamRole === undefined
+  ) {
+    patch.teamRole = "member";
   }
 
   try {

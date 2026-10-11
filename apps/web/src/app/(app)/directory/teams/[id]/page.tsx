@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, ne, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
@@ -16,7 +16,6 @@ import {
   repositories,
   services,
   systems,
-  teamFunctions,
   teams,
   workflowPeople,
 } from "@/db/schema";
@@ -42,7 +41,6 @@ export default async function TeamDetailPage({ params }: PageProps) {
     teamRepositories,
     teamDocuments,
     otherPeople,
-    functions,
   ] = await Promise.all([
     getDb().query.teams.findFirst({
       where: and(eq(teams.id, id), eq(teams.organizationId, orgId)),
@@ -97,11 +95,6 @@ export default async function TeamDetailPage({ params }: PageProps) {
           with: { team: { columns: { name: true } } },
           orderBy: (row, { asc }) => asc(row.name),
         }),
-    getDb()
-      .select({ id: teamFunctions.id, name: teamFunctions.name })
-      .from(teamFunctions)
-      .where(eq(teamFunctions.organizationId, orgId))
-      .orderBy(asc(teamFunctions.name)),
   ]);
 
   if (!team) notFound();
@@ -275,9 +268,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
           title: person.title,
           email: person.email,
           teamRole: person.teamRole,
-          functionId: person.functionId,
         }))}
-        functions={functions}
         candidates={candidates}
         readOnly={readOnly}
       />

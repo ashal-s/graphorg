@@ -7,12 +7,7 @@ import { redirect } from "next/navigation";
 
 import { signIn, signOut } from "@/auth";
 import { getDb } from "@/db";
-import {
-  organizations,
-  STARTER_TEAM_FUNCTIONS,
-  teamFunctions,
-  users,
-} from "@/db/schema";
+import { organizations, users } from "@/db/schema";
 import { loginSchema, signupSchema } from "@/lib/auth/schemas";
 import { slugify } from "@/lib/utils";
 
@@ -88,13 +83,6 @@ export async function signup(
       .values({ name: organizationName, slug })
       .returning();
     if (!org) throw new Error("Failed to create organization");
-
-    await tx.insert(teamFunctions).values(
-      STARTER_TEAM_FUNCTIONS.map((name) => ({
-        organizationId: org.id,
-        name,
-      })),
-    );
 
     await tx.insert(users).values({
       organizationId: org.id,
