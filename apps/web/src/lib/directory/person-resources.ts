@@ -31,17 +31,6 @@ export function buildPersonResources(
       })),
     },
     {
-      key: "reports",
-      label: "Direct reports",
-      singular: "report",
-      emptyText: "Nobody reports to this person.",
-      items: profile.directReports.map((person) => ({
-        id: person.id,
-        name: person.name,
-        href: `/directory/people/${person.id}`,
-      })),
-    },
-    {
       key: "workflows",
       label: "Workflows",
       singular: "workflow",
@@ -76,17 +65,6 @@ export function buildPersonResources(
       })),
     },
     {
-      key: "repositories",
-      label: "Repositories",
-      singular: "repository",
-      emptyText: "Their teams don't own any repositories.",
-      items: profile.repositories.map((repository) => ({
-        id: repository.id,
-        name: repository.name,
-        href: `/catalog/repositories/${repository.id}`,
-      })),
-    },
-    {
       key: "documents",
       label: "Documents",
       singular: "document",
@@ -96,6 +74,17 @@ export function buildPersonResources(
         name: document.title,
         href: `/catalog/documents/${document.id}`,
         badges: [document.type],
+      })),
+    },
+    {
+      key: "reports",
+      label: "Direct reports",
+      singular: "report",
+      emptyText: "Nobody reports to this person.",
+      items: profile.directReports.map((person) => ({
+        id: person.id,
+        name: person.name,
+        href: `/directory/people/${person.id}`,
       })),
     },
   ];

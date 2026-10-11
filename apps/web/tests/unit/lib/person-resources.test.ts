@@ -26,24 +26,22 @@ describe("buildPersonResources", () => {
 
     expect(resources.map((r) => r.key)).toEqual([
       "teams",
-      "reports",
       "workflows",
       "services",
       "tools",
-      "repositories",
       "documents",
+      "reports",
     ]);
     const hrefs = Object.fromEntries(
       resources.map((r) => [r.key, r.items.map((item) => item.href)]),
     );
     expect(hrefs).toEqual({
       teams: ["/directory/teams/team-1"],
-      reports: ["/directory/people/p-2"],
       workflows: ["/workflows/wf-1"],
       services: ["/catalog/services/svc-1"],
       tools: ["/catalog/tools/tool-1"],
-      repositories: ["/catalog/repositories/repo-1"],
       documents: ["/catalog/documents/doc-1"],
+      reports: ["/directory/people/p-2"],
     });
   });
 
