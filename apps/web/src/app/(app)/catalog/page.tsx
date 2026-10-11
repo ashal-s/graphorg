@@ -3,12 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Layers, Wrench } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDb } from "@/db";
 import { services, tools } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
