@@ -43,6 +43,13 @@
       "when": 1791704856950,
       "tag": "0005_add_team_roles_and_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791705100115,
+      "tag": "0006_drop_team_functions",
+      "breakpoints": true
     }
   ]
 }

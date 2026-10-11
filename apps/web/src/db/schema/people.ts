@@ -11,7 +11,6 @@ import {
 
 import { id, organizationId, timestamps } from "./_columns";
 import { organizations } from "./organizations";
-import { teamFunctions } from "./team-functions";
 import { teams } from "./teams";
 import { users } from "./users";
 
@@ -37,10 +36,6 @@ export const people = pgTable(
     teamRole: text("team_role", { enum: ["lead", "member", "trainee"] })
       .notNull()
       .default("member"),
-    /** What they do on their team; see `team_functions`. */
-    functionId: uuid("function_id").references(() => teamFunctions.id, {
-      onDelete: "set null",
-    }),
     name: text("name").notNull(),
     email: text("email").notNull(),
     title: text("title"),
@@ -70,10 +65,6 @@ export const peopleRelations = relations(people, ({ one }) => ({
   team: one(teams, {
     fields: [people.teamId],
     references: [teams.id],
-  }),
-  function: one(teamFunctions, {
-    fields: [people.functionId],
-    references: [teamFunctions.id],
   }),
   manager: one(people, {
     fields: [people.managerId],
