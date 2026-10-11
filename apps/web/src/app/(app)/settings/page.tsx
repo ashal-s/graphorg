@@ -23,14 +23,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
   const tabs = [
     { id: "organization", label: "Organization", href: "/settings" },
     ...(canManageUsers
-      ? [
-          { id: "members", label: "Members", href: "/settings?tab=members" },
-          {
-            id: "functions",
-            label: "Team functions",
-            href: "/settings?tab=functions",
-          },
-        ]
+      ? [{ id: "members", label: "Members", href: "/settings?tab=members" }]
       : []),
   ];
   const activeId =
