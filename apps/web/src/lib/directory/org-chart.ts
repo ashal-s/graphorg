@@ -1,5 +1,7 @@
 export interface OrgChartPerson {
   id: string;
+  /** Where their profile lives (`/<slug>`); falls back to the id. */
+  slug?: string;
   name: string;
   title: string | null;
   photoUrl?: string | null;

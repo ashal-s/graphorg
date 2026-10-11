@@ -31,6 +31,7 @@ import {
   workflows,
   workflowSteps,
 } from "../src/db/schema";
+import { firstFreeSlug, toSlug } from "../src/lib/slugs";
 
 async function main() {
   const db = getDb();
@@ -52,34 +53,47 @@ async function main() {
 
   // --- Teams ---------------------------------------------------------
 
-  const teamRows = await db
-    .insert(teams)
-    .values(
-      [
-        {
-          name: "Platform Engineering",
-          description:
-            "Core platform, shared infrastructure and developer experience.",
-        },
-        {
-          name: "Payments",
-          description: "Checkout, billing and payment processing.",
-        },
-        {
-          name: "Growth",
-          description: "Acquisition, activation and experimentation.",
-        },
-        {
-          name: "Data & Analytics",
-          description: "Data pipelines, warehousing and reporting.",
-        },
-        {
-          name: "Site Reliability",
-          description: "Production reliability, on-call and incident response.",
-        },
-      ].map((t) => ({ ...t, organizationId: org.id })),
-    )
-    .returning();
+  // People and teams share one URL namespace, so slugs are picked together.
+  const usedSlugs = new Set<string>();
+  const slugFor = async (name: string) => {
+    const slug = await firstFreeSlug(toSlug(name), (s) => usedSlugs.has(s));
+    usedSlugs.add(slug);
+    return slug;
+  };
+
+  const teamSpecs = [
+    {
+      name: "Platform Engineering",
+      description:
+        "Core platform, shared infrastructure and developer experience.",
+    },
+    {
+      name: "Payments",
+      description: "Checkout, billing and payment processing.",
+    },
+    {
+      name: "Growth",
+      description: "Acquisition, activation and experimentation.",
+    },
+    {
+      name: "Data & Analytics",
+      description: "Data pipelines, warehousing and reporting.",
+    },
+    {
+      name: "Site Reliability",
+      description: "Production reliability, on-call and incident response.",
+    },
+  ];
+  // Sequential, so each slug sees the ones already handed out.
+  const teamValues: (typeof teams.$inferInsert)[] = [];
+  for (const spec of teamSpecs) {
+    teamValues.push({
+      ...spec,
+      slug: await slugFor(spec.name),
+      organizationId: org.id,
+    });
+  }
+  const teamRows = await db.insert(teams).values(teamValues).returning();
   const teamByName = new Map(teamRows.map((t) => [t.name, t]));
   console.log(`Created ${teamRows.length} teams`);
 
@@ -165,6 +179,7 @@ async function main() {
         organizationId: org.id,
         managerId,
         name: spec.name,
+        slug: await slugFor(spec.name),
         email: spec.email,
         title: spec.title,
       })

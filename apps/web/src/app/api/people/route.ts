@@ -10,6 +10,7 @@ import { isUniqueViolation, pgConstraintName } from "@/lib/api/db-errors";
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
 import { findMissingInOrg } from "@/lib/api/org-refs";
 import { setPersonTeams } from "@/lib/api/team-membership";
+import { uniqueSlug } from "@/lib/slugs";
 import {
   afterCursorPredicate,
   orderByNameThenId,
@@ -120,31 +121,40 @@ export async function POST(request: NextRequest) {
   }
 
   const db = getDb();
-  try {
-    const row = await db.transaction(async (tx) => {
-      const [created] = await tx
-        .insert(people)
-        .values({
-          ...values,
-          photoUrl: values.photoUrl || null,
-          managerId,
-          userId,
-          organizationId: session.organizationId,
-        })
-        .returning();
-      if (!created) throw new Error("Failed to insert person");
-      await setPersonTeams(tx, created.id, teamIds);
-      return created;
-    });
-    return NextResponse.json({ person: row }, { status: 201 });
-  } catch (error) {
-    if (isUniqueViolation(error)) {
-      const constraint = pgConstraintName(error);
-      if (constraint?.includes("user_id")) {
-        return jsonError(409, "This user is already linked to another person");
+  // The slug is picked, then inserted; if another request grabs it in
+  // between, the unique constraint rejects ours and we pick again.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const row = await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(people)
+          .values({
+            ...values,
+            photoUrl: values.photoUrl || null,
+            managerId,
+            userId,
+            slug: await uniqueSlug(session.organizationId, values.name, tx),
+            organizationId: session.organizationId,
+          })
+          .returning();
+        if (!created) throw new Error("Failed to insert person");
+        await setPersonTeams(tx, created.id, teamIds);
+        return created;
+      });
+      return NextResponse.json({ person: row }, { status: 201 });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        const constraint = pgConstraintName(error);
+        if (constraint?.includes("slug") && attempt < 2) continue;
+        if (constraint?.includes("user_id")) {
+          return jsonError(
+            409,
+            "This user is already linked to another person",
+          );
+        }
+        return jsonError(409, "A person with this email already exists");
       }
-      return jsonError(409, "A person with this email already exists");
+      throw error;
     }
-    throw error;
   }
 }

@@ -23,7 +23,10 @@ jest.mock("../../../src/db", () => {
   // Inside a transaction: users insert/people lookups and writes.
   // Built lazily: the mocks below are initialised after this factory is hoisted.
   const makeTx = () => ({
-    query: { people: { findFirst: personFindFirstMock } },
+    query: {
+      people: { findFirst: personFindFirstMock },
+      teams: { findFirst: async () => undefined },
+    },
     insert: (table: { _: { name?: string } } | unknown) => ({
       values: (values: unknown) => {
         const name = (table as { [k: symbol]: unknown })[

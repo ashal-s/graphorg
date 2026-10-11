@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useNavHighlight } from "@/lib/nav-highlight";
 import { navItems } from "@/lib/nav-items";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ export function SidebarNav({
   collapsible?: boolean;
 }) {
   const pathname = usePathname();
+  const highlighted = useNavHighlight();
 
   return (
     <nav aria-label="Main" className="flex flex-col gap-1">
@@ -25,9 +27,13 @@ export function SidebarNav({
         // A section stays selected on its sub-pages (/directory/teams is
         // under Directory); the overview only matches the root.
         const isActive =
-          item.href === "/"
-            ? pathname === "/"
-            : pathname === item.href || pathname.startsWith(`${item.href}/`);
+          highlighted !== null
+            ? // A page outside the section's URLs (a person or team) said
+              // which section it belongs to.
+              item.href === highlighted
+            : item.href === "/"
+              ? pathname === "/"
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
 
         return (

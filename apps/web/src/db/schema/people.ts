@@ -29,6 +29,8 @@ export const people = pgTable(
       onDelete: "set null",
     }),
     name: text("name").notNull(),
+    /** The address of their profile: `/<slug>`. Unique among people and teams. */
+    slug: text("slug").notNull(),
     email: text("email").notNull(),
     title: text("title"),
     /** Link to a profile picture. Without one the UI shows their initials. */
@@ -37,6 +39,7 @@ export const people = pgTable(
   },
   (table) => [
     unique().on(table.organizationId, table.email),
+    unique().on(table.organizationId, table.slug),
     index("people_organization_id_idx").on(table.organizationId),
     index("people_manager_id_idx").on(table.managerId),
   ],

@@ -24,6 +24,7 @@ export default async function PeoplePage() {
       where: eq(people.organizationId, orgId),
       columns: {
         id: true,
+        slug: true,
         name: true,
         email: true,
         title: true,
@@ -58,6 +59,7 @@ export default async function PeoplePage() {
 
   const directory = rows.map((row) => ({
     id: row.id,
+    slug: row.slug,
     name: row.name,
     email: row.email,
     title: row.title,

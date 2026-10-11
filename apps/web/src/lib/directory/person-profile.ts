@@ -17,6 +17,11 @@ export interface ProfileRecord {
   name: string;
 }
 
+/** A person or team a profile links to: its name and where it lives. */
+export interface ProfileLink extends ProfileRecord {
+  slug: string;
+}
+
 export interface ProfileWorkflow extends ProfileRecord {
   roles: WorkflowRole[];
   status: string;
@@ -40,9 +45,9 @@ export interface ProfileDocument {
 }
 
 export interface AssembledPersonProfile {
-  teams: ProfileRecord[];
-  manager: ProfileRecord | null;
-  directReports: ProfileRecord[];
+  teams: ProfileLink[];
+  manager: ProfileLink | null;
+  directReports: ProfileLink[];
   workflows: ProfileWorkflow[];
   services: ProfileService[];
   tools: ProfileTool[];
@@ -50,9 +55,9 @@ export interface AssembledPersonProfile {
 }
 
 export interface AssemblePersonProfileInput {
-  teams: ProfileRecord[];
-  manager: ProfileRecord | null;
-  directReports: ProfileRecord[];
+  teams: ProfileLink[];
+  manager: ProfileLink | null;
+  directReports: ProfileLink[];
   workflowLinks: Array<{
     role: WorkflowRole;
     workflow: {

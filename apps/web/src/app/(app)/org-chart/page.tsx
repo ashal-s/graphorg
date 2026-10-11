@@ -17,6 +17,7 @@ export default async function OrgChartPage() {
     where: eq(people.organizationId, session.organizationId),
     columns: {
       id: true,
+      slug: true,
       name: true,
       title: true,
       photoUrl: true,
@@ -28,6 +29,7 @@ export default async function OrgChartPage() {
   const roots = buildOrgChart(
     rows.map((row) => ({
       id: row.id,
+      slug: row.slug,
       name: row.name,
       title: row.title,
       photoUrl: personPhotoSrc(row),

@@ -12,6 +12,7 @@ const member = (
 const teams = [
   {
     id: "t1",
+    slug: "t1-slug",
     name: "Payments",
     description: "Checkout and billing",
     members: [
@@ -22,11 +23,18 @@ const teams = [
   },
   {
     id: "t2",
+    slug: "t2-slug",
     name: "Growth",
     description: "Acquisition",
     members: [member("p4", "Riley Chen")],
   },
-  { id: "t3", name: "Platform", description: null, members: [] },
+  {
+    id: "t3",
+    slug: "platform",
+    name: "Platform",
+    description: null,
+    members: [],
+  },
 ];
 
 const names = () =>
@@ -65,5 +73,11 @@ describe("TeamsDirectory", () => {
 
     await user.type(screen.getByLabelText("Search teams"), "zzz");
     expect(screen.getByText("No teams match your search")).toBeInTheDocument();
+  });
+
+  it("links each team to its slug, not its id", () => {
+    render(<TeamsDirectory teams={teams} canEdit />);
+    const link = screen.getByText("Payments").closest("a");
+    expect(link).toHaveAttribute("href", "/t1-slug");
   });
 });

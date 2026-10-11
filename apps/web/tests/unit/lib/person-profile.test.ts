@@ -12,9 +12,11 @@ function paymentsProfileInput(
   overrides: Partial<AssemblePersonProfileInput> = {},
 ): AssemblePersonProfileInput {
   return {
-    teams: [{ id: "team-payments", name: "Payments" }],
-    manager: { id: "person-priya", name: "Priya Shah" },
-    directReports: [{ id: "person-taylor", name: "Taylor Brooks" }],
+    teams: [{ id: "team-payments", name: "Payments", slug: "payments" }],
+    manager: { id: "person-priya", name: "Priya Shah", slug: "priya-shah" },
+    directReports: [
+      { id: "person-taylor", name: "Taylor Brooks", slug: "taylor-brooks" },
+    ],
     organizationId: "org-acme",
     workflowLinks: [
       {
@@ -77,13 +79,16 @@ describe("assemblePersonProfile", () => {
   it("keeps the team, manager, and direct reports", () => {
     const profile = assemblePersonProfile(paymentsProfileInput());
 
-    expect(profile.teams).toEqual([{ id: "team-payments", name: "Payments" }]);
+    expect(profile.teams).toEqual([
+      { id: "team-payments", name: "Payments", slug: "payments" },
+    ]);
     expect(profile.manager).toEqual({
       id: "person-priya",
       name: "Priya Shah",
+      slug: "priya-shah",
     });
     expect(profile.directReports).toEqual([
-      { id: "person-taylor", name: "Taylor Brooks" },
+      { id: "person-taylor", name: "Taylor Brooks", slug: "taylor-brooks" },
     ]);
   });
 
@@ -124,8 +129,12 @@ describe("assemblePersonProfile", () => {
     const profile = assemblePersonProfile(
       paymentsProfileInput({
         teams: [
-          { id: "team-sre", name: "Site Reliability" },
-          { id: "team-payments", name: "Payments" },
+          {
+            id: "team-sre",
+            name: "Site Reliability",
+            slug: "site-reliability",
+          },
+          { id: "team-payments", name: "Payments", slug: "payments" },
         ],
       }),
     );

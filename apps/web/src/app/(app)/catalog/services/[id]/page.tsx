@@ -150,7 +150,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                   ? [
                       {
                         key: "team",
-                        href: `/directory/teams/${service.ownerTeam.id}`,
+                        href: `/${service.ownerTeam.slug}`,
                         label: `Team: ${service.ownerTeam.name}`,
                       },
                     ]

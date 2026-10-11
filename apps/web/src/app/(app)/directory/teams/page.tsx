@@ -55,6 +55,7 @@ export default async function TeamsPage() {
       <TeamsDirectory
         teams={rows.map((row) => ({
           id: row.id,
+          slug: row.slug,
           name: row.name,
           description: row.description,
           members: row.memberships

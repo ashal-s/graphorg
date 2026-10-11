@@ -11,11 +11,14 @@ export const teams = pgTable(
     id: id(),
     organizationId: organizationId(),
     name: text("name").notNull(),
+    /** The address of the team page: `/<slug>`. Unique among people and teams. */
+    slug: text("slug").notNull(),
     description: text("description"),
     ...timestamps(),
   },
   (table) => [
     unique().on(table.organizationId, table.name),
+    unique().on(table.organizationId, table.slug),
     index("teams_organization_id_idx").on(table.organizationId),
   ],
 );

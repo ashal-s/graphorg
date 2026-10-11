@@ -13,6 +13,8 @@ import {
   USER_MANAGEMENT_ROLE,
 } from "@/lib/auth/user-management";
 
+import { uniqueSlug } from "@/lib/slugs";
+
 import { publicUserColumns } from "./columns";
 import { createUserSchema } from "./schema";
 
@@ -113,6 +115,7 @@ export async function POST(request: NextRequest) {
           await tx.insert(people).values({
             name,
             email,
+            slug: await uniqueSlug(session.organizationId, name, tx),
             userId: created.id,
             organizationId: session.organizationId,
           });

@@ -14,6 +14,7 @@ import { matchesSearch } from "@/lib/text-search";
 
 export interface DirectoryPerson {
   id: string;
+  slug: string;
   name: string;
   email: string;
   title: string | null;
@@ -115,7 +116,7 @@ export function PeopleDirectory({
             {visible.map((person) => (
               <li key={person.id}>
                 <Link
-                  href={`/directory/people/${person.id}`}
+                  href={`/${person.slug}`}
                   className="group flex h-full items-center gap-3 rounded-xl bg-card p-3.5 ring-1 ring-foreground/10 transition-all hover:-translate-y-px hover:shadow-md hover:ring-primary/40"
                 >
                   <PersonAvatar

@@ -3,9 +3,9 @@ import type { AssembledPersonProfile } from "@/lib/directory/person-profile";
 import { DEFAULT_TERMINOLOGY, resolveTerminology } from "@/lib/terminology";
 
 const profile: AssembledPersonProfile = {
-  teams: [{ id: "team-1", name: "Payments" }],
-  manager: { id: "p-1", name: "Priya Shah" },
-  directReports: [{ id: "p-2", name: "Taylor Brooks" }],
+  teams: [{ id: "team-1", name: "Payments", slug: "payments" }],
+  manager: { id: "p-1", name: "Priya Shah", slug: "priya-shah" },
+  directReports: [{ id: "p-2", name: "Taylor Brooks", slug: "taylor-brooks" }],
   workflows: [
     {
       id: "wf-1",
@@ -37,12 +37,12 @@ describe("buildPersonResources", () => {
       resources.map((r) => [r.key, r.items.map((item) => item.href)]),
     );
     expect(hrefs).toEqual({
-      teams: ["/directory/teams/team-1"],
+      teams: ["/payments"],
       workflows: ["/workflows/wf-1"],
       services: ["/catalog/services/svc-1"],
       tools: ["/catalog/tools/tool-1"],
       documents: ["/documents/doc-1"],
-      reports: ["/directory/people/p-2"],
+      reports: ["/taylor-brooks"],
     });
   });
 

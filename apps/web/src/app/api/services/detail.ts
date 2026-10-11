@@ -16,7 +16,7 @@ export async function fetchServiceDetail(organizationId: string, id: string) {
     with: {
       parent: { columns: { id: true, name: true } },
       children: { columns: { id: true, name: true } },
-      ownerTeam: { columns: { id: true, name: true } },
+      ownerTeam: { columns: { id: true, name: true, slug: true } },
       tools: {
         with: {
           tool: { columns: { id: true, name: true, category: true } },

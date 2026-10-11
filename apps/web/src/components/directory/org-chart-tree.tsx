@@ -7,7 +7,7 @@ function Node({ node }: { node: OrgChartNode }) {
   return (
     <li>
       <Link
-        href={`/directory/people/${node.id}`}
+        href={`/${node.slug ?? node.id}`}
         className="flex w-52 items-center gap-3 rounded-xl border border-border bg-background p-3 text-left transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         <PersonAvatar

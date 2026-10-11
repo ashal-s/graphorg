@@ -134,7 +134,7 @@ export function buildPersonResources(
       items: profile.teams.map((team) => ({
         id: team.id,
         name: team.name,
-        href: `/directory/teams/${team.id}`,
+        href: `/${team.slug}`,
         remove: canAssign
           ? {
               url: `/api/teams/${team.id}/members/${personId}`,
@@ -215,7 +215,7 @@ export function buildPersonResources(
       items: profile.directReports.map((person) => ({
         id: person.id,
         name: person.name,
-        href: `/directory/people/${person.id}`,
+        href: `/${person.slug}`,
         remove: editing?.canAssignReports
           ? {
               url: `/api/people/${person.id}`,

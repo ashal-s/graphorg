@@ -2,10 +2,11 @@ import { and, eq, ilike } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
+import { uniqueSlug } from "@/lib/slugs";
 import { teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
-import { isUniqueViolation } from "@/lib/api/db-errors";
+import { isUniqueViolation, pgConstraintName } from "@/lib/api/db-errors";
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
 import {
   afterCursorPredicate,
@@ -56,16 +57,24 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return jsonValidationError(parsed.error);
 
   const db = getDb();
-  try {
-    const [row] = await db
-      .insert(teams)
-      .values({ ...parsed.data, organizationId: session.organizationId })
-      .returning();
-    return NextResponse.json({ team: row }, { status: 201 });
-  } catch (error) {
-    if (isUniqueViolation(error)) {
-      return jsonError(409, "A team with this name already exists");
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const [row] = await db
+        .insert(teams)
+        .values({
+          ...parsed.data,
+          slug: await uniqueSlug(session.organizationId, parsed.data.name),
+          organizationId: session.organizationId,
+        })
+        .returning();
+      return NextResponse.json({ team: row }, { status: 201 });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        // Someone took the slug between picking and inserting: pick again.
+        if (pgConstraintName(error)?.includes("slug") && attempt < 2) continue;
+        return jsonError(409, "A team with this name already exists");
+      }
+      throw error;
     }
-    throw error;
   }
 }

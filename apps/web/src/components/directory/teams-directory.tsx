@@ -11,6 +11,7 @@ import { matchesSearch } from "@/lib/text-search";
 
 export interface DirectoryTeam {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
   members: {
@@ -86,7 +87,7 @@ export function TeamsDirectory({
               return (
                 <li key={team.id}>
                   <Link
-                    href={`/directory/teams/${team.id}`}
+                    href={`/${team.slug}`}
                     className="group flex h-full flex-col gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-all hover:-translate-y-px hover:shadow-md hover:ring-primary/40"
                   >
                     <span className="flex items-start gap-3">

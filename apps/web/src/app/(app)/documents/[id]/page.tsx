@@ -33,8 +33,8 @@ export default async function DocumentPage({ params }: PageProps) {
     getDb().query.documents.findFirst({
       where: and(eq(documents.id, id), eq(documents.organizationId, orgId)),
       with: {
-        ownerTeam: { columns: { id: true, name: true } },
-        ownerPerson: { columns: { id: true, name: true } },
+        ownerTeam: { columns: { id: true, name: true, slug: true } },
+        ownerPerson: { columns: { id: true, name: true, slug: true } },
       },
     }),
     getDb().query.documentFolders.findMany({
@@ -123,7 +123,7 @@ export default async function DocumentPage({ params }: PageProps) {
         <dd>
           {document.ownerTeam ? (
             <Link
-              href={`/directory/teams/${document.ownerTeam.id}`}
+              href={`/${document.ownerTeam.slug}`}
               className="font-medium hover:underline"
             >
               {document.ownerTeam.name}
@@ -136,7 +136,7 @@ export default async function DocumentPage({ params }: PageProps) {
         <dd>
           {document.ownerPerson ? (
             <Link
-              href={`/directory/people/${document.ownerPerson.id}`}
+              href={`/${document.ownerPerson.slug}`}
               className="font-medium hover:underline"
             >
               {document.ownerPerson.name}

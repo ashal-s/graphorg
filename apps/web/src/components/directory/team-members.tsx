@@ -33,6 +33,7 @@ export type TeamRole = "lead" | "member" | "trainee";
 
 export interface TeamMember {
   id: string;
+  slug: string;
   name: string;
   title: string | null;
   email: string;
@@ -259,7 +260,7 @@ export function TeamMembers({
         />
         <div className="min-w-0 flex-1">
           <Link
-            href={`/directory/people/${member.id}`}
+            href={`/${member.slug}`}
             className="block truncate text-sm font-medium after:absolute after:inset-0 after:rounded-xl hover:underline"
           >
             {member.name}

@@ -6,6 +6,7 @@ jest.mock("next/navigation", () => ({
   usePathname: () => mockPathname,
 }));
 
+import { HighlightSection } from "@/components/shell/highlight-section";
 import { SidebarNav } from "@/components/shell/sidebar-nav";
 
 describe("SidebarNav", () => {
@@ -88,5 +89,23 @@ describe("SidebarNav", () => {
 
     rerender(<SidebarNav collapsible />);
     expect(screen.getByText("Directory").className).toContain("opacity-0");
+  });
+
+  it("highlights the section a page asks for when its URL doesn't say", () => {
+    mockPathname = "/jordan-lee";
+    render(
+      <>
+        <HighlightSection href="/directory" />
+        <SidebarNav />
+      </>,
+    );
+
+    expect(screen.getByRole("link", { name: /directory/i })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByRole("link", { name: /overview/i })).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 });

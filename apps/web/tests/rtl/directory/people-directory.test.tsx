@@ -11,6 +11,7 @@ const teams = [
 const people = [
   {
     id: "ceo",
+    slug: "ceo-slug",
     name: "Priya Shah",
     email: "priya@acme.com",
     title: "CEO",
@@ -19,6 +20,7 @@ const people = [
   },
   {
     id: "alex",
+    slug: "alex-slug",
     name: "Alex Kim",
     email: "alex@acme.com",
     title: "Engineering Manager",
@@ -27,6 +29,7 @@ const people = [
   },
   {
     id: "dana",
+    slug: "dana-slug",
     name: "Dana Whitfield",
     email: "dana@acme.com",
     title: "SRE",
@@ -35,6 +38,7 @@ const people = [
   },
   {
     id: "casey",
+    slug: "casey-slug",
     name: "Casey Okafor",
     email: "casey@acme.com",
     title: "Engineer",
@@ -110,6 +114,12 @@ describe("PeopleDirectory", () => {
 
     await user.type(screen.getByLabelText("Search people"), "cas");
     expect(names()).toEqual(["Casey Okafor"]);
+  });
+
+  it("links each person to their slug, not their id", () => {
+    renderDirectory();
+    const link = screen.getByText("Casey Okafor").closest("a");
+    expect(link).toHaveAttribute("href", "/casey-slug");
   });
 
   it("shows teams on each row", () => {

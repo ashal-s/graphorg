@@ -25,9 +25,9 @@ export async function loadPersonProfile(
     with: {
       memberships: {
         columns: {},
-        with: { team: { columns: { id: true, name: true } } },
+        with: { team: { columns: { id: true, name: true, slug: true } } },
       },
-      manager: { columns: { id: true, name: true } },
+      manager: { columns: { id: true, name: true, slug: true } },
     },
   });
   if (!person) return null;
@@ -65,7 +65,7 @@ export async function loadPersonProfile(
         eq(people.managerId, personId),
         eq(people.organizationId, orgId),
       ),
-      columns: { id: true, name: true },
+      columns: { id: true, name: true, slug: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
     db.query.workflowPeople.findMany({
