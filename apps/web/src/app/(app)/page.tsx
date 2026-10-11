@@ -14,7 +14,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/states/empty-state";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { OrganizationLogo } from "@/components/shared/organization-logo";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -48,18 +48,7 @@ function OrganizationHero({
 }) {
   return (
     <header className="flex items-center gap-5">
-      <Avatar className="size-16 rounded-xl after:rounded-xl">
-        {logoUrl && (
-          <AvatarImage
-            src={logoUrl}
-            alt={`${name} logo`}
-            className="rounded-xl"
-          />
-        )}
-        <AvatarFallback className="rounded-xl bg-primary/10 text-xl font-semibold text-primary">
-          {name.trim().slice(0, 2).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
+      <OrganizationLogo name={name} logoUrl={logoUrl} />
       <div className="min-w-0">
         <h1 className="truncate text-2xl font-semibold tracking-tight">
           {name}

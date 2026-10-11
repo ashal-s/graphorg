@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { OrganizationLogo } from "@/components/shared/organization-logo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -132,19 +132,7 @@ export function OrganizationForm({
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-center gap-4">
-            <Avatar className="size-16 rounded-xl after:rounded-xl">
-              {logoUrl.trim() && (
-                <AvatarImage
-                  key={logoUrl.trim()}
-                  src={logoUrl.trim()}
-                  alt=""
-                  className="rounded-xl"
-                />
-              )}
-              <AvatarFallback className="rounded-xl bg-primary/10 text-xl font-semibold text-primary">
-                {name.trim().slice(0, 2).toUpperCase() || "?"}
-              </AvatarFallback>
-            </Avatar>
+            <OrganizationLogo name={name} logoUrl={logoUrl} />
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
               <Label htmlFor="org-logo">Logo URL</Label>
               <Input
