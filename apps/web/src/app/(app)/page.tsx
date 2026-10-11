@@ -210,7 +210,9 @@ export default async function OverviewPage() {
     <div className="flex flex-col gap-6">
       {hero}
 
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3 lg:grid-cols-4">
+      {/* Tiles wrap and stretch to fill each row, so any number of them
+          forms a complete block with no empty cells. */}
+      <div className="flex flex-wrap gap-px overflow-hidden rounded-xl border border-border bg-border">
         {stats.map((stat) => {
           const Icon = stat.icon;
           const body = (
@@ -235,14 +237,17 @@ export default async function OverviewPage() {
               key={stat.label}
               href={stat.href}
               className={cn(
-                "group bg-background p-5 outline-none transition-colors",
+                "group min-w-0 flex-1 basis-44 bg-background p-5 outline-none transition-colors",
                 "hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
               )}
             >
               {body}
             </Link>
           ) : (
-            <div key={stat.label} className="bg-background p-5">
+            <div
+              key={stat.label}
+              className="min-w-0 flex-1 basis-44 bg-background p-5"
+            >
               {body}
             </div>
           );

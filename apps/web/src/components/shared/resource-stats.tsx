@@ -174,14 +174,9 @@ export function ResourceStats({ resources }: { resources: Resource[] }) {
 
   return (
     <section className="flex flex-col gap-4">
-      <div
-        style={
-          {
-            "--stat-cols": `repeat(${resources.length}, minmax(0, 1fr))`,
-          } as React.CSSProperties
-        }
-        className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3 lg:grid-cols-(--stat-cols)"
-      >
+      {/* Tiles wrap and stretch to fill each row, so any number of them
+          forms a complete block with no empty cells. */}
+      <div className="flex flex-wrap gap-px overflow-hidden rounded-xl border border-border bg-border">
         {resources.map((resource) => {
           const selected = resource.key === activeKey;
           return (
@@ -191,7 +186,7 @@ export function ResourceStats({ resources }: { resources: Resource[] }) {
               aria-pressed={selected}
               onClick={() => setActiveKey(resource.key)}
               className={cn(
-                "bg-background p-4 text-left transition-colors outline-none",
+                "min-w-0 flex-1 basis-32 bg-background p-4 text-left transition-colors outline-none",
                 "hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                 selected && "bg-muted/50",
               )}
