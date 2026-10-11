@@ -450,6 +450,7 @@ export function UserManagement({
                           type="button"
                           variant="ghost"
                           size="icon-sm"
+                          className="text-blue-600 hover:bg-blue-500/10 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-400"
                           aria-label={`Edit ${member.name}`}
                           onClick={() => {
                             setError(null);
@@ -473,6 +474,7 @@ export function UserManagement({
                           type="button"
                           variant="ghost"
                           size="icon-sm"
+                          className="text-amber-600 hover:bg-amber-500/10 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-400"
                           aria-label={`Reset password for ${member.name}`}
                           onClick={() => {
                             setDialogError(null);
