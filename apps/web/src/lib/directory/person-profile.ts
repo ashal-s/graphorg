@@ -17,6 +17,11 @@ export interface ProfileRecord {
   name: string;
 }
 
+/** A person or team a profile links to: its name and where it lives. */
+export interface ProfileLink extends ProfileRecord {
+  slug: string;
+}
+
 export interface ProfileWorkflow extends ProfileRecord {
   roles: WorkflowRole[];
   status: string;
@@ -24,16 +29,12 @@ export interface ProfileWorkflow extends ProfileRecord {
 
 export interface ProfileService extends ProfileRecord {
   description: string | null;
+  /** Assigned to this person directly, as opposed to only via a team. */
+  direct: boolean;
 }
-
-export type ProfileTechnology = ProfileRecord;
 
 export interface ProfileTool extends ProfileRecord {
   category: string;
-}
-
-export interface ProfileRepository extends ProfileRecord {
-  url: string | null;
 }
 
 export interface ProfileDocument {
@@ -44,21 +45,19 @@ export interface ProfileDocument {
 }
 
 export interface AssembledPersonProfile {
-  team: ProfileRecord | null;
-  manager: ProfileRecord | null;
-  directReports: ProfileRecord[];
+  teams: ProfileLink[];
+  manager: ProfileLink | null;
+  directReports: ProfileLink[];
   workflows: ProfileWorkflow[];
   services: ProfileService[];
-  technologies: ProfileTechnology[];
   tools: ProfileTool[];
-  repositories: ProfileRepository[];
   documents: ProfileDocument[];
 }
 
 export interface AssemblePersonProfileInput {
-  team: ProfileRecord | null;
-  manager: ProfileRecord | null;
-  directReports: ProfileRecord[];
+  teams: ProfileLink[];
+  manager: ProfileLink | null;
+  directReports: ProfileLink[];
   workflowLinks: Array<{
     role: WorkflowRole;
     workflow: {
@@ -73,12 +72,10 @@ export interface AssemblePersonProfileInput {
     id: string;
     name: string;
     description: string | null;
-    repository?: ProfileRepository | null;
-    technologies: Array<{ technology: ProfileTechnology | null }>;
+    direct?: boolean;
+    tools: Array<{ tool: ProfileTool | null }>;
   }>;
-  repositories: ProfileRepository[];
   documents: ProfileDocument[];
-  tools: ProfileTool[];
 }
 
 function byName<T extends { name: string }>(a: T, b: T) {
@@ -92,12 +89,10 @@ function sortRoles(roles: WorkflowRole[]) {
 }
 
 /**
- * Pure shaping of a person's profile relationships. Ownership of services,
- * repositories and documents is team-level in the schema, so those lists
- * come from the person's team. Workflows come from `workflow_people`.
- * Technologies are the unique stack across the team's services. Tools are
- * the organisation catalog — there is no service↔tool join — shown here
- * because they are the tools those services sit alongside.
+ * Pure shaping of a person's profile relationships. Services and documents
+ * are the ones their teams own plus any assigned to them directly (the
+ * caller supplies both). Workflows come from `workflow_people`. Tools are
+ * the unique set used across those services.
  */
 export function assemblePersonProfile(
   input: AssemblePersonProfileInput,
@@ -125,32 +120,24 @@ export function assemblePersonProfile(
     }
   }
 
-  const technologiesById = new Map<string, ProfileTechnology>();
-  const repositoriesById = new Map<string, ProfileRepository>();
-  for (const repository of input.repositories) {
-    repositoriesById.set(repository.id, repository);
-  }
+  const toolsById = new Map<string, ProfileTool>();
 
   const services: ProfileService[] = input.services
     .map((service) => {
-      for (const link of service.technologies) {
-        if (link.technology) {
-          technologiesById.set(link.technology.id, link.technology);
-        }
-      }
-      if (service.repository) {
-        repositoriesById.set(service.repository.id, service.repository);
+      for (const link of service.tools) {
+        if (link.tool) toolsById.set(link.tool.id, link.tool);
       }
       return {
         id: service.id,
         name: service.name,
         description: service.description,
+        direct: service.direct ?? false,
       };
     })
     .sort(byName);
 
   return {
-    team: input.team,
+    teams: [...input.teams].sort(byName),
     manager: input.manager,
     directReports: [...input.directReports].sort(byName),
     workflows: [...workflowsById.values()]
@@ -160,9 +147,7 @@ export function assemblePersonProfile(
       }))
       .sort(byName),
     services,
-    technologies: [...technologiesById.values()].sort(byName),
-    tools: [...input.tools].sort(byName),
-    repositories: [...repositoriesById.values()].sort(byName),
+    tools: [...toolsById.values()].sort(byName),
     documents: [...input.documents].sort((a, b) =>
       a.title.localeCompare(b.title),
     ),

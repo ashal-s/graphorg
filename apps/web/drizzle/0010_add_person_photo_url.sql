@@ -1,0 +1,1 @@
+ALTER TABLE "people" ADD COLUMN "photo_url" text;

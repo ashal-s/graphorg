@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Pencil, UserMinus, UserPlus } from "lucide-react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { PersonAvatar } from "@/components/shared/person-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -34,9 +33,11 @@ export type TeamRole = "lead" | "member" | "trainee";
 
 export interface TeamMember {
   id: string;
+  slug: string;
   name: string;
   title: string | null;
   email: string;
+  photoUrl?: string | null;
   teamRole: TeamRole;
 }
 
@@ -44,8 +45,8 @@ export interface TeamCandidate {
   id: string;
   name: string;
   title: string | null;
-  /** The team this person is on now, if any; adding them moves them. */
-  currentTeamName: string | null;
+  /** Other teams this person is already on (adding them here keeps those). */
+  otherTeamNames: string[];
 }
 
 const LEVEL_LABELS: Record<TeamRole, string> = {
@@ -74,26 +75,33 @@ const LEVEL_DOT: Record<TeamRole, string> = {
   trainee: "bg-emerald-500",
 };
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const letters =
-    parts.length > 1
-      ? `${parts[0]![0]}${parts[parts.length - 1]![0]}`
-      : (parts[0]?.slice(0, 2) ?? "?");
-  return letters.toUpperCase();
-}
-
 function joinNames(names: string[]): string {
   if (names.length <= 1) return names[0] ?? "";
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-async function patchPerson(personId: string, body: Record<string, unknown>) {
-  const response = await fetch(`/api/people/${personId}`, {
-    method: "PATCH",
+/** Adds the person to the team, or changes their level if already on it. */
+function putMember(teamId: string, personId: string, teamRole: TeamRole) {
+  return memberRequest(teamId, personId, {
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ teamRole }),
   });
+}
+
+function removeMember(teamId: string, personId: string) {
+  return memberRequest(teamId, personId, { method: "DELETE" });
+}
+
+async function memberRequest(
+  teamId: string,
+  personId: string,
+  init: RequestInit,
+) {
+  const response = await fetch(
+    `/api/teams/${teamId}/members/${personId}`,
+    init,
+  );
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
     throw new Error(
@@ -201,9 +209,7 @@ export function TeamMembers({
     setError(null);
     try {
       await Promise.all(
-        [...selected].map((id) =>
-          patchPerson(id, { teamId, teamRole: addLevel }),
-        ),
+        [...selected].map((id) => putMember(teamId, id, addLevel)),
       );
       setAddOpen(false);
     } catch (caught) {
@@ -220,7 +226,7 @@ export function TeamMembers({
     setBusy(true);
     setError(null);
     try {
-      await patchPerson(editing.id, { teamRole: editLevel });
+      await putMember(teamId, editing.id, editLevel);
       setEditing(null);
       router.refresh();
     } catch (caught) {
@@ -234,7 +240,7 @@ export function TeamMembers({
     if (!window.confirm(`Remove ${member.name} from this team?`)) return;
     setError(null);
     try {
-      await patchPerson(member.id, { teamId: null });
+      await removeMember(teamId, member.id);
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to remove.");
@@ -247,27 +253,18 @@ export function TeamMembers({
         key={member.id}
         className={`group relative flex items-start gap-3 rounded-xl border border-t-4 border-x-border border-b-border p-4 transition-colors hover:bg-muted/40 ${LEVEL_ACCENT[member.teamRole]}`}
       >
-        <Avatar size="lg" className="size-12">
-          <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
-            {initials(member.name)}
-          </AvatarFallback>
-        </Avatar>
+        <PersonAvatar
+          name={member.name}
+          photoUrl={member.photoUrl}
+          className="size-12"
+        />
         <div className="min-w-0 flex-1">
           <Link
-            href={`/directory/people/${member.id}`}
+            href={`/${member.slug}`}
             className="block truncate text-sm font-medium after:absolute after:inset-0 after:rounded-xl hover:underline"
           >
             {member.name}
           </Link>
-          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-            {member.teamRole !== "member" && (
-              <Badge
-                variant={member.teamRole === "lead" ? "default" : "secondary"}
-              >
-                {LEVEL_LABELS[member.teamRole]}
-              </Badge>
-            )}
-          </div>
           {member.title && (
             <p className="truncate text-sm text-muted-foreground">
               {member.title}
@@ -389,8 +386,8 @@ export function TeamMembers({
           <div>
             <DialogTitle>Add people to this team</DialogTitle>
             <DialogDescription>
-              A person can be on one team, so anyone already on another team is
-              moved here.
+              A person can be on several teams, so anyone you add keeps their
+              other teams.
             </DialogDescription>
           </div>
           {candidates.length === 0 ? (
@@ -417,9 +414,9 @@ export function TeamMembers({
                       />
                       <span className="min-w-0 flex-1 text-sm">
                         <span className="font-medium">{person.name}</span>
-                        {person.currentTeamName && (
+                        {person.otherTeamNames.length > 0 && (
                           <span className="ml-2 text-muted-foreground">
-                            currently in {person.currentTeamName}
+                            also in {joinNames(person.otherTeamNames)}
                           </span>
                         )}
                       </span>

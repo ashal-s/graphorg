@@ -1,11 +1,8 @@
 import type { ReactNode } from "react";
 
-import { eq } from "drizzle-orm";
-
 import { AppShell } from "@/components/shell/app-shell";
-import { getDb } from "@/db";
-import { organizations } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
+import { loadWorkspaces } from "@/lib/shell-workspaces";
 
 /**
  * Everything under this route group is a protected page: Proxy already
@@ -18,16 +15,25 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // The JWT's organization name/slug are frozen at sign-in (see src/auth.ts),
   // so read the live values for the shell; otherwise a rename from Settings
   // wouldn't show in the sidebar until members signed in again.
-  const organization = await getDb().query.organizations.findFirst({
-    where: eq(organizations.id, session.organizationId),
-    columns: { name: true, slug: true },
-  });
-  const shellSession = organization
+  const { current, others } = await loadWorkspaces(
+    session.organizationId,
+    session.email,
+  );
+  const shellSession = current
     ? {
         ...session,
-        organizationName: organization.name,
-        organizationSlug: organization.slug,
+        organizationName: current.name,
+        organizationSlug: current.slug,
       }
     : session;
-  return <AppShell session={shellSession}>{children}</AppShell>;
+  const workspace = current ?? {
+    name: session.organizationName,
+    slug: session.organizationSlug,
+    logoUrl: null,
+  };
+  return (
+    <AppShell session={shellSession} workspace={workspace} others={others}>
+      {children}
+    </AppShell>
+  );
 }

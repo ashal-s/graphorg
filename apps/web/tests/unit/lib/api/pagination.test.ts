@@ -10,7 +10,7 @@ import {
 
 /**
  * Pure-function tests for the cursor pagination every WEB-136 list endpoint
- * (teams, people, tools, technologies) shares. No database: the keyset
+ * (teams, people, tools) shares. No database: the keyset
  * predicate itself (`afterCursorPredicate`) is exercised against a live
  * Postgres instance manually (see the WEB-136 Linear comment), same
  * boundary as tests/unit/db/schema.test.ts.

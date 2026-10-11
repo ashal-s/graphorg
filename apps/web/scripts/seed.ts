@@ -1,8 +1,8 @@
 /**
  * Seeds a representative demo organisation ("Acme Corp") exercising every
  * table and relationship in the relational context model: teams, a manager
- * hierarchy, product accounts, a technology/tool catalog, systems, services
- * with tech stacks and dependencies, repositories, documents, and workflows
+ * hierarchy, product accounts, a tool catalog, parent and child services
+ * with tools and dependencies, documents, and workflows
  * with steps and role-based people (owners, creators, workers).
  *
  * Re-runnable: deletes the demo org (organizations.slug = "acme") first, if
@@ -16,22 +16,22 @@ import { eq } from "drizzle-orm";
 
 import { getDb } from "../src/db";
 import {
+  documentFolders,
   documents,
   organizations,
   people,
-  repositories,
   serviceDependencies,
   services,
-  serviceTechnologies,
-  systems,
+  serviceTools,
+  teamMembers,
   teams,
-  technologies,
   tools,
   users,
   workflowPeople,
   workflows,
   workflowSteps,
 } from "../src/db/schema";
+import { firstFreeSlug, toSlug } from "../src/lib/slugs";
 
 async function main() {
   const db = getDb();
@@ -53,34 +53,47 @@ async function main() {
 
   // --- Teams ---------------------------------------------------------
 
-  const teamRows = await db
-    .insert(teams)
-    .values(
-      [
-        {
-          name: "Platform Engineering",
-          description:
-            "Core platform, shared infrastructure and developer experience.",
-        },
-        {
-          name: "Payments",
-          description: "Checkout, billing and payment processing.",
-        },
-        {
-          name: "Growth",
-          description: "Acquisition, activation and experimentation.",
-        },
-        {
-          name: "Data & Analytics",
-          description: "Data pipelines, warehousing and reporting.",
-        },
-        {
-          name: "Site Reliability",
-          description: "Production reliability, on-call and incident response.",
-        },
-      ].map((t) => ({ ...t, organizationId: org.id })),
-    )
-    .returning();
+  // People and teams share one URL namespace, so slugs are picked together.
+  const usedSlugs = new Set<string>();
+  const slugFor = async (name: string) => {
+    const slug = await firstFreeSlug(toSlug(name), (s) => usedSlugs.has(s));
+    usedSlugs.add(slug);
+    return slug;
+  };
+
+  const teamSpecs = [
+    {
+      name: "Platform Engineering",
+      description:
+        "Core platform, shared infrastructure and developer experience.",
+    },
+    {
+      name: "Payments",
+      description: "Checkout, billing and payment processing.",
+    },
+    {
+      name: "Growth",
+      description: "Acquisition, activation and experimentation.",
+    },
+    {
+      name: "Data & Analytics",
+      description: "Data pipelines, warehousing and reporting.",
+    },
+    {
+      name: "Site Reliability",
+      description: "Production reliability, on-call and incident response.",
+    },
+  ];
+  // Sequential, so each slug sees the ones already handed out.
+  const teamValues: (typeof teams.$inferInsert)[] = [];
+  for (const spec of teamSpecs) {
+    teamValues.push({
+      ...spec,
+      slug: await slugFor(spec.name),
+      organizationId: org.id,
+    });
+  }
+  const teamRows = await db.insert(teams).values(teamValues).returning();
   const teamByName = new Map(teamRows.map((t) => [t.name, t]));
   console.log(`Created ${teamRows.length} teams`);
 
@@ -164,9 +177,9 @@ async function main() {
       .insert(people)
       .values({
         organizationId: org.id,
-        teamId: teamByName.get(spec.team)!.id,
         managerId,
         name: spec.name,
+        slug: await slugFor(spec.name),
         email: spec.email,
         title: spec.title,
       })
@@ -175,6 +188,18 @@ async function main() {
     personByName.set(spec.name, { id: row.id, email: spec.email });
   }
   console.log(`Created ${personByName.size} people`);
+
+  // A person can be on several teams: everyone's home team, plus a few
+  // people who also sit on a second one.
+  const membershipRows = [
+    ...peopleSpecs.map((spec) => ({ person: spec.name, team: spec.team })),
+    { person: "Dana Whitfield", team: "Platform Engineering" },
+  ].map((m) => ({
+    personId: personByName.get(m.person)!.id,
+    teamId: teamByName.get(m.team)!.id,
+  }));
+  await db.insert(teamMembers).values(membershipRows);
+  console.log(`Created ${membershipRows.length} team memberships`);
 
   // --- Users (product accounts, linked back to a subset of people) ----
 
@@ -211,63 +236,53 @@ async function main() {
     `Created ${userRows.length} users (log in with workspace "acme", any of their emails, password "${DEMO_PASSWORD}")`,
   );
 
-  // --- Technologies and tools (flat catalogs) --------------------------
-
-  const technologyRows = await db
-    .insert(technologies)
-    .values(
-      [
-        { name: "TypeScript", category: "language" as const },
-        { name: "Go", category: "language" as const },
-        { name: "Python", category: "language" as const },
-        { name: "React", category: "framework" as const },
-        { name: "PostgreSQL", category: "database" as const },
-        { name: "Redis", category: "database" as const },
-        { name: "Kafka", category: "infrastructure" as const },
-        { name: "Docker", category: "infrastructure" as const },
-      ].map((t) => ({ ...t, organizationId: org.id })),
-    )
-    .returning();
-  const technologyByName = new Map(technologyRows.map((t) => [t.name, t]));
-  console.log(`Created ${technologyRows.length} technologies`);
+  // --- Tools (flat catalog) ---------------------------------------------
 
   const toolRows = await db
     .insert(tools)
     .values(
       [
+        { name: "TypeScript", category: "language" },
+        { name: "Go", category: "language" },
+        { name: "Python", category: "language" },
+        { name: "React", category: "framework" },
+        { name: "PostgreSQL", category: "database" },
+        { name: "Redis", category: "database" },
+        { name: "Kafka", category: "infrastructure" },
+        { name: "Docker", category: "infrastructure" },
         {
           name: "GitHub",
-          category: "source_control" as const,
+          category: "source_control",
           vendor: "GitHub",
           url: "https://github.com",
         },
         {
           name: "Jira",
-          category: "issue_tracking" as const,
+          category: "issue_tracking",
           vendor: "Atlassian",
           url: "https://atlassian.com/jira",
         },
         {
           name: "Confluence",
-          category: "documentation" as const,
+          category: "documentation",
           vendor: "Atlassian",
           url: "https://atlassian.com/confluence",
         },
         {
           name: "Buildkite",
-          category: "ci_cd" as const,
+          category: "ci_cd",
           vendor: "Buildkite",
           url: "https://buildkite.com",
         },
         {
           name: "LaunchDarkly",
-          category: "feature_flags" as const,
+          category: "feature_flags",
           vendor: "LaunchDarkly",
           url: "https://launchdarkly.com",
         },
         {
           name: "Datadog",
-          category: "observability" as const,
+          category: "observability",
           vendor: "Datadog",
           url: "https://datadoghq.com",
         },
@@ -276,10 +291,10 @@ async function main() {
     .returning();
   console.log(`Created ${toolRows.length} tools`);
 
-  // --- Systems and repositories -----------------------------------------
+  // --- Services (platforms with services under them), tools and dependencies
 
-  const systemRows = await db
-    .insert(systems)
+  const platformRows = await db
+    .insert(services)
     .values(
       [
         {
@@ -297,63 +312,21 @@ async function main() {
           description: "Ingestion, warehousing and reporting.",
           ownerTeam: "Data & Analytics",
         },
-      ].map(({ ownerTeam, ...s }) => ({
-        ...s,
+      ].map(({ ownerTeam, ...p }) => ({
+        ...p,
         organizationId: org.id,
         ownerTeamId: teamByName.get(ownerTeam)!.id,
       })),
     )
     .returning();
-  const systemByName = new Map(systemRows.map((s) => [s.name, s]));
-  console.log(`Created ${systemRows.length} systems`);
-
-  const repositoryRows = await db
-    .insert(repositories)
-    .values(
-      [
-        {
-          name: "checkout-api",
-          url: "https://github.com/acme/checkout-api",
-          ownerTeam: "Payments",
-        },
-        {
-          name: "checkout-web",
-          url: "https://github.com/acme/checkout-web",
-          ownerTeam: "Payments",
-        },
-        {
-          name: "growth-experiments",
-          url: "https://github.com/acme/growth-experiments",
-          ownerTeam: "Growth",
-        },
-        {
-          name: "data-pipeline",
-          url: "https://github.com/acme/data-pipeline",
-          ownerTeam: "Data & Analytics",
-        },
-        {
-          name: "sre-infra",
-          url: "https://github.com/acme/sre-infra",
-          ownerTeam: "Site Reliability",
-        },
-      ].map(({ ownerTeam, ...r }) => ({
-        ...r,
-        organizationId: org.id,
-        ownerTeamId: teamByName.get(ownerTeam)!.id,
-      })),
-    )
-    .returning();
-  const repositoryByName = new Map(repositoryRows.map((r) => [r.name, r]));
-  console.log(`Created ${repositoryRows.length} repositories`);
-
-  // --- Services, with tech stacks and dependencies ----------------------
+  const platformByName = new Map(platformRows.map((p) => [p.name, p]));
+  console.log(`Created ${platformRows.length} platform services`);
 
   const serviceSpecs = [
     {
       name: "checkout-api",
       description: "Core checkout and order orchestration API.",
-      system: "Checkout Platform",
-      repository: "checkout-api",
+      parent: "Checkout Platform",
       ownerTeam: "Payments",
       stack: ["Go", "PostgreSQL"],
       dependsOn: [] as string[],
@@ -361,8 +334,7 @@ async function main() {
     {
       name: "checkout-web",
       description: "Customer-facing checkout UI.",
-      system: "Checkout Platform",
-      repository: "checkout-web",
+      parent: "Checkout Platform",
       ownerTeam: "Payments",
       stack: ["TypeScript", "React"],
       dependsOn: ["checkout-api"],
@@ -370,8 +342,7 @@ async function main() {
     {
       name: "payments-worker",
       description: "Async payment capture, refunds and webhook processing.",
-      system: "Checkout Platform",
-      repository: null as string | null,
+      parent: "Checkout Platform",
       ownerTeam: "Payments",
       stack: ["Python"],
       dependsOn: ["checkout-api"],
@@ -379,8 +350,7 @@ async function main() {
     {
       name: "experiment-service",
       description: "Serves and records A/B experiment assignments.",
-      system: "Growth Platform",
-      repository: "growth-experiments",
+      parent: "Growth Platform",
       ownerTeam: "Growth",
       stack: ["TypeScript", "Redis"],
       dependsOn: ["checkout-api"],
@@ -388,8 +358,7 @@ async function main() {
     {
       name: "analytics-ingest",
       description: "Streams product and payment events into the data platform.",
-      system: "Data Platform",
-      repository: "data-pipeline",
+      parent: "Data Platform",
       ownerTeam: "Data & Analytics",
       stack: ["Python", "Kafka"],
       dependsOn: ["checkout-api", "payments-worker"],
@@ -402,10 +371,7 @@ async function main() {
       .insert(services)
       .values({
         organizationId: org.id,
-        systemId: systemByName.get(spec.system)!.id,
-        repositoryId: spec.repository
-          ? repositoryByName.get(spec.repository)!.id
-          : null,
+        parentId: platformByName.get(spec.parent)!.id,
         ownerTeamId: teamByName.get(spec.ownerTeam)!.id,
         name: spec.name,
         description: spec.description,
@@ -416,14 +382,15 @@ async function main() {
   }
   console.log(`Created ${serviceByName.size} services`);
 
+  const toolByName = new Map(toolRows.map((t) => [t.name, t]));
   const stackRows = serviceSpecs.flatMap((spec) =>
-    spec.stack.map((techName) => ({
+    spec.stack.map((toolName) => ({
       serviceId: serviceByName.get(spec.name)!.id,
-      technologyId: technologyByName.get(techName)!.id,
+      toolId: toolByName.get(toolName)!.id,
     })),
   );
-  await db.insert(serviceTechnologies).values(stackRows);
-  console.log(`Linked ${stackRows.length} service/technology pairs`);
+  await db.insert(serviceTools).values(stackRows);
+  console.log(`Linked ${stackRows.length} service/tool pairs`);
 
   const dependencyRows = serviceSpecs.flatMap((spec) =>
     spec.dependsOn.map((depName) => ({
@@ -436,6 +403,26 @@ async function main() {
 
   // --- Documents -----------------------------------------------------
 
+  const folderRows = await db
+    .insert(documentFolders)
+    .values(
+      ["Engineering", "People"].map((name) => ({
+        name,
+        organizationId: org.id,
+      })),
+    )
+    .returning();
+  const [engineeringFolder, peopleFolder] = folderRows;
+  const [runbooksFolder] = await db
+    .insert(documentFolders)
+    .values({
+      name: "Runbooks",
+      parentId: engineeringFolder!.id,
+      organizationId: org.id,
+    })
+    .returning();
+  console.log(`Created ${folderRows.length + 1} document folders`);
+
   const documentRows = await db
     .insert(documents)
     .values(
@@ -445,23 +432,30 @@ async function main() {
           type: "adr" as const,
           url: "https://docs.acme.example/adr/checkout-api",
           ownerTeam: "Payments",
+          folderId: engineeringFolder!.id,
+          ownerPerson: "Jordan Lee",
         },
         {
           title: "Incident Response Runbook",
           type: "runbook" as const,
           url: "https://docs.acme.example/runbooks/incident-response",
           ownerTeam: "Site Reliability",
+          folderId: runbooksFolder!.id,
+          ownerPerson: "Dana Whitfield",
         },
         {
           title: "New Engineer Onboarding",
           type: "other" as const,
           url: "https://docs.acme.example/onboarding",
           ownerTeam: "Platform Engineering",
+          folderId: peopleFolder!.id,
+          ownerPerson: null as string | null,
         },
-      ].map(({ ownerTeam, ...d }) => ({
+      ].map(({ ownerTeam, ownerPerson, ...d }) => ({
         ...d,
         organizationId: org.id,
         ownerTeamId: teamByName.get(ownerTeam)!.id,
+        ownerPersonId: ownerPerson ? personByName.get(ownerPerson)!.id : null,
       })),
     )
     .returning();
@@ -473,7 +467,7 @@ async function main() {
     {
       name: "New service needs a tech stack",
       description:
-        "Flags newly created services that have no technologies recorded yet.",
+        "Flags newly created services that have no tools recorded yet.",
       triggerType: "entity_created" as const,
       triggerConfig: { entityType: "service" },
       status: "active" as const,
@@ -481,7 +475,7 @@ async function main() {
         {
           kind: "condition" as const,
           type: "field_empty",
-          config: { field: "technologies" },
+          config: { field: "tools" },
         },
         {
           kind: "action" as const,

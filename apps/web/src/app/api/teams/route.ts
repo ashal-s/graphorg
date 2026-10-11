@@ -2,10 +2,11 @@ import { and, eq, ilike } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
+import { uniqueSlug } from "@/lib/slugs";
 import { teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
-import { isUniqueViolation } from "@/lib/api/db-errors";
+import { isUniqueViolation, pgConstraintName } from "@/lib/api/db-errors";
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
 import {
   afterCursorPredicate,
@@ -18,7 +19,7 @@ import { createTeamSchema } from "./schema";
 
 /**
  * Tenant-scoped, paginated Route Handler for `teams`, the pattern every
- * other WEB-136 entity (people, tools, technologies) follows: cursor
+ * other WEB-136 entity (people, tools, services) follows: cursor
  * pagination via `parsePageParams`/`toPage` (see src/lib/api/pagination.ts),
  * an optional `q` substring filter on name, and the same auth/tenancy shape
  * WEB-133 established on this exact route (`GET /api/teams`) and WEB-132
@@ -56,16 +57,24 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return jsonValidationError(parsed.error);
 
   const db = getDb();
-  try {
-    const [row] = await db
-      .insert(teams)
-      .values({ ...parsed.data, organizationId: session.organizationId })
-      .returning();
-    return NextResponse.json({ team: row }, { status: 201 });
-  } catch (error) {
-    if (isUniqueViolation(error)) {
-      return jsonError(409, "A team with this name already exists");
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const [row] = await db
+        .insert(teams)
+        .values({
+          ...parsed.data,
+          slug: await uniqueSlug(session.organizationId, parsed.data.name),
+          organizationId: session.organizationId,
+        })
+        .returning();
+      return NextResponse.json({ team: row }, { status: 201 });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        // Someone took the slug between picking and inserting: pick again.
+        if (pgConstraintName(error)?.includes("slug") && attempt < 2) continue;
+        return jsonError(409, "A team with this name already exists");
+      }
+      throw error;
     }
-    throw error;
   }
 }

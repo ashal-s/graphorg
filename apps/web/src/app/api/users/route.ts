@@ -1,9 +1,9 @@
 import bcrypt from "bcryptjs";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { people, users } from "@/db/schema";
 import { isUniqueViolation } from "@/lib/api/db-errors";
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
 import { hasRole } from "@/lib/auth/roles";
@@ -12,6 +12,8 @@ import {
   assignableRoles,
   USER_MANAGEMENT_ROLE,
 } from "@/lib/auth/user-management";
+
+import { uniqueSlug } from "@/lib/slugs";
 
 import { publicUserColumns } from "./columns";
 import { createUserSchema } from "./schema";
@@ -41,21 +43,86 @@ export async function POST(request: NextRequest) {
 
   const parsed = createUserSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
-  const { password, ...rest } = parsed.data;
+  const { password, personId, addToDirectory, role } = parsed.data;
 
-  if (!assignableRoles(session.role).includes(rest.role)) {
-    return jsonError(403, `You can't grant the ${rest.role} role`);
+  if (!assignableRoles(session.role).includes(role)) {
+    return jsonError(403, `You can't grant the ${role} role`);
+  }
+
+  const db = getDb();
+
+  // Someone already in the directory: their name and email are used, and the
+  // new account is linked to their directory entry.
+  let name = parsed.data.name ?? "";
+  let email = parsed.data.email ?? "";
+  if (personId) {
+    const person = await db.query.people.findFirst({
+      where: and(
+        eq(people.id, personId),
+        eq(people.organizationId, session.organizationId),
+      ),
+      columns: { id: true, name: true, email: true, userId: true },
+    });
+    if (!person) {
+      return jsonError(
+        400,
+        "personId does not reference a person in this organization",
+      );
+    }
+    if (person.userId) {
+      return jsonError(409, "This person is already a member");
+    }
+    name = person.name;
+    email = person.email;
   }
 
   try {
-    const [user] = await getDb()
-      .insert(users)
-      .values({
-        ...rest,
-        organizationId: session.organizationId,
-        passwordHash: await bcrypt.hash(password, 10),
-      })
-      .returning(publicUserColumns);
+    const user = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(users)
+        .values({
+          name,
+          email,
+          role,
+          organizationId: session.organizationId,
+          passwordHash: await bcrypt.hash(password, 10),
+        })
+        .returning(publicUserColumns);
+      if (!created) throw new Error("Failed to insert user");
+
+      if (personId) {
+        await tx
+          .update(people)
+          .set({ userId: created.id })
+          .where(eq(people.id, personId));
+      } else if (addToDirectory) {
+        // Link to a matching directory entry if there is one, else add them.
+        const existing = await tx.query.people.findFirst({
+          where: and(
+            eq(people.organizationId, session.organizationId),
+            eq(people.email, email),
+          ),
+          columns: { id: true, userId: true },
+        });
+        if (existing) {
+          if (!existing.userId) {
+            await tx
+              .update(people)
+              .set({ userId: created.id })
+              .where(eq(people.id, existing.id));
+          }
+        } else {
+          await tx.insert(people).values({
+            name,
+            email,
+            slug: await uniqueSlug(session.organizationId, name, tx),
+            userId: created.id,
+            organizationId: session.organizationId,
+          });
+        }
+      }
+      return created;
+    });
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
     if (isUniqueViolation(error)) {

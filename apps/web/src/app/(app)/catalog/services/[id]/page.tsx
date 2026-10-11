@@ -18,16 +18,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getDb } from "@/db";
-import {
-  repositories,
-  serviceDependencies,
-  services,
-  systems,
-  teams,
-  technologies,
-} from "@/db/schema";
+import { serviceDependencies, services, teams, tools } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { lowerLabel } from "@/lib/terminology";
+import { getTerminology } from "@/lib/terminology-server";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -42,31 +37,21 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const orgId = session.organizationId;
   const [
     service,
-    systemOptions,
-    repositoryOptions,
+    terminology,
     teamOptions,
-    technologyOptions,
+    toolOptions,
     serviceOptions,
     dependentLinks,
   ] = await Promise.all([
     fetchServiceDetail(orgId, id),
-    getDb().query.systems.findMany({
-      where: eq(systems.organizationId, orgId),
-      columns: { id: true, name: true },
-      orderBy: (row, { asc }) => asc(row.name),
-    }),
-    getDb().query.repositories.findMany({
-      where: eq(repositories.organizationId, orgId),
-      columns: { id: true, name: true },
-      orderBy: (row, { asc }) => asc(row.name),
-    }),
+    getTerminology(orgId),
     getDb().query.teams.findMany({
       where: eq(teams.organizationId, orgId),
       columns: { id: true, name: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
-    getDb().query.technologies.findMany({
-      where: eq(technologies.organizationId, orgId),
+    getDb().query.tools.findMany({
+      where: eq(tools.organizationId, orgId),
       columns: { id: true, name: true, category: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
@@ -74,7 +59,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
     // "depends on" picker.
     getDb().query.services.findMany({
       where: and(eq(services.organizationId, orgId), ne(services.id, id)),
-      columns: { id: true, name: true },
+      columns: { id: true, name: true, parentId: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
     getDb().query.serviceDependencies.findMany({
@@ -87,16 +72,37 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
   const dependents = dependentLinks.map((link) => link.service);
 
+  // A service can't sit under itself or anything beneath it.
+  const beneath = new Set<string>([id]);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const option of serviceOptions) {
+      if (option.parentId && beneath.has(option.parentId)) {
+        if (!beneath.has(option.id)) {
+          beneath.add(option.id);
+          grew = true;
+        }
+      }
+    }
+  }
+  const parentOptions = serviceOptions.filter(
+    (option) => !beneath.has(option.id),
+  );
+
+  const serviceTerms = terminology.services;
+  const singular = lowerLabel(serviceTerms.singular);
+  const plural = lowerLabel(serviceTerms.plural);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={service.name}
-        description="Edit this service's details, or see how it fits the rest of the catalog below."
+        description={`Edit this ${singular}'s details, or see how it fits the rest of the catalog below.`}
         align="start"
         actions={
           !readOnly && (
             <DeleteEntityButton
-              entityLabel="service"
+              entityLabel={singular}
               entityName={service.name}
               apiPath={`/api/services/${service.id}`}
               redirectTo="/catalog/services"
@@ -108,10 +114,10 @@ export default async function ServiceDetailPage({ params }: PageProps) {
       <ServiceForm
         mode="edit"
         service={service as unknown as ServiceDetail}
-        systems={systemOptions}
-        repositories={repositoryOptions}
+        terminology={terminology}
+        parents={parentOptions}
         teams={teamOptions}
-        technologies={technologyOptions}
+        tools={toolOptions}
         services={serviceOptions}
         readOnly={readOnly}
       />
@@ -119,32 +125,24 @@ export default async function ServiceDetailPage({ params }: PageProps) {
       <Card>
         <CardHeader>
           <CardTitle>Where this fits</CardTitle>
-          <CardDescription>System, repository, and owner team.</CardDescription>
+          <CardDescription>
+            What it sits under, and its owner team.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {!service.system && !service.repository && !service.ownerTeam ? (
+          {!service.parent && !service.ownerTeam ? (
             <p className="text-sm text-muted-foreground">
-              Not linked to a system, repository, or team yet.
+              Not linked to a parent or team yet.
             </p>
           ) : (
             <EntityChipList
               items={[
-                ...(service.system
+                ...(service.parent
                   ? [
                       {
-                        key: "system",
-                        href: `/catalog/systems/${service.system.id}`,
-                        label: `System: ${service.system.name}`,
-                      },
-                    ]
-                  : []),
-                ...(service.repository
-                  ? [
-                      {
-                        key: "repository",
-                        href: service.repository.url ?? undefined,
-                        external: Boolean(service.repository.url),
-                        label: `Repository: ${service.repository.name}`,
+                        key: "parent",
+                        href: `/catalog/services/${service.parent.id}`,
+                        label: `Part of: ${service.parent.name}`,
                       },
                     ]
                   : []),
@@ -152,7 +150,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                   ? [
                       {
                         key: "team",
-                        href: `/directory/teams/${service.ownerTeam.id}`,
+                        href: `/${service.ownerTeam.slug}`,
                         label: `Team: ${service.ownerTeam.name}`,
                       },
                     ]
@@ -163,13 +161,36 @@ export default async function ServiceDetailPage({ params }: PageProps) {
         </CardContent>
       </Card>
 
+      {service.children.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Includes</CardTitle>
+            <CardDescription>
+              {service.children.length} {plural} under this {singular}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EntityChipList
+              items={service.children
+                .slice()
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((child) => ({
+                  key: child.id,
+                  href: `/catalog/services/${child.id}`,
+                  label: child.name,
+                }))}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Depended on by</CardTitle>
           <CardDescription>
             {dependents.length === 0
-              ? "No other services depend on this one."
-              : `${dependents.length} service${dependents.length === 1 ? "" : "s"} depend on this one.`}
+              ? `No other ${plural} depend on this one.`
+              : `${dependents.length} ${dependents.length === 1 ? singular : plural} depend on this one.`}
           </CardDescription>
         </CardHeader>
         {dependents.length > 0 && (

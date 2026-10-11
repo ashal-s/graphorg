@@ -1,9 +1,13 @@
 export interface OrgChartPerson {
   id: string;
+  /** Where their profile lives (`/<slug>`); falls back to the id. */
+  slug?: string;
   name: string;
   title: string | null;
+  photoUrl?: string | null;
   managerId: string | null;
-  teamName: string | null;
+  /** Not shown on the chart; kept optional for callers that have it. */
+  teamName?: string | null;
 }
 
 export interface OrgChartNode extends OrgChartPerson {
@@ -58,4 +62,23 @@ export function buildOrgChart(people: OrgChartPerson[]): OrgChartNode[] {
 
 export function countOrgChart(roots: OrgChartNode[]): number {
   return roots.reduce((sum, node) => sum + 1 + countOrgChart(node.reports), 0);
+}
+
+/**
+ * The tree as a flat list ranked by seniority: everyone at the top level
+ * first, then everyone one level down, and so on. Within a level, people
+ * stay grouped under their manager in the tree's alphabetical order.
+ */
+export function flattenOrgChart(
+  roots: OrgChartNode[],
+): Array<{ node: OrgChartNode; depth: number }> {
+  const levels: OrgChartNode[][] = [];
+  let level = roots;
+  while (level.length > 0) {
+    levels.push(level);
+    level = level.flatMap((node) => node.reports);
+  }
+  return levels.flatMap((nodes, depth) =>
+    nodes.map((node) => ({ node, depth })),
+  );
 }

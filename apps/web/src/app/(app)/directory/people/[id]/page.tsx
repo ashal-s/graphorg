@@ -1,56 +1,28 @@
-import { notFound } from "next/navigation";
+import { and, eq } from "drizzle-orm";
+import { notFound, permanentRedirect } from "next/navigation";
 import { z } from "zod";
 
-import { PersonForm } from "@/components/directory/person-form";
-import { PersonProfileRelationships } from "@/components/directory/person-profile-relationships";
-import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
-import { PageHeader } from "@/components/shared/page-header";
-import { hasRole } from "@/lib/auth/roles";
+import { getDb } from "@/db";
+import { people } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
-import { loadPersonProfile } from "@/lib/directory/load-person-profile";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function PersonDetailPage({ params }: PageProps) {
+/** Old `/directory/people/<id>` links keep working: they go to `/<slug>`. */
+export default async function LegacyPersonPage({ params }: PageProps) {
   const session = await requireSession();
-  const readOnly = !hasRole(session.role, "editor");
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) notFound();
 
-  const loaded = await loadPersonProfile(session.organizationId, id);
-  if (!loaded) notFound();
-
-  const { person, teamOptions, managerOptions, profile } = loaded;
-
-  return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={person.name}
-        description="Edit this person's details, or see who they work with below."
-        align="start"
-        actions={
-          !readOnly && (
-            <DeleteEntityButton
-              entityLabel="person"
-              entityName={person.name}
-              apiPath={`/api/people/${person.id}`}
-              redirectTo="/directory/people"
-            />
-          )
-        }
-      />
-
-      <PersonForm
-        mode="edit"
-        person={person}
-        teams={teamOptions}
-        managers={managerOptions}
-        readOnly={readOnly}
-      />
-
-      <PersonProfileRelationships profile={profile} />
-    </div>
-  );
+  const person = await getDb().query.people.findFirst({
+    where: and(
+      eq(people.id, id),
+      eq(people.organizationId, session.organizationId),
+    ),
+    columns: { slug: true },
+  });
+  if (!person) notFound();
+  permanentRedirect(`/${person.slug}`);
 }

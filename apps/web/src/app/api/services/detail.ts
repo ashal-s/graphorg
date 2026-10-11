@@ -2,17 +2,11 @@ import { and, eq } from "drizzle-orm";
 import type { NextResponse } from "next/server";
 
 import { getDb } from "@/db";
-import {
-  repositories,
-  services,
-  systems,
-  teams,
-  technologies,
-} from "@/db/schema";
+import { services, teams, tools } from "@/db/schema";
 import { jsonError } from "@/lib/api/http";
 import { findMissingInOrg } from "@/lib/api/org-refs";
 
-/** A service with its owner, system, repository, tech stack and direct dependencies resolved. */
+/** A service with its owner, parent, children, tools and direct dependencies resolved. */
 export async function fetchServiceDetail(organizationId: string, id: string) {
   const row = await getDb().query.services.findFirst({
     where: and(
@@ -20,12 +14,12 @@ export async function fetchServiceDetail(organizationId: string, id: string) {
       eq(services.organizationId, organizationId),
     ),
     with: {
-      system: { columns: { id: true, name: true } },
-      repository: { columns: { id: true, name: true, url: true } },
-      ownerTeam: { columns: { id: true, name: true } },
-      technologies: {
+      parent: { columns: { id: true, name: true } },
+      children: { columns: { id: true, name: true } },
+      ownerTeam: { columns: { id: true, name: true, slug: true } },
+      tools: {
         with: {
-          technology: { columns: { id: true, name: true, category: true } },
+          tool: { columns: { id: true, name: true, category: true } },
         },
       },
       dependencies: {
@@ -35,23 +29,18 @@ export async function fetchServiceDetail(organizationId: string, id: string) {
   });
   if (!row) return null;
 
-  const {
-    technologies: techLinks,
-    dependencies: dependencyLinks,
-    ...service
-  } = row;
+  const { tools: toolLinks, dependencies: dependencyLinks, ...service } = row;
   return {
     ...service,
-    technologies: techLinks.map((link) => link.technology),
+    tools: toolLinks.map((link) => link.tool),
     dependencies: dependencyLinks.map((link) => link.dependsOnService),
   };
 }
 
 interface ServiceRefs {
-  systemId?: string | null;
-  repositoryId?: string | null;
+  parentId?: string | null;
   ownerTeamId?: string | null;
-  technologyIds: string[];
+  toolIds: string[];
   dependsOnServiceIds: string[];
 }
 
@@ -64,32 +53,17 @@ export async function validateServiceRefs(
   organizationId: string,
   refs: ServiceRefs,
 ): Promise<NextResponse | null> {
-  if (refs.systemId) {
+  if (refs.parentId) {
     const missing = await findMissingInOrg(
-      systems.id,
-      systems.organizationId,
+      services.id,
+      services.organizationId,
       organizationId,
-      [refs.systemId],
+      [refs.parentId],
     );
     if (missing.length > 0) {
       return jsonError(
         400,
-        "systemId does not reference a system in this organization",
-      );
-    }
-  }
-
-  if (refs.repositoryId) {
-    const missing = await findMissingInOrg(
-      repositories.id,
-      repositories.organizationId,
-      organizationId,
-      [refs.repositoryId],
-    );
-    if (missing.length > 0) {
-      return jsonError(
-        400,
-        "repositoryId does not reference a repository in this organization",
+        "parentId does not reference a service in this organization",
       );
     }
   }
@@ -109,17 +83,17 @@ export async function validateServiceRefs(
     }
   }
 
-  if (refs.technologyIds.length > 0) {
+  if (refs.toolIds.length > 0) {
     const missing = await findMissingInOrg(
-      technologies.id,
-      technologies.organizationId,
+      tools.id,
+      tools.organizationId,
       organizationId,
-      refs.technologyIds,
+      refs.toolIds,
     );
     if (missing.length > 0) {
       return jsonError(
         400,
-        "technologyIds contains an id that does not reference a technology in this organization",
+        "toolIds contains an id that does not reference a tool in this organization",
       );
     }
   }

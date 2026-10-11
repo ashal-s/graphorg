@@ -32,5 +32,9 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // Public assets must stay reachable while signed out (the login page shows
+  // the app icons), so they are excluded along with /api and Next internals.
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|icon.svg|apple-icon.png).*)",
+  ],
 };

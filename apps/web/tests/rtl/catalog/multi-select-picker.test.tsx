@@ -12,8 +12,8 @@ describe("MultiSelectPicker", () => {
   it("shows an empty-state message when nothing is selected", () => {
     render(
       <MultiSelectPicker
-        label="Technologies"
-        addLabel="Add technology"
+        label="Tools"
+        addLabel="Add tool"
         options={options}
         selectedIds={[]}
         onChange={jest.fn()}
@@ -26,8 +26,8 @@ describe("MultiSelectPicker", () => {
   it("renders a badge only for each selected option", () => {
     render(
       <MultiSelectPicker
-        label="Technologies"
-        addLabel="Add technology"
+        label="Tools"
+        addLabel="Add tool"
         options={options}
         selectedIds={["1"]}
         onChange={jest.fn()}
@@ -43,8 +43,8 @@ describe("MultiSelectPicker", () => {
     const user = userEvent.setup();
     render(
       <MultiSelectPicker
-        label="Technologies"
-        addLabel="Add technology"
+        label="Tools"
+        addLabel="Add tool"
         options={options}
         selectedIds={["1", "2"]}
         onChange={onChange}
@@ -59,8 +59,8 @@ describe("MultiSelectPicker", () => {
   it("hides add and remove controls when disabled", () => {
     render(
       <MultiSelectPicker
-        label="Technologies"
-        addLabel="Add technology"
+        label="Tools"
+        addLabel="Add tool"
         options={options}
         selectedIds={["1"]}
         onChange={jest.fn()}
@@ -69,7 +69,7 @@ describe("MultiSelectPicker", () => {
     );
 
     expect(
-      screen.queryByRole("button", { name: /add technology/i }),
+      screen.queryByRole("button", { name: /add tool/i }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /remove go/i }),

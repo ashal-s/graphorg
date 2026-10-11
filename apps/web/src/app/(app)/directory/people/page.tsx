@@ -1,40 +1,42 @@
-import { and, eq, ilike, or } from "drizzle-orm";
-import Link from "next/link";
-import { Plus, Users } from "lucide-react";
+import { eq } from "drizzle-orm";
 
-import { EmptyState } from "@/components/states/empty-state";
-import { EntityRow } from "@/components/shared/entity-row";
+import { PeopleDirectory } from "@/components/directory/people-directory";
+import { PersonDialog } from "@/components/directory/person-dialog";
+import { Users } from "lucide-react";
+
 import { PageHeader } from "@/components/shared/page-header";
-import { SearchBar } from "@/components/shared/search-bar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { NativeSelect } from "@/components/ui/native-select";
 import { getDb } from "@/db";
-import { people, teams } from "@/db/schema";
+import { organizations, people, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { loadTones } from "@/lib/directory/tones";
+import { personPhotoSrc } from "@/lib/person-photo";
 
-interface PageProps {
-  searchParams: Promise<{ q?: string; teamId?: string }>;
-}
-
-export default async function PeoplePage({ searchParams }: PageProps) {
+export default async function PeoplePage() {
   const session = await requireSession();
   const canEdit = hasRole(session.role, "editor");
-  const { q, teamId } = await searchParams;
   const orgId = session.organizationId;
 
-  const [rows, teamOptions] = await Promise.all([
+  // Everyone is sent to the page once; searching and filtering happen in
+  // the browser, so results update on every keystroke.
+  const [rows, teamOptions, organization, tones] = await Promise.all([
     getDb().query.people.findMany({
-      where: and(
-        eq(people.organizationId, orgId),
-        q
-          ? or(ilike(people.name, `%${q}%`), ilike(people.email, `%${q}%`))
-          : undefined,
-        teamId ? eq(people.teamId, teamId) : undefined,
-      ),
+      where: eq(people.organizationId, orgId),
+      columns: {
+        id: true,
+        slug: true,
+        name: true,
+        email: true,
+        title: true,
+        managerId: true,
+        photoUrl: true,
+        updatedAt: true,
+      },
       with: {
-        team: { columns: { id: true, name: true } },
+        memberships: {
+          columns: {},
+          with: { team: { columns: { id: true, name: true } } },
+        },
       },
       orderBy: (row, { asc }) => asc(row.name),
     }),
@@ -43,87 +45,63 @@ export default async function PeoplePage({ searchParams }: PageProps) {
       columns: { id: true, name: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
+    getDb().query.organizations.findFirst({
+      where: eq(organizations.id, orgId),
+      columns: { emailDomain: true },
+    }),
+    loadTones(orgId),
   ]);
 
-  const hasFilters = Boolean(q || teamId);
+  // The new-person dialog's manager picker offers everyone.
+  const managerOptions = canEdit
+    ? rows.map((row) => ({ id: row.id, name: row.name }))
+    : [];
+
+  const directory = rows.map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    email: row.email,
+    title: row.title,
+    managerId: row.managerId,
+    photoSrc: personPhotoSrc(row),
+    teams: row.memberships.map((membership) => ({
+      ...membership.team,
+      tone: tones.teams[membership.team.id],
+    })),
+  }));
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="People"
+        icon={Users}
         description="Everyone in your organisation's directory."
         actions={
           canEdit && (
-            <Button
-              render={<Link href="/directory/people/new" />}
-              nativeButton={false}
-            >
-              <Plus aria-hidden="true" />
-              New person
-            </Button>
+            <PersonDialog
+              teams={teamOptions}
+              managers={managerOptions}
+              emailDomain={organization?.emailDomain}
+            />
           )
         }
       />
 
-      <SearchBar defaultValue={q} placeholder="Search by name or email">
-        <NativeSelect
-          name="teamId"
-          defaultValue={teamId ?? ""}
-          className="max-w-52"
-        >
-          <option value="">All teams</option>
-          {teamOptions.map((team) => (
-            <option key={team.id} value={team.id}>
-              {team.name}
-            </option>
-          ))}
-        </NativeSelect>
-      </SearchBar>
-
-      {rows.length === 0 ? (
-        <EmptyState
-          icon={
-            <Users
-              className="h-8 w-8 text-muted-foreground"
-              aria-hidden="true"
-            />
-          }
-          title={hasFilters ? "No people match your search" : "No people yet"}
-          description={
-            canEdit
-              ? "Add a person to start building your directory."
-              : "Nobody has added a person yet."
-          }
-          action={
-            canEdit &&
-            !hasFilters && (
-              <Button
-                size="sm"
-                render={<Link href="/directory/people/new" />}
-                nativeButton={false}
-              >
-                New person
-              </Button>
-            )
-          }
-        />
-      ) : (
-        <div className="flex flex-col gap-2">
-          {rows.map((person) => (
-            <EntityRow
-              key={person.id}
-              href={`/directory/people/${person.id}`}
-              title={person.name}
-              meta={`${person.email}${person.title ? ` · ${person.title}` : ""}`}
-              trailing={
-                person.team && (
-                  <Badge variant="outline">{person.team.name}</Badge>
-                )
-              }
-            />
-          ))}
-        </div>
-      )}
+      <PeopleDirectory
+        people={directory}
+        teams={teamOptions}
+        canEdit={canEdit}
+        emptyAction={
+          <PersonDialog
+            teams={teamOptions}
+            managers={managerOptions}
+            emailDomain={organization?.emailDomain}
+            size="sm"
+            withIcon={false}
+          />
+        }
+      />
     </div>
   );
 }

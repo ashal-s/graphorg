@@ -1,14 +1,16 @@
-import { and, eq, ilike, or } from "drizzle-orm";
+import { and, eq, ilike, inArray, or } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { getDb } from "@/db";
-import { people, teams, users } from "@/db/schema";
+import { people, teamMembers, teams, users } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation, pgConstraintName } from "@/lib/api/db-errors";
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
 import { findMissingInOrg } from "@/lib/api/org-refs";
+import { setPersonTeams } from "@/lib/api/team-membership";
+import { uniqueSlug } from "@/lib/slugs";
 import {
   afterCursorPredicate,
   orderByNameThenId,
@@ -47,7 +49,15 @@ export async function GET(request: NextRequest) {
       q
         ? or(ilike(people.name, `%${q}%`), ilike(people.email, `%${q}%`))
         : undefined,
-      teamId ? eq(people.teamId, teamId.data) : undefined,
+      teamId
+        ? inArray(
+            people.id,
+            db
+              .select({ id: teamMembers.personId })
+              .from(teamMembers)
+              .where(eq(teamMembers.teamId, teamId.data)),
+          )
+        : undefined,
       managerId ? eq(people.managerId, managerId.data) : undefined,
       afterCursorPredicate(people.name, people.id, page),
     ),
@@ -65,19 +75,19 @@ export async function POST(request: NextRequest) {
 
   const parsed = createPersonSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
-  const { teamId, managerId, userId, ...values } = parsed.data;
+  const { teamIds = [], managerId, userId, ...values } = parsed.data;
 
-  if (teamId) {
+  if (teamIds.length > 0) {
     const missing = await findMissingInOrg(
       teams.id,
       teams.organizationId,
       session.organizationId,
-      [teamId],
+      teamIds,
     );
     if (missing.length > 0) {
       return jsonError(
         400,
-        "teamId does not reference a team in this organization",
+        "teamIds contains an id that does not reference a team in this organization",
       );
     }
   }
@@ -111,26 +121,40 @@ export async function POST(request: NextRequest) {
   }
 
   const db = getDb();
-  try {
-    const [row] = await db
-      .insert(people)
-      .values({
-        ...values,
-        teamId,
-        managerId,
-        userId,
-        organizationId: session.organizationId,
-      })
-      .returning();
-    return NextResponse.json({ person: row }, { status: 201 });
-  } catch (error) {
-    if (isUniqueViolation(error)) {
-      const constraint = pgConstraintName(error);
-      if (constraint?.includes("user_id")) {
-        return jsonError(409, "This user is already linked to another person");
+  // The slug is picked, then inserted; if another request grabs it in
+  // between, the unique constraint rejects ours and we pick again.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const row = await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(people)
+          .values({
+            ...values,
+            photoUrl: values.photoUrl || null,
+            managerId,
+            userId,
+            slug: await uniqueSlug(session.organizationId, values.name, tx),
+            organizationId: session.organizationId,
+          })
+          .returning();
+        if (!created) throw new Error("Failed to insert person");
+        await setPersonTeams(tx, created.id, teamIds);
+        return created;
+      });
+      return NextResponse.json({ person: row }, { status: 201 });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        const constraint = pgConstraintName(error);
+        if (constraint?.includes("slug") && attempt < 2) continue;
+        if (constraint?.includes("user_id")) {
+          return jsonError(
+            409,
+            "This user is already linked to another person",
+          );
+        }
+        return jsonError(409, "A person with this email already exists");
       }
-      return jsonError(409, "A person with this email already exists");
+      throw error;
     }
-    throw error;
   }
 }

@@ -50,6 +50,69 @@
       "when": 1791705100115,
       "tag": "0006_drop_team_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791735877192,
+      "tag": "0007_merge_systems_technologies",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791736012267,
+      "tag": "0008_add_catalog_terminology",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791736530056,
+      "tag": "0009_add_team_members",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791737667779,
+      "tag": "0010_add_person_photo_url",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791738603777,
+      "tag": "0011_drop_repositories",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791738750257,
+      "tag": "0012_add_service_people",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791739524922,
+      "tag": "0013_add_email_domain",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791742033416,
+      "tag": "0014_add_document_folders",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791744604368,
+      "tag": "0015_add_profile_slugs",
+      "breakpoints": true
     }
   ]
 }

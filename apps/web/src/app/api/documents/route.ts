@@ -2,12 +2,12 @@ import { eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import { documents, teams } from "@/db/schema";
+import { documents } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
-import { findMissingInOrg } from "@/lib/api/org-refs";
 
+import { validateDocumentRefs } from "./refs";
 import { createDocumentSchema } from "./schema";
 
 export async function GET() {
@@ -17,7 +17,11 @@ export async function GET() {
   const db = getDb();
   const rows = await db.query.documents.findMany({
     where: eq(documents.organizationId, session.organizationId),
-    with: { ownerTeam: { columns: { id: true, name: true } } },
+    with: {
+      ownerTeam: { columns: { id: true, name: true } },
+      ownerPerson: { columns: { id: true, name: true } },
+      folder: { columns: { id: true, name: true } },
+    },
     orderBy: (row, { asc }) => asc(row.title),
   });
 
@@ -31,27 +35,16 @@ export async function POST(request: NextRequest) {
 
   const parsed = createDocumentSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
-  const { ownerTeamId, ...values } = parsed.data;
-
-  if (ownerTeamId) {
-    const missing = await findMissingInOrg(
-      teams.id,
-      teams.organizationId,
-      session.organizationId,
-      [ownerTeamId],
-    );
-    if (missing.length > 0) {
-      return jsonError(
-        400,
-        "ownerTeamId does not reference a team in this organization",
-      );
-    }
-  }
+  const refError = await validateDocumentRefs(
+    session.organizationId,
+    parsed.data,
+  );
+  if (refError) return refError;
 
   const db = getDb();
   const [row] = await db
     .insert(documents)
-    .values({ ...values, ownerTeamId, organizationId: session.organizationId })
+    .values({ ...parsed.data, organizationId: session.organizationId })
     .returning();
   return NextResponse.json({ document: row }, { status: 201 });
 }

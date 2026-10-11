@@ -2,11 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import {
-  serviceDependencies,
-  serviceTechnologies,
-  services,
-} from "@/db/schema";
+import { serviceDependencies, serviceTools, services } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation } from "@/lib/api/db-errors";
@@ -21,6 +17,10 @@ import {
   findCyclicDependencies,
   loadDependencyGraph,
 } from "@/lib/api/service-dependency-graph";
+import {
+  loadParentMap,
+  wouldCreateParentCycle,
+} from "@/lib/api/service-hierarchy";
 
 import { fetchServiceDetail, validateServiceRefs } from "../detail";
 import { createServiceSchema } from "../schema";
@@ -68,16 +68,28 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!parsed.success) return jsonValidationError(parsed.error);
   const emptyPatchError = requireNonEmptyPatch(parsed.data);
   if (emptyPatchError) return emptyPatchError;
-  const { technologyIds, dependsOnServiceIds, ...values } = parsed.data;
+  const { toolIds, dependsOnServiceIds, ...values } = parsed.data;
 
   const refError = await validateServiceRefs(session.organizationId, {
-    systemId: values.systemId,
-    repositoryId: values.repositoryId,
+    parentId: values.parentId,
     ownerTeamId: values.ownerTeamId,
-    technologyIds: technologyIds ?? [],
+    toolIds: toolIds ?? [],
     dependsOnServiceIds: dependsOnServiceIds ?? [],
   });
   if (refError) return refError;
+
+  if (values.parentId) {
+    if (values.parentId === id) {
+      return jsonError(400, "a service cannot be its own parent");
+    }
+    const parents = await loadParentMap(session.organizationId);
+    if (wouldCreateParentCycle(parents, id, values.parentId)) {
+      return jsonError(
+        400,
+        "parentId would create a loop (the chosen parent already sits under this service)",
+      );
+    }
+  }
 
   if (dependsOnServiceIds) {
     if (dependsOnServiceIds.includes(id)) {
@@ -99,17 +111,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         await tx.update(services).set(values).where(eq(services.id, id));
       }
 
-      if (technologyIds) {
-        await tx
-          .delete(serviceTechnologies)
-          .where(eq(serviceTechnologies.serviceId, id));
-        if (technologyIds.length > 0) {
-          await tx.insert(serviceTechnologies).values(
-            technologyIds.map((technologyId) => ({
-              serviceId: id,
-              technologyId,
-            })),
-          );
+      if (toolIds) {
+        await tx.delete(serviceTools).where(eq(serviceTools.serviceId, id));
+        if (toolIds.length > 0) {
+          await tx
+            .insert(serviceTools)
+            .values(toolIds.map((toolId) => ({ serviceId: id, toolId })));
         }
       }
 

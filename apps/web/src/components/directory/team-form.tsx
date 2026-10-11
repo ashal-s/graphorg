@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export interface TeamDetail {
   id: string;
+  slug: string;
   name: string;
   description: string | null;
 }
@@ -83,7 +84,7 @@ export function TeamForm({
     if (onSaved) {
       onSaved();
     } else {
-      router.push(`/directory/teams/${body.team.id}`);
+      router.push(`/${body.team.slug}`);
     }
     router.refresh();
   }
@@ -160,11 +161,7 @@ export function TeamForm({
             nativeButton={false}
             render={
               <Link
-                href={
-                  mode === "create"
-                    ? "/directory/teams"
-                    : `/directory/teams/${team?.id}`
-                }
+                href={mode === "create" ? "/directory/teams" : `/${team?.slug}`}
               />
             }
           >

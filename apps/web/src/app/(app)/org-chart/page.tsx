@@ -8,23 +8,32 @@ import { getDb } from "@/db";
 import { people } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
 import { buildOrgChart, countOrgChart } from "@/lib/directory/org-chart";
+import { personPhotoSrc } from "@/lib/person-photo";
 
 export default async function OrgChartPage() {
   const session = await requireSession();
 
   const rows = await getDb().query.people.findMany({
     where: eq(people.organizationId, session.organizationId),
-    columns: { id: true, name: true, title: true, managerId: true },
-    with: { team: { columns: { name: true } } },
+    columns: {
+      id: true,
+      slug: true,
+      name: true,
+      title: true,
+      photoUrl: true,
+      updatedAt: true,
+      managerId: true,
+    },
   });
 
   const roots = buildOrgChart(
     rows.map((row) => ({
       id: row.id,
+      slug: row.slug,
       name: row.name,
       title: row.title,
+      photoUrl: personPhotoSrc(row),
       managerId: row.managerId,
-      teamName: row.team?.name ?? null,
     })),
   );
   const total = countOrgChart(roots);

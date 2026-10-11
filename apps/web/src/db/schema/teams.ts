@@ -3,7 +3,7 @@ import { index, pgTable, text, unique } from "drizzle-orm/pg-core";
 
 import { id, organizationId, timestamps } from "./_columns";
 import { organizations } from "./organizations";
-import { people } from "./people";
+import { teamMembers } from "./team-members";
 
 export const teams = pgTable(
   "teams",
@@ -11,11 +11,14 @@ export const teams = pgTable(
     id: id(),
     organizationId: organizationId(),
     name: text("name").notNull(),
+    /** The address of the team page: `/<slug>`. Unique among people and teams. */
+    slug: text("slug").notNull(),
     description: text("description"),
     ...timestamps(),
   },
   (table) => [
     unique().on(table.organizationId, table.name),
+    unique().on(table.organizationId, table.slug),
     index("teams_organization_id_idx").on(table.organizationId),
   ],
 );
@@ -25,5 +28,5 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
     fields: [teams.organizationId],
     references: [organizations.id],
   }),
-  people: many(people),
+  memberships: many(teamMembers),
 }));

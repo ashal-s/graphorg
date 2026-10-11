@@ -1,32 +1,35 @@
-import { and, eq, ilike } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { Plus, Users2 } from "lucide-react";
 
-import { EmptyState } from "@/components/states/empty-state";
-import { EntityRow } from "@/components/shared/entity-row";
+import { TeamsDirectory } from "@/components/directory/teams-directory";
 import { PageHeader } from "@/components/shared/page-header";
-import { SearchBar } from "@/components/shared/search-bar";
 import { Button } from "@/components/ui/button";
 import { getDb } from "@/db";
 import { teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { loadTones } from "@/lib/directory/tones";
+import { personPhotoSrc } from "@/lib/person-photo";
 
-interface PageProps {
-  searchParams: Promise<{ q?: string }>;
-}
-
-export default async function TeamsPage({ searchParams }: PageProps) {
+export default async function TeamsPage() {
   const session = await requireSession();
   const canEdit = hasRole(session.role, "editor");
-  const { q } = await searchParams;
 
+  // All teams are sent once; searching happens in the browser as you type.
+  const tones = await loadTones(session.organizationId);
   const rows = await getDb().query.teams.findMany({
-    where: and(
-      eq(teams.organizationId, session.organizationId),
-      q ? ilike(teams.name, `%${q}%`) : undefined,
-    ),
-    with: { people: { columns: { id: true } } },
+    where: eq(teams.organizationId, session.organizationId),
+    with: {
+      memberships: {
+        columns: { teamRole: true },
+        with: {
+          person: {
+            columns: { id: true, name: true, photoUrl: true, updatedAt: true },
+          },
+        },
+      },
+    },
     orderBy: (row, { asc }) => asc(row.name),
   });
 
@@ -34,6 +37,7 @@ export default async function TeamsPage({ searchParams }: PageProps) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Teams"
+        icon={Users2}
         description="Who owns what across your organisation."
         actions={
           canEdit && (
@@ -48,53 +52,38 @@ export default async function TeamsPage({ searchParams }: PageProps) {
         }
       />
 
-      <SearchBar defaultValue={q} placeholder="Search teams" />
-
-      {rows.length === 0 ? (
-        <EmptyState
-          icon={
-            <Users2
-              className="h-8 w-8 text-muted-foreground"
-              aria-hidden="true"
-            />
-          }
-          title={q ? "No teams match your search" : "No teams yet"}
-          description={
-            canEdit
-              ? "Create a team to start organising people and ownership."
-              : "Nobody has created a team yet."
-          }
-          action={
-            canEdit &&
-            !q && (
-              <Button
-                size="sm"
-                render={<Link href="/directory/teams/new" />}
-                nativeButton={false}
-              >
-                New team
-              </Button>
-            )
-          }
-        />
-      ) : (
-        <div className="flex flex-col gap-2">
-          {rows.map((team) => (
-            <EntityRow
-              key={team.id}
-              href={`/directory/teams/${team.id}`}
-              title={team.name}
-              meta={team.description}
-              trailing={
-                <p className="text-sm text-muted-foreground">
-                  {team.people.length}{" "}
-                  {team.people.length === 1 ? "person" : "people"}
-                </p>
-              }
-            />
-          ))}
-        </div>
-      )}
+      <TeamsDirectory
+        teams={rows.map((row) => ({
+          id: row.id,
+          slug: row.slug,
+          name: row.name,
+          description: row.description,
+          members: row.memberships
+            .map((membership) => ({
+              id: membership.person.id,
+              name: membership.person.name,
+              photoSrc: personPhotoSrc(membership.person),
+              tone: tones.people[membership.person.id],
+              teamRole: membership.teamRole,
+            }))
+            // Leads first, so the stack shows who runs the team.
+            .sort(
+              (a, b) =>
+                Number(b.teamRole === "lead") - Number(a.teamRole === "lead") ||
+                a.name.localeCompare(b.name),
+            ),
+        }))}
+        canEdit={canEdit}
+        emptyAction={
+          <Button
+            size="sm"
+            render={<Link href="/directory/teams/new" />}
+            nativeButton={false}
+          >
+            New team
+          </Button>
+        }
+      />
     </div>
   );
 }

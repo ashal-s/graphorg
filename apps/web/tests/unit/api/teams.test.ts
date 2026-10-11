@@ -13,7 +13,11 @@ const returningMock = jest.fn();
 const valuesMock = jest.fn(() => ({ returning: returningMock }));
 jest.mock("../../../src/db", () => ({
   getDb: () => ({
-    query: { teams: { findMany: findManyMock } },
+    query: {
+      teams: { findMany: findManyMock, findFirst: async () => undefined },
+      // Looked up (and found free) when picking the new team's slug.
+      people: { findFirst: async () => undefined },
+    },
     insert: () => ({ values: valuesMock }),
   }),
 }));
@@ -58,7 +62,7 @@ function postRequest(body: unknown) {
 }
 
 /**
- * Same shape of coverage as tests/unit/api/systems.test.ts: rejects
+ * Same shape of coverage as tests/unit/api/services.test.ts: rejects
  * unauthenticated access before touching the database, and always scopes by
  * the caller's own organization_id. A live-DB integration suite (real
  * pagination behavior against real rows) is WEB-135's job.
@@ -156,5 +160,33 @@ describe("POST /api/teams", () => {
     expect(valuesMock).toHaveBeenCalledWith(
       expect.objectContaining({ name: "Payments", organizationId: "org-a" }),
     );
+  });
+});
+
+describe("POST /api/teams slug", () => {
+  it("gives the new team a slug made from its name", async () => {
+    getSessionMock.mockResolvedValue({
+      userId: "u",
+      organizationId: "org-a",
+      organizationName: "A",
+      organizationSlug: "a",
+      role: "editor",
+      name: "T",
+      email: "t@example.com",
+    });
+    returningMock.mockResolvedValue([{ id: "t1" }]);
+
+    await POST(
+      new Request("http://localhost/api/teams", {
+        method: "POST",
+        body: JSON.stringify({ name: "Data & Analytics" }),
+      }) as never,
+    );
+
+    const values = (valuesMock.mock.calls.at(-1) as unknown[])[0] as Record<
+      string,
+      unknown
+    >;
+    expect(values.slug).toBe("data-analytics");
   });
 });

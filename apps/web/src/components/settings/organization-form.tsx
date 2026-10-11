@@ -23,15 +23,17 @@ export interface OrganizationDetail {
   slug: string;
   description: string | null;
   logoUrl: string | null;
+  emailDomain: string | null;
 }
 
-type Field = "logoUrl" | "name" | "description" | "slug";
+type Field = "logoUrl" | "name" | "description" | "slug" | "emailDomain";
 
 const FIELD_LABELS: Record<Field, string> = {
   logoUrl: "Logo",
   name: "Name",
   description: "Description",
   slug: "Workspace slug",
+  emailDomain: "Email domain",
 };
 
 export function OrganizationForm({
@@ -237,6 +239,34 @@ export function OrganizationForm({
                 ) : (
                   empty
                 ),
+              )}
+        </SettingRow>
+
+        <SettingRow
+          label="Email domain"
+          hint="Filled in automatically when adding people."
+        >
+          {editing === "emailDomain"
+            ? editor(
+                "emailDomain",
+                <div className="flex max-w-sm items-center">
+                  <span className="flex h-8 items-center rounded-l-lg border border-r-0 border-input px-2.5 text-sm text-muted-foreground">
+                    @
+                  </span>
+                  <Input
+                    autoFocus
+                    aria-label="Email domain"
+                    value={draft.replace(/^@+/, "")}
+                    onChange={(event) => setDraft(event.target.value)}
+                    placeholder="example.com"
+                    className="rounded-l-none"
+                  />
+                </div>,
+                "Leave blank to remove it.",
+              )
+            : display(
+                "emailDomain",
+                current.emailDomain ? `@${current.emailDomain}` : empty,
               )}
         </SettingRow>
 

@@ -1,4 +1,8 @@
-import { buildOrgChart, countOrgChart } from "@/lib/directory/org-chart";
+import {
+  buildOrgChart,
+  countOrgChart,
+  flattenOrgChart,
+} from "@/lib/directory/org-chart";
 
 const person = (id: string, managerId: string | null, name = id) => ({
   id,
@@ -41,5 +45,29 @@ describe("buildOrgChart", () => {
 
     expect(roots).toHaveLength(1);
     expect(roots[0]!.reports).toEqual([]);
+  });
+});
+
+describe("flattenOrgChart", () => {
+  it("ranks people level by level, grouped under their manager", () => {
+    const roots = buildOrgChart([
+      person("ceo", null),
+      person("vp-b", "ceo"),
+      person("vp-a", "ceo"),
+      person("zed", "vp-a"),
+      person("amy", "vp-b"),
+      person("solo", null),
+    ]);
+
+    expect(
+      flattenOrgChart(roots).map(({ node, depth }) => [node.id, depth]),
+    ).toEqual([
+      ["ceo", 0],
+      ["solo", 0],
+      ["vp-a", 1],
+      ["vp-b", 1],
+      ["zed", 2],
+      ["amy", 2],
+    ]);
   });
 });

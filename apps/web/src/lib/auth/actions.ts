@@ -112,6 +112,19 @@ export async function signup(
   redirect("/");
 }
 
+/**
+ * Moves to another workspace: accounts belong to one organization each, so
+ * this signs out and opens that workspace's sign-in with it pre-filled.
+ */
+export async function switchWorkspace(slug: string) {
+  const workspace = slugify(slug);
+  await signOut({
+    redirectTo: workspace
+      ? `/login?workspace=${encodeURIComponent(workspace)}`
+      : "/login",
+  });
+}
+
 export async function logout() {
   await signOut({ redirectTo: "/login" });
 }

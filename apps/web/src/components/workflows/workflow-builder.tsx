@@ -130,9 +130,7 @@ const TRIGGER_LABELS: Record<TriggerType, string> = {
 };
 
 const ENTITY_TYPES = [
-  { value: "system", label: "System" },
   { value: "service", label: "Service" },
-  { value: "repository", label: "Repository" },
   { value: "team", label: "Team" },
   { value: "person", label: "Person" },
   { value: "document", label: "Document" },
@@ -315,7 +313,7 @@ export function WorkflowBuilder({
   const [entityType, setEntityType] = useState(
     typeof workflow?.triggerConfig.entityType === "string"
       ? workflow.triggerConfig.entityType
-      : "system",
+      : "service",
   );
   const [cron, setCron] = useState(
     typeof workflow?.triggerConfig.cron === "string"
@@ -548,7 +546,9 @@ export function WorkflowBuilder({
     <form
       onSubmit={(event) => {
         event.preventDefault();
-        void persist(status === "archived" ? "archived" : "active");
+        // The primary button is "Save and enable", so it always enables:
+        // an archived workflow comes back as active, matching its label.
+        void persist("active");
       }}
       className="-m-4 flex h-[calc(100svh-3.5rem)] flex-col overflow-hidden bg-background text-foreground md:-m-6"
     >
@@ -608,6 +608,14 @@ export function WorkflowBuilder({
                   onClick={() => void persist("draft")}
                 >
                   Save as draft
+                </DropdownMenuItem>
+              )}
+              {!readOnly && status === "archived" && (
+                <DropdownMenuItem
+                  disabled={saving || deleting || name.trim().length === 0}
+                  onClick={() => void persist("archived")}
+                >
+                  Save and keep archived
                 </DropdownMenuItem>
               )}
               {mode === "edit" && !readOnly && (

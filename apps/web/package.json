@@ -11,6 +11,7 @@
     "test": "jest",
     "test:watch": "jest --watchAll",
     "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
+    "postdb:generate": "prettier --write drizzle",
     "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
     "db:seed": "dotenv -e .env.local -- tsx scripts/seed.ts",
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio"

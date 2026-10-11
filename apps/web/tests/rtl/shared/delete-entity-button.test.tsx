@@ -73,4 +73,28 @@ describe("DeleteEntityButton", () => {
     ).toBeInTheDocument();
     expect(pushMock).not.toHaveBeenCalled();
   });
+
+  it("can be icon-only, keeping its accessible name and behaviour", async () => {
+    jest.spyOn(window, "confirm").mockReturnValue(true);
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
+    const user = userEvent.setup();
+    render(
+      <DeleteEntityButton
+        entityLabel="person"
+        entityName="Jordan Lee"
+        apiPath="/api/people/p-1"
+        redirectTo="/directory/people"
+        iconOnly
+      />,
+    );
+
+    const button = screen.getByRole("button", { name: "Delete person" });
+    expect(button).toHaveTextContent("");
+    await user.click(button);
+
+    expect(global.fetch).toHaveBeenCalledWith("/api/people/p-1", {
+      method: "DELETE",
+    });
+    expect(pushMock).toHaveBeenCalledWith("/directory/people");
+  });
 });

@@ -12,9 +12,11 @@ function paymentsProfileInput(
   overrides: Partial<AssemblePersonProfileInput> = {},
 ): AssemblePersonProfileInput {
   return {
-    team: { id: "team-payments", name: "Payments" },
-    manager: { id: "person-priya", name: "Priya Shah" },
-    directReports: [{ id: "person-taylor", name: "Taylor Brooks" }],
+    teams: [{ id: "team-payments", name: "Payments", slug: "payments" }],
+    manager: { id: "person-priya", name: "Priya Shah", slug: "priya-shah" },
+    directReports: [
+      { id: "person-taylor", name: "Taylor Brooks", slug: "taylor-brooks" },
+    ],
     organizationId: "org-acme",
     workflowLinks: [
       {
@@ -41,48 +43,24 @@ function paymentsProfileInput(
         id: "svc-checkout-api",
         name: "checkout-api",
         description: "Core checkout API.",
-        repository: {
-          id: "repo-checkout-api",
-          name: "checkout-api",
-          url: "https://github.com/acme/checkout-api",
-        },
-        technologies: [
-          { technology: { id: "tech-go", name: "Go" } },
-          { technology: { id: "tech-pg", name: "PostgreSQL" } },
+        tools: [
+          { tool: { id: "tool-github", name: "GitHub", category: "source" } },
+          { tool: { id: "tool-jira", name: "Jira", category: "tracking" } },
         ],
       },
       {
         id: "svc-checkout-web",
         name: "checkout-web",
         description: "Checkout UI.",
-        repository: {
-          id: "repo-checkout-web",
-          name: "checkout-web",
-          url: "https://github.com/acme/checkout-web",
-        },
-        technologies: [
-          { technology: { id: "tech-ts", name: "TypeScript" } },
-          { technology: { id: "tech-react", name: "React" } },
+        tools: [
+          { tool: { id: "tool-jira", name: "Jira", category: "tracking" } },
         ],
       },
       {
         id: "svc-payments-worker",
         name: "payments-worker",
         description: "Async payments.",
-        repository: null,
-        technologies: [{ technology: { id: "tech-py", name: "Python" } }],
-      },
-    ],
-    repositories: [
-      {
-        id: "repo-checkout-api",
-        name: "checkout-api",
-        url: "https://github.com/acme/checkout-api",
-      },
-      {
-        id: "repo-checkout-web",
-        name: "checkout-web",
-        url: "https://github.com/acme/checkout-web",
+        tools: [],
       },
     ],
     documents: [
@@ -93,10 +71,6 @@ function paymentsProfileInput(
         url: "https://docs.acme.example/adr/checkout-api",
       },
     ],
-    tools: [
-      { id: "tool-github", name: "GitHub", category: "source_control" },
-      { id: "tool-jira", name: "Jira", category: "issue_tracking" },
-    ],
     ...overrides,
   };
 }
@@ -105,13 +79,16 @@ describe("assemblePersonProfile", () => {
   it("keeps the team, manager, and direct reports", () => {
     const profile = assemblePersonProfile(paymentsProfileInput());
 
-    expect(profile.team).toEqual({ id: "team-payments", name: "Payments" });
+    expect(profile.teams).toEqual([
+      { id: "team-payments", name: "Payments", slug: "payments" },
+    ]);
     expect(profile.manager).toEqual({
       id: "person-priya",
       name: "Priya Shah",
+      slug: "priya-shah",
     });
     expect(profile.directReports).toEqual([
-      { id: "person-taylor", name: "Taylor Brooks" },
+      { id: "person-taylor", name: "Taylor Brooks", slug: "taylor-brooks" },
     ]);
   });
 
@@ -148,7 +125,27 @@ describe("assemblePersonProfile", () => {
     expect(profile.workflows).toEqual([]);
   });
 
-  it("dedupes technologies across the team's services", () => {
+  it("lists every team the person is on, sorted by name", () => {
+    const profile = assemblePersonProfile(
+      paymentsProfileInput({
+        teams: [
+          {
+            id: "team-sre",
+            name: "Site Reliability",
+            slug: "site-reliability",
+          },
+          { id: "team-payments", name: "Payments", slug: "payments" },
+        ],
+      }),
+    );
+
+    expect(profile.teams.map((team) => team.name)).toEqual([
+      "Payments",
+      "Site Reliability",
+    ]);
+  });
+
+  it("dedupes tools across the team's services", () => {
     const profile = assemblePersonProfile(
       paymentsProfileInput({
         services: [
@@ -156,56 +153,26 @@ describe("assemblePersonProfile", () => {
             id: "svc-a",
             name: "a",
             description: null,
-            technologies: [
-              { technology: { id: "tech-go", name: "Go" } },
-              { technology: { id: "tech-pg", name: "PostgreSQL" } },
+            tools: [
+              { tool: { id: "tool-go", name: "Go", category: "other" } },
+              {
+                tool: { id: "tool-pg", name: "PostgreSQL", category: "other" },
+              },
             ],
           },
           {
             id: "svc-b",
             name: "b",
             description: null,
-            technologies: [{ technology: { id: "tech-go", name: "Go" } }],
+            tools: [{ tool: { id: "tool-go", name: "Go", category: "other" } }],
           },
         ],
       }),
     );
 
-    expect(profile.technologies.map((tech) => tech.name)).toEqual([
+    expect(profile.tools.map((tool) => tool.name)).toEqual([
       "Go",
       "PostgreSQL",
-    ]);
-  });
-
-  it("unions team-owned repositories with repositories on services", () => {
-    const profile = assemblePersonProfile(
-      paymentsProfileInput({
-        repositories: [
-          {
-            id: "repo-owned",
-            name: "owned-repo",
-            url: null,
-          },
-        ],
-        services: [
-          {
-            id: "svc-a",
-            name: "a",
-            description: null,
-            repository: {
-              id: "repo-linked",
-              name: "linked-repo",
-              url: "https://github.com/acme/linked",
-            },
-            technologies: [],
-          },
-        ],
-      }),
-    );
-
-    expect(profile.repositories.map((repo) => repo.name)).toEqual([
-      "linked-repo",
-      "owned-repo",
     ]);
   });
 
@@ -226,19 +193,15 @@ describe("assemblePersonProfile", () => {
   it("returns empty relationship lists when the person has no team", () => {
     const profile = assemblePersonProfile(
       paymentsProfileInput({
-        team: null,
+        teams: [],
         services: [],
-        repositories: [],
         documents: [],
-        tools: [],
         workflowLinks: [],
       }),
     );
 
-    expect(profile.team).toBeNull();
+    expect(profile.teams).toEqual([]);
     expect(profile.services).toEqual([]);
-    expect(profile.repositories).toEqual([]);
-    expect(profile.technologies).toEqual([]);
     expect(profile.documents).toEqual([]);
     expect(profile.workflows).toEqual([]);
     expect(profile.tools).toEqual([]);

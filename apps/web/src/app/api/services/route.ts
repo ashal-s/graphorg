@@ -2,11 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import {
-  serviceDependencies,
-  serviceTechnologies,
-  services,
-} from "@/db/schema";
+import { serviceDependencies, serviceTools, services } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation } from "@/lib/api/db-errors";
@@ -35,17 +31,12 @@ export async function POST(request: NextRequest) {
 
   const parsed = createServiceSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
-  const {
-    technologyIds = [],
-    dependsOnServiceIds = [],
-    ...values
-  } = parsed.data;
+  const { toolIds = [], dependsOnServiceIds = [], ...values } = parsed.data;
 
   const refError = await validateServiceRefs(session.organizationId, {
-    systemId: values.systemId,
-    repositoryId: values.repositoryId,
+    parentId: values.parentId,
     ownerTeamId: values.ownerTeamId,
-    technologyIds,
+    toolIds,
     dependsOnServiceIds,
   });
   if (refError) return refError;
@@ -63,13 +54,10 @@ export async function POST(request: NextRequest) {
         .returning({ id: services.id });
       if (!row) throw new Error("Failed to insert service");
 
-      if (technologyIds.length > 0) {
-        await tx.insert(serviceTechnologies).values(
-          technologyIds.map((technologyId) => ({
-            serviceId: row.id,
-            technologyId,
-          })),
-        );
+      if (toolIds.length > 0) {
+        await tx
+          .insert(serviceTools)
+          .values(toolIds.map((toolId) => ({ serviceId: row.id, toolId })));
       }
       if (dependsOnServiceIds.length > 0) {
         await tx.insert(serviceDependencies).values(

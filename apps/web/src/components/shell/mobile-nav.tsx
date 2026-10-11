@@ -12,9 +12,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { SidebarNav } from "@/components/shell/sidebar-nav";
-import { WorkspaceSwitcher } from "@/components/shell/workspace-switcher";
 
-export function MobileNav({ workspaceName }: { workspaceName: string }) {
+export function MobileNav() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -36,9 +35,6 @@ export function MobileNav({ workspaceName }: { workspaceName: string }) {
           <SheetTitle>GraphOrg</SheetTitle>
         </SheetHeader>
         <div className="px-3 py-4">
-          <WorkspaceSwitcher workspaceName={workspaceName} />
-        </div>
-        <div className="px-3">
           <SidebarNav onNavigate={() => setOpen(false)} />
         </div>
       </SheetContent>

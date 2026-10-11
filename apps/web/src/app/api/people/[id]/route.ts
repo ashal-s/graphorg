@@ -19,6 +19,7 @@ import {
   wouldCreateManagerCycle,
 } from "@/lib/api/manager-chain";
 import { findMissingInOrg } from "@/lib/api/org-refs";
+import { setPersonTeams } from "@/lib/api/team-membership";
 
 import { createPersonSchema } from "../schema";
 
@@ -43,19 +44,32 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       eq(people.organizationId, session.organizationId),
     ),
     with: {
-      team: { columns: { id: true, name: true } },
+      memberships: {
+        columns: { teamRole: true },
+        with: { team: { columns: { id: true, name: true } } },
+      },
       manager: { columns: { id: true, name: true } },
     },
   });
   if (!person) return jsonError(404, "Person not found");
 
-  return NextResponse.json({ person });
+  const { memberships, ...rest } = person;
+  return NextResponse.json({
+    person: {
+      ...rest,
+      teams: memberships
+        .map((m) => ({ ...m.team, teamRole: m.teamRole }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    },
+  });
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
   if (!session) return jsonError(401, "Unauthorized");
-  if (!hasRole(session.role, "editor")) return jsonError(403, "Forbidden");
+  // Editing someone's profile details is an owner/admin action; editors can
+  // still manage team membership via the team endpoints.
+  if (!hasRole(session.role, "admin")) return jsonError(403, "Forbidden");
 
   const { id } = await params;
   const idError = requireUuidParam(id);
@@ -67,7 +81,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       eq(people.id, id),
       eq(people.organizationId, session.organizationId),
     ),
-    columns: { id: true, teamId: true },
+    columns: { id: true },
   });
   if (!existing) return jsonError(404, "Person not found");
 
@@ -75,19 +89,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!parsed.success) return jsonValidationError(parsed.error);
   const emptyPatchError = requireNonEmptyPatch(parsed.data);
   if (emptyPatchError) return emptyPatchError;
-  const { teamId, managerId, userId, ...values } = parsed.data;
+  const { teamIds, managerId, userId, ...values } = parsed.data;
 
-  if (teamId) {
+  if (teamIds && teamIds.length > 0) {
     const missing = await findMissingInOrg(
       teams.id,
       teams.organizationId,
       session.organizationId,
-      [teamId],
+      teamIds,
     );
     if (missing.length > 0) {
       return jsonError(
         400,
-        "teamId does not reference a team in this organization",
+        "teamIds contains an id that does not reference a team in this organization",
       );
     }
   }
@@ -125,18 +139,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const patch: Partial<typeof people.$inferInsert> = {
     ...values,
-    teamId,
     managerId,
     userId,
   };
-  // Moving to another team (or leaving one) starts over as a plain member,
-  // unless the same request sets a level explicitly.
-  if (
-    teamId !== undefined &&
-    teamId !== existing.teamId &&
-    values.teamRole === undefined
-  ) {
-    patch.teamRole = "member";
+  if (values.photoUrl !== undefined) patch.photoUrl = values.photoUrl || null;
+  // `set()` rejects an empty object, so drop keys the request didn't send.
+  for (const key of Object.keys(patch) as Array<keyof typeof patch>) {
+    if (patch[key] === undefined) delete patch[key];
   }
 
   try {
@@ -160,11 +169,16 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         }
       }
 
-      const [row] = await tx
-        .update(people)
-        .set(patch)
-        .where(eq(people.id, id))
-        .returning();
+      const [row] =
+        Object.keys(patch).length > 0
+          ? await tx
+              .update(people)
+              .set(patch)
+              .where(eq(people.id, id))
+              .returning()
+          : await tx.select().from(people).where(eq(people.id, id));
+
+      if (teamIds) await setPersonTeams(tx, id, teamIds);
       return row;
     });
     return NextResponse.json({ person });

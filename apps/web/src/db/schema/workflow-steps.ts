@@ -23,7 +23,7 @@ import { workflows } from "./workflows";
  * document the "same step" of their process differently, including
  * intentionally parallel/tied steps.
  * No `organization_id`: scoped indirectly via `workflow_id`, same as
- * `service_technologies`/`service_dependencies` are scoped via `service_id`.
+ * `service_tools`/`service_dependencies` are scoped via `service_id`.
  */
 export const workflowSteps = pgTable(
   "workflow_steps",
