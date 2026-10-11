@@ -125,7 +125,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
               key={person.id}
               href={`/directory/people/${person.id}`}
               title={person.name}
-              meta={`${person.email}${person.title ? ` · ${person.title}` : ""}`}
+              meta={person.title ?? undefined}
               trailing={
                 person.memberships.length > 0 && (
                   <div className="flex flex-wrap justify-end gap-1.5">
