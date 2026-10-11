@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { Pencil, UserMinus, UserPlus } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -273,15 +272,6 @@ export function TeamMembers({
           >
             {member.name}
           </Link>
-          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-            {member.teamRole !== "member" && (
-              <Badge
-                variant={member.teamRole === "lead" ? "default" : "secondary"}
-              >
-                {LEVEL_LABELS[member.teamRole]}
-              </Badge>
-            )}
-          </div>
           {member.title && (
             <p className="truncate text-sm text-muted-foreground">
               {member.title}
