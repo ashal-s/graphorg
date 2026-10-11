@@ -23,7 +23,7 @@ export function SettingsTabs({
   return (
     <nav
       aria-label="Settings sections"
-      className="flex shrink-0 gap-5 md:w-44 md:flex-col md:gap-2 md:border-l md:border-border"
+      className="flex shrink-0 gap-5 md:w-44 md:flex-col md:gap-2 md:self-start md:border-l md:border-border"
     >
       {tabs.map((tab) => {
         const active = tab.id === activeId;
