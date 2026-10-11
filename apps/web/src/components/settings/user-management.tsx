@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Tooltip,
   TooltipContent,
@@ -30,6 +31,16 @@ export interface Member {
   email: string;
   role: Role;
 }
+
+/** Someone in the people directory who doesn't have an account yet. */
+export interface MemberCandidate {
+  id: string;
+  name: string;
+  email: string;
+  title: string | null;
+}
+
+type AddMode = "directory" | "new";
 
 const ROLE_LABELS: Record<Role, string> = {
   owner: "Owner",
@@ -71,10 +82,13 @@ function RoleOptions({ roles }: { roles: Role[] }) {
 
 export function UserManagement({
   members,
+  candidates = [],
   currentUserId,
   actorRole,
 }: {
   members: Member[];
+  /** Directory people who can be given an account. */
+  candidates?: MemberCandidate[];
   currentUserId: string;
   actorRole: Role;
 }) {
@@ -84,6 +98,11 @@ export function UserManagement({
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  const [addMode, setAddMode] = useState<AddMode>(
+    candidates.length > 0 ? "directory" : "new",
+  );
+  const [personId, setPersonId] = useState("");
+  const [addToDirectory, setAddToDirectory] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -106,16 +125,25 @@ export function UserManagement({
   async function addMember(event: React.FormEvent) {
     event.preventDefault();
     setDialogError(null);
+    if (addMode === "directory" && !personId) {
+      setDialogError("Pick a person from the directory.");
+      return;
+    }
     setAdding(true);
     const response = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: newName,
-        email: newEmail,
-        password: newPassword,
-        role: newRole,
-      }),
+      body: JSON.stringify(
+        addMode === "directory"
+          ? { personId, password: newPassword, role: newRole }
+          : {
+              name: newName,
+              email: newEmail,
+              password: newPassword,
+              role: newRole,
+              addToDirectory,
+            },
+      ),
     });
     setAdding(false);
     if (!response.ok) {
@@ -125,6 +153,8 @@ export function UserManagement({
     setNewName("");
     setNewEmail("");
     setNewPassword("");
+    setPersonId("");
+    setAddToDirectory(false);
     setShowAdd(false);
     router.refresh();
   }
@@ -231,30 +261,97 @@ export function UserManagement({
           <div>
             <DialogTitle>Add a member</DialogTitle>
             <DialogDescription>
-              Set an initial password and share it with them; they can sign in
-              straight away.
+              Give someone in your directory access, or add someone new. Set an
+              initial password and share it with them; they can sign in straight
+              away.
             </DialogDescription>
           </div>
           <form onSubmit={addMember} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="new-name">Name</Label>
-              <Input
-                id="new-name"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                required
-              />
+            <div
+              role="tablist"
+              aria-label="Who to add"
+              className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm"
+            >
+              {(
+                [
+                  ["directory", "From the directory"],
+                  ["new", "Someone new"],
+                ] as const
+              ).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  role="tab"
+                  aria-selected={addMode === mode}
+                  onClick={() => {
+                    setAddMode(mode);
+                    setDialogError(null);
+                  }}
+                  className={`rounded-md px-3 py-1.5 font-medium transition-colors ${
+                    addMode === mode
+                      ? "bg-background shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="new-email">Email</Label>
-              <Input
-                id="new-email"
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                required
-              />
-            </div>
+
+            {addMode === "directory" ? (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="new-person">Person</Label>
+                <SearchableSelect
+                  id="new-person"
+                  options={candidates.map((candidate) => ({
+                    id: candidate.id,
+                    label: `${candidate.name} · ${candidate.email}`,
+                  }))}
+                  value={personId}
+                  onValueChange={setPersonId}
+                  placeholder="Search people in your directory"
+                  emptyLabel={
+                    candidates.length === 0
+                      ? "Everyone in the directory already has access."
+                      : "No one matches."
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Their name and email come from the directory.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="new-name">Name</Label>
+                  <Input
+                    id="new-name"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="new-email">Email</Label>
+                  <Input
+                    id="new-email"
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={addToDirectory}
+                    onChange={(e) => setAddToDirectory(e.target.checked)}
+                    className="size-4 accent-primary"
+                  />
+                  Also add them to the people directory
+                </label>
+              </>
+            )}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="new-password">Initial password</Label>
               <Input

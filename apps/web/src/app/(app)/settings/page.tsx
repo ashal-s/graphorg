@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/shared/page-header";
@@ -7,7 +7,7 @@ import { OrganizationForm } from "@/components/settings/organization-form";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { UserManagement } from "@/components/settings/user-management";
 import { getDb } from "@/db";
-import { organizations, users } from "@/db/schema";
+import { organizations, people, users } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession, type Session } from "@/lib/auth/session";
 import { USER_MANAGEMENT_ROLE } from "@/lib/auth/user-management";
@@ -103,9 +103,32 @@ async function MembersTab({ session }: { session: Session }) {
     .where(eq(users.organizationId, session.organizationId))
     .orderBy(asc(users.name));
 
+  // People in the directory who don't have an account yet, and whose email
+  // isn't already used by one, can be given access from the Add member popup.
+  const directoryPeople = await getDb()
+    .select({
+      id: people.id,
+      name: people.name,
+      email: people.email,
+      title: people.title,
+    })
+    .from(people)
+    .where(
+      and(
+        eq(people.organizationId, session.organizationId),
+        isNull(people.userId),
+      ),
+    )
+    .orderBy(asc(people.name));
+  const memberEmails = new Set(members.map((member) => member.email));
+  const candidates = directoryPeople.filter(
+    (person) => !memberEmails.has(person.email),
+  );
+
   return (
     <UserManagement
       members={members}
+      candidates={candidates}
       currentUserId={session.userId}
       actorRole={session.role}
     />

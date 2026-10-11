@@ -16,17 +16,52 @@ const setMock = jest.fn(() => ({
   where: () => ({ returning: returningMock }),
 }));
 const deleteWhereMock = jest.fn();
-jest.mock("../../../src/db", () => ({
-  getDb: () => ({
-    query: { users: { findFirst: findFirstMock } },
-    select: () => ({
-      from: () => ({ where: () => ({ orderBy: async () => [] }) }),
+const personFindFirstMock = jest.fn();
+const personInsertMock = jest.fn();
+const personUpdateWhereMock = jest.fn();
+jest.mock("../../../src/db", () => {
+  // Inside a transaction: users insert/people lookups and writes.
+  // Built lazily: the mocks below are initialised after this factory is hoisted.
+  const makeTx = () => ({
+    query: { people: { findFirst: personFindFirstMock } },
+    insert: (table: { _: { name?: string } } | unknown) => ({
+      values: (values: unknown) => {
+        const name = (table as { [k: symbol]: unknown })[
+          Symbol.for("drizzle:Name")
+        ];
+        if (name === "people") {
+          personInsertMock(values);
+          return Promise.resolve();
+        }
+        return (insertValuesMock as unknown as (v: unknown) => unknown)(values);
+      },
     }),
-    insert: () => ({ values: insertValuesMock }),
-    update: () => ({ set: setMock }),
-    delete: () => ({ where: deleteWhereMock }),
-  }),
-}));
+    update: () => ({
+      set: (values: unknown) => ({
+        where: () => {
+          personUpdateWhereMock(values);
+          return Promise.resolve();
+        },
+      }),
+    }),
+  });
+  return {
+    getDb: () => ({
+      query: {
+        users: { findFirst: findFirstMock },
+        people: { findFirst: personFindFirstMock },
+      },
+      select: () => ({
+        from: () => ({ where: () => ({ orderBy: async () => [] }) }),
+      }),
+      insert: () => ({ values: insertValuesMock }),
+      update: () => ({ set: setMock }),
+      delete: () => ({ where: deleteWhereMock }),
+      transaction: async (fn: (t: ReturnType<typeof makeTx>) => unknown) =>
+        fn(makeTx()),
+    }),
+  };
+});
 
 const getSessionMock = jest.fn();
 jest.mock("../../../src/lib/auth/session", () => ({
@@ -62,6 +97,9 @@ beforeEach(() => {
   insertValuesMock.mockClear();
   setMock.mockClear();
   deleteWhereMock.mockReset();
+  personFindFirstMock.mockReset();
+  personInsertMock.mockReset();
+  personUpdateWhereMock.mockReset();
   getSessionMock.mockReset();
 });
 
@@ -127,6 +165,139 @@ describe("POST /api/users", () => {
     getSessionMock.mockResolvedValue(session("owner"));
     const response = await POST(req("POST", { ...body, role: "owner" }));
     expect(response.status).toBe(201);
+  });
+
+  describe("from the directory", () => {
+    const PERSON = "33333333-3333-4333-8333-333333333333";
+    const fromDirectory = {
+      personId: PERSON,
+      password: "password1",
+      role: "viewer",
+    };
+
+    it("uses the person's own name and email and links the account", async () => {
+      getSessionMock.mockResolvedValue(session("admin"));
+      personFindFirstMock.mockResolvedValue({
+        id: PERSON,
+        name: "Dana Whitfield",
+        email: "dana@acme.example",
+        userId: null,
+      });
+
+      const response = await POST(req("POST", fromDirectory));
+
+      expect(response.status).toBe(201);
+      const values = (insertValuesMock.mock.calls[0] as unknown[])[0] as Record<
+        string,
+        unknown
+      >;
+      expect(values.name).toBe("Dana Whitfield");
+      expect(values.email).toBe("dana@acme.example");
+      expect(personUpdateWhereMock).toHaveBeenCalledWith({ userId: ID });
+    });
+
+    it("ignores a name or email sent alongside a person", async () => {
+      getSessionMock.mockResolvedValue(session("admin"));
+      personFindFirstMock.mockResolvedValue({
+        id: PERSON,
+        name: "Dana Whitfield",
+        email: "dana@acme.example",
+        userId: null,
+      });
+
+      await POST(
+        req("POST", {
+          ...fromDirectory,
+          name: "Someone Else",
+          email: "x@y.io",
+        }),
+      );
+
+      const values = (insertValuesMock.mock.calls[0] as unknown[])[0] as Record<
+        string,
+        unknown
+      >;
+      expect(values.email).toBe("dana@acme.example");
+    });
+
+    it("rejects a person from another organization", async () => {
+      getSessionMock.mockResolvedValue(session("admin"));
+      personFindFirstMock.mockResolvedValue(undefined);
+
+      const response = await POST(req("POST", fromDirectory));
+
+      expect(response.status).toBe(400);
+      expect(insertValuesMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects someone who already has an account", async () => {
+      getSessionMock.mockResolvedValue(session("admin"));
+      personFindFirstMock.mockResolvedValue({
+        id: PERSON,
+        name: "Dana",
+        email: "dana@acme.example",
+        userId: "already",
+      });
+
+      const response = await POST(req("POST", fromDirectory));
+
+      expect(response.status).toBe(409);
+      expect(insertValuesMock).not.toHaveBeenCalled();
+    });
+
+    it("still enforces which roles can be granted", async () => {
+      getSessionMock.mockResolvedValue(session("admin"));
+      const response = await POST(
+        req("POST", { ...fromDirectory, role: "admin" }),
+      );
+      expect(response.status).toBe(403);
+    });
+  });
+
+  describe("someone new", () => {
+    it("requires a name and an email when no person is chosen", async () => {
+      getSessionMock.mockResolvedValue(session("admin"));
+      const response = await POST(
+        req("POST", { password: "password1", role: "viewer" }),
+      );
+      expect(response.status).toBe(400);
+    });
+
+    it("can also add them to the directory", async () => {
+      getSessionMock.mockResolvedValue(session("admin"));
+      personFindFirstMock.mockResolvedValue(undefined);
+
+      const response = await POST(
+        req("POST", { ...body, addToDirectory: true }),
+      );
+
+      expect(response.status).toBe(201);
+      expect(personInsertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "New Person",
+          email: "new@example.com",
+          userId: ID,
+          organizationId: "org-a",
+        }),
+      );
+    });
+
+    it("links to a matching directory entry instead of duplicating it", async () => {
+      getSessionMock.mockResolvedValue(session("admin"));
+      personFindFirstMock.mockResolvedValue({ id: "p-1", userId: null });
+
+      await POST(req("POST", { ...body, addToDirectory: true }));
+
+      expect(personInsertMock).not.toHaveBeenCalled();
+      expect(personUpdateWhereMock).toHaveBeenCalledWith({ userId: ID });
+    });
+
+    it("leaves the directory alone by default", async () => {
+      getSessionMock.mockResolvedValue(session("admin"));
+      await POST(req("POST", body));
+      expect(personInsertMock).not.toHaveBeenCalled();
+      expect(personUpdateWhereMock).not.toHaveBeenCalled();
+    });
   });
 });
 
