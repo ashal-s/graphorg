@@ -1,0 +1,95 @@
+"use client";
+
+import { Check, ChevronDown } from "lucide-react";
+
+import { OrganizationLogo } from "@/components/shared/organization-logo";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { switchWorkspace } from "@/lib/auth/actions";
+import type { Workspace } from "@/lib/shell-workspaces";
+
+/**
+ * "GraphOrg / [logo] Acme Corp ▾": the app name, then the current
+ * workspace as a breadcrumb that opens a menu of workspaces. Picking
+ * another one signs out and lands on its sign-in page.
+ */
+export function WorkspaceBreadcrumb({
+  current,
+  others,
+}: {
+  current: Workspace;
+  others: Workspace[];
+}) {
+  return (
+    <nav
+      aria-label="Workspace"
+      className="flex min-w-0 items-center gap-1 text-sm"
+    >
+      <span className="font-semibold">GraphOrg</span>
+      <span className="text-muted-foreground" aria-hidden="true">
+        /
+      </span>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className="flex min-w-0 items-center gap-1.5 rounded-md px-1 py-1 font-medium outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring data-popup-open:bg-sidebar-accent"
+          aria-label={`Workspace: ${current.name}. Switch workspace`}
+        >
+          <OrganizationLogo
+            name={current.name}
+            logoUrl={current.logoUrl}
+            className="h-5 max-w-10 text-[10px]"
+          />
+          <span className="truncate">{current.name}</span>
+          <ChevronDown
+            className="size-3.5 shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-64">
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+              Workspaces
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
+          <DropdownMenuItem>
+            <OrganizationLogo
+              name={current.name}
+              logoUrl={current.logoUrl}
+              className="h-5 max-w-10 text-[10px]"
+            />
+            <span className="min-w-0 flex-1 truncate font-medium">
+              {current.name}
+            </span>
+            <Check aria-label="Current workspace" />
+          </DropdownMenuItem>
+          {others.length > 0 && <DropdownMenuSeparator />}
+          {others.map((workspace) => (
+            <DropdownMenuItem
+              key={workspace.slug}
+              onClick={() => void switchWorkspace(workspace.slug)}
+            >
+              <OrganizationLogo
+                name={workspace.name}
+                logoUrl={workspace.logoUrl}
+                className="h-5 max-w-10 text-[10px]"
+              />
+              <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
+            </DropdownMenuItem>
+          ))}
+          {others.length === 0 && (
+            <p className="px-1.5 py-1.5 text-xs text-muted-foreground">
+              You&apos;re only in this workspace.
+            </p>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </nav>
+  );
+}

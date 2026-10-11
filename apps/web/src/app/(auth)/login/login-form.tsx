@@ -16,7 +16,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function LoginForm({ from }: { from: string }) {
+export function LoginForm({
+  from,
+  workspace = "",
+}: {
+  from: string;
+  /** Pre-fills the workspace, e.g. after choosing one from the switcher. */
+  workspace?: string;
+}) {
   const [state, action, pending] = useActionState(login, undefined);
 
   return (
@@ -35,6 +42,7 @@ export function LoginForm({ from }: { from: string }) {
             <Input
               id="workspace"
               name="workspace"
+              defaultValue={workspace}
               placeholder="acme"
               autoComplete="organization"
               required
