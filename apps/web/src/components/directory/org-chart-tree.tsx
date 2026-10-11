@@ -24,11 +24,6 @@ function Node({ node }: { node: OrgChartNode }) {
               {node.title}
             </span>
           )}
-          {node.teamName && (
-            <span className="block truncate text-xs text-muted-foreground/80">
-              {node.teamName}
-            </span>
-          )}
         </span>
       </Link>
       {node.reports.length > 0 && (

@@ -21,7 +21,7 @@ export function PersonAvatar({
   const url = photoUrl?.trim() || null;
   return (
     <Avatar className={className}>
-      {url && <AvatarImage src={url} alt={name} />}
+      {url && <AvatarImage src={url} alt={name} referrerPolicy="no-referrer" />}
       <AvatarFallback
         className={cn(
           "bg-primary/10 text-sm font-semibold text-primary",

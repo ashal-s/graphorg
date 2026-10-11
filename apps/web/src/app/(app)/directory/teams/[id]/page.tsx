@@ -20,6 +20,7 @@ import {
 } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { personPhotoSrc } from "@/lib/person-photo";
 import { lowerLabel } from "@/lib/terminology";
 import { getTerminology } from "@/lib/terminology-server";
 
@@ -106,7 +107,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
       name: membership.person.name,
       title: membership.person.title,
       email: membership.person.email,
-      photoUrl: membership.person.photoUrl,
+      photoUrl: personPhotoSrc(membership.person),
       teamRole: membership.teamRole,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));

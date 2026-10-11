@@ -81,7 +81,6 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         name: row.name,
         title: row.title,
         managerId: row.managerId,
-        teamName: null,
       })),
     ),
   ).map(({ node, depth }) => ({ person: byId.get(node.id)!, depth }));

@@ -1,13 +1,22 @@
 import { z } from "zod";
 
+import { MAX_PHOTO_DATA_URL_LENGTH, isPhotoDataUrl } from "@/lib/person-photo";
+
 export const createPersonSchema = z.object({
   name: z.string().trim().min(1).max(200),
   email: z.string().trim().toLowerCase().email().max(320),
   title: z.string().trim().min(1).max(200).nullable().optional(),
-  /** Link to a profile picture (http or https). Null or an empty string clears it. */
+  /**
+   * A profile picture: a link (http or https) or an uploaded image as a
+   * small `data:image/...;base64,...` URL. Null or "" clears it.
+   */
   photoUrl: z
     .union([
       z.literal(""),
+      z
+        .string()
+        .max(MAX_PHOTO_DATA_URL_LENGTH)
+        .refine(isPhotoDataUrl, "Must be a JPEG, PNG or WebP image"),
       z
         .string()
         .trim()

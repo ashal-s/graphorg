@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus } from "lucide-react";
+import { ImagePlus, Pencil, Plus } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,9 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PersonAvatar } from "@/components/shared/person-avatar";
 import { Input } from "@/components/ui/input";
+import { imageFileToSquareDataUrl } from "@/lib/image-resize";
 import { Label } from "@/components/ui/label";
 import {
   SearchableMultiSelect,
@@ -37,7 +39,8 @@ export interface PersonDialogPerson {
   name: string;
   email: string;
   title: string | null;
-  photoUrl: string | null;
+  /** Where their current photo can be loaded from (see `personPhotoSrc`). */
+  photoSrc: string | null;
   teamIds: string[];
   managerId: string | null;
 }
@@ -78,11 +81,29 @@ export function PersonDialog({
   const [username, setUsername] = useState(initialEmail.username);
   const [domain, setDomain] = useState(initialEmail.domain || "@");
   const [title, setTitle] = useState(person?.title ?? "");
-  const [photoUrl, setPhotoUrl] = useState(person?.photoUrl ?? "");
+  // What to show as the photo, and whether the user changed it (only a
+  // change is sent, so saving never re-submits the stored image).
+  const [photo, setPhoto] = useState<string | null>(person?.photoSrc ?? null);
+  const [photoChanged, setPhotoChanged] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
   const [teamIds, setTeamIds] = useState<string[]>(person?.teamIds ?? []);
   const [managerId, setManagerId] = useState(person?.managerId ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function handlePhotoChosen(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      setPhoto(await imageFileToSquareDataUrl(file));
+      setPhotoChanged(true);
+      setError(null);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Couldn't use that image.",
+      );
+    }
+  }
 
   /** Back to the saved values (or blank, when creating). */
   function reset() {
@@ -90,7 +111,8 @@ export function PersonDialog({
     setUsername(initialEmail.username);
     setDomain(initialEmail.domain || "@");
     setTitle(person?.title ?? "");
-    setPhotoUrl(person?.photoUrl ?? "");
+    setPhoto(person?.photoSrc ?? null);
+    setPhotoChanged(false);
     setTeamIds(person?.teamIds ?? []);
     setManagerId(person?.managerId ?? "");
     setError(null);
@@ -123,7 +145,8 @@ export function PersonDialog({
           name: name.trim(),
           email: `${username.trim()}${domain.trim()}`,
           title: title.trim().length > 0 ? title.trim() : null,
-          photoUrl: photoUrl.trim(),
+          // Omitted when untouched; "" removes the photo.
+          ...(photoChanged ? { photoUrl: photo ?? "" } : {}),
           teamIds,
           managerId: managerId.length > 0 ? managerId : null,
         }),
@@ -244,16 +267,47 @@ export function PersonDialog({
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="person-dialog-photo">Profile photo</Label>
-              <Input
-                id="person-dialog-photo"
-                type="url"
-                inputMode="url"
-                value={photoUrl}
-                onChange={(event) => setPhotoUrl(event.target.value)}
-                placeholder="https://example.com/photo.jpg"
-              />
+              <div className="flex items-center gap-3">
+                <PersonAvatar
+                  name={name.trim() || "?"}
+                  photoUrl={photo}
+                  className="size-14"
+                  textClassName="text-base"
+                />
+                <input
+                  ref={fileInput}
+                  id="person-dialog-photo"
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={handlePhotoChosen}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInput.current?.click()}
+                >
+                  <ImagePlus aria-hidden="true" />
+                  {photo ? "Change photo" : "Upload photo"}
+                </Button>
+                {photo && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPhoto(null);
+                      setPhotoChanged(true);
+                      if (fileInput.current) fileInput.current.value = "";
+                    }}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
-                A link to an image. Leave blank to show their initials.
+                Without a photo, their initials are shown.
               </p>
             </div>
 

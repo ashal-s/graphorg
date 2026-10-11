@@ -10,6 +10,7 @@ import { ResourceStats } from "@/components/shared/resource-stats";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 import { loadPersonProfile } from "@/lib/directory/load-person-profile";
+import { personPhotoSrc } from "@/lib/person-photo";
 import { buildPersonResources } from "@/lib/directory/person-resources";
 import { getTerminology } from "@/lib/terminology-server";
 
@@ -45,6 +46,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
   // Assigning someone to teams, workflows and services is editor-level, as
   // it is from the team and workflow pages. Direct reports change another
   // person's manager, so that is admin-level like the rest of person edits.
+  const photoSrc = personPhotoSrc(person);
   const resources = buildPersonResources(
     profile,
     terminology,
@@ -66,7 +68,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
       <header className="flex flex-col gap-5 sm:flex-row sm:items-start">
         <PersonAvatar
           name={person.name}
-          photoUrl={person.photoUrl}
+          photoUrl={photoSrc}
           className="size-24"
           textClassName="text-3xl"
         />
@@ -141,7 +143,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
                   name: person.name,
                   email: person.email,
                   title: person.title,
-                  photoUrl: person.photoUrl,
+                  photoSrc,
                   teamIds: person.teamIds,
                   managerId: person.managerId,
                 }}

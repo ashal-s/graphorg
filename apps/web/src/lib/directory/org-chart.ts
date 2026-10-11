@@ -4,7 +4,8 @@ export interface OrgChartPerson {
   title: string | null;
   photoUrl?: string | null;
   managerId: string | null;
-  teamName: string | null;
+  /** Not shown on the chart; kept optional for callers that have it. */
+  teamName?: string | null;
 }
 
 export interface OrgChartNode extends OrgChartPerson {

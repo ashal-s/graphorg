@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { people } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
 import { buildOrgChart, countOrgChart } from "@/lib/directory/org-chart";
+import { personPhotoSrc } from "@/lib/person-photo";
 
 export default async function OrgChartPage() {
   const session = await requireSession();
@@ -19,13 +20,8 @@ export default async function OrgChartPage() {
       name: true,
       title: true,
       photoUrl: true,
+      updatedAt: true,
       managerId: true,
-    },
-    with: {
-      memberships: {
-        columns: {},
-        with: { team: { columns: { name: true } } },
-      },
     },
   });
 
@@ -34,13 +30,8 @@ export default async function OrgChartPage() {
       id: row.id,
       name: row.name,
       title: row.title,
-      photoUrl: row.photoUrl,
+      photoUrl: personPhotoSrc(row),
       managerId: row.managerId,
-      teamName:
-        row.memberships
-          .map((m) => m.team.name)
-          .sort((a, b) => a.localeCompare(b))
-          .join(", ") || null,
     })),
   );
   const total = countOrgChart(roots);

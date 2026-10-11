@@ -3,6 +3,11 @@ import userEvent from "@testing-library/user-event";
 
 import { PersonDialog } from "@/components/directory/person-dialog";
 
+const resizeMock = jest.fn();
+jest.mock("../../../src/lib/image-resize", () => ({
+  imageFileToSquareDataUrl: (...args: unknown[]) => resizeMock(...args),
+}));
+
 const refreshMock = jest.fn();
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: jest.fn(), refresh: refreshMock }),
@@ -82,7 +87,6 @@ describe("PersonDialog", () => {
       name: "Jordan Lee",
       email: "jordan@example.com",
       title: "Engineer",
-      photoUrl: "",
       teamIds: ["team-a", "team-b"],
       managerId: "person-1",
     });
@@ -192,7 +196,7 @@ describe("PersonDialog (edit)", () => {
     name: "Jordan Lee",
     email: "jordan@example.com",
     title: "Engineer",
-    photoUrl: null,
+    photoSrc: null,
     teamIds: ["team-a"],
     managerId: "person-1",
   };
@@ -219,9 +223,10 @@ describe("PersonDialog (edit)", () => {
 
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Staff Engineer");
-    await user.type(
+    resizeMock.mockResolvedValue("data:image/jpeg;base64,AAAA");
+    await user.upload(
       screen.getByLabelText("Profile photo"),
-      "https://example.com/j.png",
+      new File(["x"], "j.png", { type: "image/png" }),
     );
     await user.click(screen.getByRole("button", { name: "Save" }));
 
@@ -230,10 +235,67 @@ describe("PersonDialog (edit)", () => {
     expect(init.method).toBe("PATCH");
     expect(JSON.parse(init.body)).toMatchObject({
       title: "Staff Engineer",
-      photoUrl: "https://example.com/j.png",
+      photoUrl: "data:image/jpeg;base64,AAAA",
       teamIds: ["team-a"],
       managerId: "person-1",
     });
     expect(refreshMock).toHaveBeenCalled();
+  });
+});
+
+describe("PersonDialog photo", () => {
+  const person = {
+    id: "p-9",
+    name: "Jordan Lee",
+    email: "jordan@example.com",
+    title: null,
+    photoSrc: "/api/people/p-9/photo?v=1",
+    teamIds: [],
+    managerId: null,
+  };
+
+  beforeEach(() => {
+    resizeMock.mockReset();
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ person: { id: "p-9" } }),
+    });
+  });
+
+  const sentBody = () =>
+    JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+
+  it("doesn't re-send the stored photo when it wasn't changed", async () => {
+    const user = userEvent.setup();
+    render(<PersonDialog person={person} teams={teams} managers={managers} />);
+    await user.click(screen.getByRole("button", { name: /edit details/i }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(sentBody()).not.toHaveProperty("photoUrl");
+  });
+
+  it("removes the photo when Remove is pressed", async () => {
+    const user = userEvent.setup();
+    render(<PersonDialog person={person} teams={teams} managers={managers} />);
+    await user.click(screen.getByRole("button", { name: /edit details/i }));
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(sentBody().photoUrl).toBe("");
+  });
+
+  it("shows a message when the chosen file can't be used", async () => {
+    resizeMock.mockRejectedValue(new Error("Choose an image file."));
+    const user = userEvent.setup({ applyAccept: false });
+    render(<PersonDialog person={person} teams={teams} managers={managers} />);
+    await user.click(screen.getByRole("button", { name: /edit details/i }));
+    await user.upload(
+      screen.getByLabelText("Profile photo"),
+      new File(["x"], "notes.txt", { type: "text/plain" }),
+    );
+
+    expect(
+      await screen.findByText("Choose an image file."),
+    ).toBeInTheDocument();
   });
 });
