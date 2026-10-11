@@ -136,24 +136,14 @@ export function TeamMembers({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <CardTitle>People</CardTitle>
-            <CardDescription>
-              {members.length === 0
-                ? "Nobody is on this team yet."
-                : `${members.length} ${members.length === 1 ? "person" : "people"} on this team.`}
-            </CardDescription>
-          </div>
-          {!readOnly && (
-            <Button type="button" size="sm" onClick={openDialog}>
-              <UserPlus aria-hidden="true" />
-              Add people
-            </Button>
-          )}
-        </div>
+        <CardTitle>People</CardTitle>
+        <CardDescription>
+          {members.length === 0
+            ? "Nobody is on this team yet."
+            : `${members.length} ${members.length === 1 ? "person" : "people"} on this team.`}
+        </CardDescription>
       </CardHeader>
-      {(members.length > 0 || error) && (
+      {(members.length > 0 || error || !readOnly) && (
         <CardContent className="flex flex-col gap-2">
           {error && (
             <p role="alert" className="text-sm text-destructive">
