@@ -1,24 +1,31 @@
-import { Settings } from "lucide-react";
+import { eq } from "drizzle-orm";
+import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/shared/page-header";
-import { EmptyState } from "@/components/states/empty-state";
+import { OrganizationForm } from "@/components/settings/organization-form";
+import { getDb } from "@/db";
+import { organizations } from "@/db/schema";
+import { hasRole } from "@/lib/auth/roles";
+import { requireSession } from "@/lib/auth/session";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const session = await requireSession();
+
+  const organization = await getDb().query.organizations.findFirst({
+    where: eq(organizations.id, session.organizationId),
+    columns: { name: true, slug: true, description: true, logoUrl: true },
+  });
+  if (!organization) notFound();
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-2xl flex-col gap-6">
       <PageHeader
         title="Settings"
-        description="Workspace, member and integration settings."
+        description="Workspace profile and settings."
       />
-      <EmptyState
-        icon={
-          <Settings
-            className="h-8 w-8 text-muted-foreground"
-            aria-hidden="true"
-          />
-        }
-        title="Nothing to configure yet"
-        description="Workspace settings arrive alongside authentication and tenancy (WEB-133)."
+      <OrganizationForm
+        organization={organization}
+        readOnly={!hasRole(session.role, "admin")}
       />
     </div>
   );
