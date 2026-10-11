@@ -24,6 +24,8 @@ export interface ProfileWorkflow extends ProfileRecord {
 
 export interface ProfileService extends ProfileRecord {
   description: string | null;
+  /** Assigned to this person directly, as opposed to only via a team. */
+  direct: boolean;
 }
 
 export interface ProfileTool extends ProfileRecord {
@@ -65,6 +67,7 @@ export interface AssemblePersonProfileInput {
     id: string;
     name: string;
     description: string | null;
+    direct?: boolean;
     tools: Array<{ tool: ProfileTool | null }>;
   }>;
   documents: ProfileDocument[];
@@ -123,6 +126,7 @@ export function assemblePersonProfile(
         id: service.id,
         name: service.name,
         description: service.description,
+        direct: service.direct ?? false,
       };
     })
     .sort(byName);

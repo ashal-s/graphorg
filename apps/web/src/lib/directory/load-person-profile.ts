@@ -1,17 +1,24 @@
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, inArray, ne, or } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import {
   documents,
   people,
+  servicePeople,
   services,
   teams,
   workflowPeople,
+  workflows,
 } from "@/db/schema";
 
 import { assemblePersonProfile } from "./person-profile";
 
-export async function loadPersonProfile(orgId: string, personId: string) {
+export async function loadPersonProfile(
+  orgId: string,
+  personId: string,
+  /** Also load the workflows and services someone could be assigned to. */
+  options: { withAssignOptions?: boolean } = {},
+) {
   const db = getDb();
   const person = await db.query.people.findFirst({
     where: and(eq(people.id, personId), eq(people.organizationId, orgId)),
@@ -37,6 +44,9 @@ export async function loadPersonProfile(orgId: string, personId: string) {
     workflowLinks,
     teamServices,
     teamDocuments,
+    directServiceRows,
+    workflowOptions,
+    serviceOptions,
   ] = await Promise.all([
     db.query.teams.findMany({
       where: eq(teams.organizationId, orgId),
@@ -71,22 +81,32 @@ export async function loadPersonProfile(orgId: string, personId: string) {
         },
       },
     }),
-    teamIds.length > 0
-      ? db.query.services.findMany({
-          where: and(
-            inArray(services.ownerTeamId, teamIds),
-            eq(services.organizationId, orgId),
+    // Services the person's teams own, plus any assigned to them directly.
+    db.query.services.findMany({
+      where: and(
+        eq(services.organizationId, orgId),
+        or(
+          teamIds.length > 0
+            ? inArray(services.ownerTeamId, teamIds)
+            : undefined,
+          inArray(
+            services.id,
+            db
+              .select({ id: servicePeople.serviceId })
+              .from(servicePeople)
+              .where(eq(servicePeople.personId, personId)),
           ),
+        ),
+      ),
+      with: {
+        tools: {
           with: {
-            tools: {
-              with: {
-                tool: { columns: { id: true, name: true, category: true } },
-              },
-            },
+            tool: { columns: { id: true, name: true, category: true } },
           },
-          orderBy: (row, { asc }) => asc(row.name),
-        })
-      : Promise.resolve([]),
+        },
+      },
+      orderBy: (row, { asc }) => asc(row.name),
+    }),
     teamIds.length > 0
       ? db.query.documents.findMany({
           where: and(
@@ -97,7 +117,27 @@ export async function loadPersonProfile(orgId: string, personId: string) {
           orderBy: (row, { asc }) => asc(row.title),
         })
       : Promise.resolve([]),
+    db.query.servicePeople.findMany({
+      where: eq(servicePeople.personId, personId),
+      columns: { serviceId: true },
+    }),
+    options.withAssignOptions
+      ? db.query.workflows.findMany({
+          where: eq(workflows.organizationId, orgId),
+          columns: { id: true, name: true },
+          orderBy: (row, { asc }) => asc(row.name),
+        })
+      : Promise.resolve([]),
+    options.withAssignOptions
+      ? db.query.services.findMany({
+          where: eq(services.organizationId, orgId),
+          columns: { id: true, name: true },
+          orderBy: (row, { asc }) => asc(row.name),
+        })
+      : Promise.resolve([]),
   ]);
+
+  const directServiceIds = new Set(directServiceRows.map((r) => r.serviceId));
 
   const { memberships: _memberships, ...personFields } = person;
   void _memberships;
@@ -106,13 +146,18 @@ export async function loadPersonProfile(orgId: string, personId: string) {
     person: { ...personFields, teamIds },
     teamOptions,
     managerOptions,
+    workflowOptions,
+    serviceOptions,
     profile: assemblePersonProfile({
       teams: personTeams,
       manager: person.manager ?? null,
       directReports,
       workflowLinks,
       organizationId: orgId,
-      services: teamServices,
+      services: teamServices.map((service) => ({
+        ...service,
+        direct: directServiceIds.has(service.id),
+      })),
       documents: teamDocuments,
     }),
   };

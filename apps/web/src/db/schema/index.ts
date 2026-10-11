@@ -6,6 +6,7 @@ export * from "./team-members";
 export * from "./tools";
 export * from "./services";
 export * from "./service-tools";
+export * from "./service-people";
 export * from "./service-dependencies";
 export * from "./documents";
 export * from "./workflows";

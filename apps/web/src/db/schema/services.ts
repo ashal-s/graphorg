@@ -11,6 +11,7 @@ import {
 import { id, organizationId, timestamps } from "./_columns";
 import { organizations } from "./organizations";
 import { serviceDependencies } from "./service-dependencies";
+import { servicePeople } from "./service-people";
 import { serviceTools } from "./service-tools";
 import { teams } from "./teams";
 
@@ -57,6 +58,8 @@ export const servicesRelations = relations(services, ({ one, many }) => ({
     references: [teams.id],
   }),
   tools: many(serviceTools),
+  /** People assigned directly, in addition to the owner team. */
+  assignees: many(servicePeople),
   dependencies: many(serviceDependencies, { relationName: "service" }),
   dependents: many(serviceDependencies, { relationName: "dependsOnService" }),
 }));

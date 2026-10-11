@@ -27,13 +27,39 @@ export default async function PersonDetailPage({ params }: PageProps) {
   if (!z.string().uuid().safeParse(id).success) notFound();
 
   const [loaded, terminology] = await Promise.all([
-    loadPersonProfile(session.organizationId, id),
+    loadPersonProfile(session.organizationId, id, {
+      withAssignOptions: canDelete,
+    }),
     getTerminology(session.organizationId),
   ]);
   if (!loaded) notFound();
 
-  const { person, teamOptions, managerOptions, profile } = loaded;
-  const resources = buildPersonResources(profile, terminology);
+  const {
+    person,
+    teamOptions,
+    managerOptions,
+    workflowOptions,
+    serviceOptions,
+    profile,
+  } = loaded;
+  // Assigning someone to teams, workflows and services is editor-level, as
+  // it is from the team and workflow pages. Direct reports change another
+  // person's manager, so that is admin-level like the rest of person edits.
+  const resources = buildPersonResources(
+    profile,
+    terminology,
+    hasRole(session.role, "editor")
+      ? {
+          personId: person.id,
+          canAssign: true,
+          canAssignReports: canEdit,
+          teams: teamOptions,
+          workflows: workflowOptions,
+          services: serviceOptions,
+          people: managerOptions,
+        }
+      : undefined,
+  );
 
   return (
     <div className="flex flex-col gap-8">
