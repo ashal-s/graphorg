@@ -136,3 +136,76 @@ describe("Add member", () => {
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
   });
 });
+
+describe("Remove button", () => {
+  const roster = [
+    {
+      id: "u-owner",
+      name: "Olive Owner",
+      email: "olive@x.io",
+      role: "owner" as const,
+    },
+    {
+      id: "u-admin",
+      name: "Adam Admin",
+      email: "adam@x.io",
+      role: "admin" as const,
+    },
+    {
+      id: "u-admin2",
+      name: "Alex Admin",
+      email: "alex@x.io",
+      role: "admin" as const,
+    },
+    {
+      id: "u-view",
+      name: "Vic Viewer",
+      email: "vic@x.io",
+      role: "viewer" as const,
+    },
+  ];
+
+  const renderAs = (actorRole: "owner" | "admin", currentUserId: string) =>
+    render(
+      <UserManagement
+        members={roster}
+        currentUserId={currentUserId}
+        actorRole={actorRole}
+      />,
+    );
+
+  it("is always shown, but disabled for yourself", () => {
+    renderAs("owner", "u-owner");
+    expect(
+      screen.getByRole("button", { name: "Remove Olive Owner" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Remove Vic Viewer" }),
+    ).toBeEnabled();
+  });
+
+  it("is disabled for anyone at or above an admin's role", () => {
+    renderAs("admin", "u-admin");
+    expect(
+      screen.getByRole("button", { name: "Remove Olive Owner" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Remove Alex Admin" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Remove Adam Admin" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Remove Vic Viewer" }),
+    ).toBeEnabled();
+  });
+
+  it("lets an owner remove anyone but themselves", () => {
+    renderAs("owner", "u-owner");
+    for (const name of ["Adam Admin", "Alex Admin", "Vic Viewer"]) {
+      expect(
+        screen.getByRole("button", { name: `Remove ${name}` }),
+      ).toBeEnabled();
+    }
+  });
+});

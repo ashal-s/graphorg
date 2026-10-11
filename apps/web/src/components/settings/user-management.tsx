@@ -523,7 +523,9 @@ export function UserManagement({
           return (
             <div
               key={member.id}
-              className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 pr-2"
+              // Name and email take the space; the role and the actions each get
+              // a fixed column, left-aligned, so they line up down the list.
+              className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 pr-2 md:grid md:grid-cols-[minmax(0,1fr)_6rem_6.5rem]"
             >
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-2 truncate text-sm font-medium">
@@ -535,9 +537,11 @@ export function UserManagement({
                 </p>
               </div>
 
-              <Badge variant="outline">{ROLE_LABELS[member.role]}</Badge>
+              <div className="flex justify-start">
+                <Badge variant="outline">{ROLE_LABELS[member.role]}</Badge>
+              </div>
 
-              <div className="flex gap-1">
+              <div className="flex justify-start gap-1">
                 {canEdit && (
                   <Tooltip>
                     <TooltipTrigger
@@ -586,7 +590,9 @@ export function UserManagement({
                     <TooltipContent>Reset password</TooltipContent>
                   </Tooltip>
                 )}
-                {manageable && !isSelf && (
+                {/* Always shown; disabled for yourself and for anyone at or
+                    above your own role, with the reason on hover. */}
+                {manageable && !isSelf ? (
                   <Tooltip>
                     <TooltipTrigger
                       render={
@@ -604,6 +610,30 @@ export function UserManagement({
                       <Trash2 aria-hidden="true" />
                     </TooltipTrigger>
                     <TooltipContent>Delete</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Tooltip>
+                    {/* A disabled button gets no hover events, so the
+                        tooltip hangs off a wrapper around it. */}
+                    <TooltipTrigger
+                      render={<span tabIndex={0} className="inline-flex" />}
+                    >
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-destructive"
+                        aria-label={`Remove ${member.name}`}
+                        disabled
+                      >
+                        <Trash2 aria-hidden="true" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {isSelf
+                        ? "You can't remove yourself"
+                        : "You can't remove someone at or above your role"}
+                    </TooltipContent>
                   </Tooltip>
                 )}
               </div>
