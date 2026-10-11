@@ -106,10 +106,14 @@ export function TeamForm({
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>Team details</CardTitle>
-          <CardDescription>Who this team is and what it does.</CardDescription>
-        </CardHeader>
+        {!onCancel && (
+          <CardHeader>
+            <CardTitle>Team details</CardTitle>
+            <CardDescription>
+              Who this team is and what it does.
+            </CardDescription>
+          </CardHeader>
+        )}
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="team-name">Name</Label>

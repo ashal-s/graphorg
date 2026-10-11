@@ -6,7 +6,6 @@ import { TeamDetails } from "@/components/directory/team-details";
 import { TeamMembers } from "@/components/directory/team-members";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { EntityChipList, EntityRow } from "@/components/shared/entity-row";
-import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -176,10 +175,9 @@ export default async function TeamDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title={team.name}
-        description="Everything this team owns and who is on it."
-        align="start"
+      <TeamDetails
+        team={team}
+        readOnly={readOnly}
         actions={
           !readOnly && (
             <DeleteEntityButton
@@ -191,8 +189,6 @@ export default async function TeamDetailPage({ params }: PageProps) {
           )
         }
       />
-
-      <TeamDetails team={team} readOnly={readOnly} />
 
       <TeamMembers
         teamId={team.id}
