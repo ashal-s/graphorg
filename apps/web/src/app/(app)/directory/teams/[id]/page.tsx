@@ -4,16 +4,11 @@ import { z } from "zod";
 
 import { TeamDetails } from "@/components/directory/team-details";
 import { TeamMembers } from "@/components/directory/team-members";
-import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
-import { EntityChipList, EntityRow } from "@/components/shared/entity-row";
-import { Badge } from "@/components/ui/badge";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  TeamResources,
+  type TeamResource,
+} from "@/components/directory/team-resources";
+import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { getDb } from "@/db";
 import {
   documents,
@@ -30,12 +25,6 @@ import { requireSession } from "@/lib/auth/session";
 interface PageProps {
   params: Promise<{ id: string }>;
 }
-
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
-  draft: "outline",
-  active: "default",
-  archived: "secondary",
-};
 
 export default async function TeamDetailPage({ params }: PageProps) {
   const session = await requireSession();
@@ -173,6 +162,87 @@ export default async function TeamDetailPage({ params }: PageProps) {
     .map(([techId, name]) => ({ id: techId, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  const canCreate = !readOnly;
+  const resources: TeamResource[] = [
+    {
+      key: "systems",
+      label: "Systems",
+      singular: "system",
+      emptyText: "This team doesn't own any systems.",
+      addHref: canCreate ? `/catalog/systems/new?teamId=${team.id}` : undefined,
+      items: teamSystems.map((system) => ({
+        id: system.id,
+        name: system.name,
+        href: `/catalog/systems/${system.id}`,
+        editHref: canCreate ? `/catalog/systems/${system.id}` : undefined,
+      })),
+    },
+    {
+      key: "services",
+      label: "Services",
+      singular: "service",
+      emptyText: "This team doesn't own any services.",
+      addHref: canCreate
+        ? `/catalog/services/new?teamId=${team.id}`
+        : undefined,
+      items: teamServices.map((service) => ({
+        id: service.id,
+        name: service.name,
+        href: `/catalog/services/${service.id}`,
+        editHref: canCreate ? `/catalog/services/${service.id}` : undefined,
+        badges: service.technologies.map((link) => link.technology.name),
+      })),
+    },
+    {
+      key: "workflows",
+      label: "Workflows",
+      singular: "workflow",
+      emptyText: "Nobody on this team is involved in a workflow.",
+      addHref: canCreate ? "/workflows/new" : undefined,
+      items: teamWorkflows.map((workflow) => ({
+        id: workflow.id,
+        name: workflow.name,
+        href: `/workflows/${workflow.id}`,
+        editHref: canCreate ? `/workflows/${workflow.id}` : undefined,
+        badges: [workflow.status],
+      })),
+    },
+    {
+      key: "technologies",
+      label: "Technologies",
+      singular: "technology",
+      emptyText: "This team's services don't use any technologies yet.",
+      items: teamTechnologies.map((technology) => ({
+        id: technology.id,
+        name: technology.name,
+        href: `/catalog/technologies/${technology.id}`,
+      })),
+    },
+    {
+      key: "documents",
+      label: "Documents",
+      singular: "document",
+      emptyText: "This team doesn't own any documents.",
+      items: teamDocuments.map((document) => ({
+        id: document.id,
+        name: document.title,
+        href: `/catalog/documents/${document.id}`,
+        badges: [document.type],
+      })),
+    },
+    {
+      key: "repositories",
+      label: "Repositories",
+      singular: "repository",
+      emptyText: "This team doesn't own any repositories.",
+      items: teamRepositories.map((repository) => ({
+        id: repository.id,
+        name: repository.name,
+        href: `/catalog/repositories/${repository.id}`,
+      })),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <TeamDetails
@@ -202,168 +272,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
         readOnly={readOnly}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Systems</CardTitle>
-          <CardDescription>
-            {teamSystems.length === 0
-              ? "This team doesn't own any systems."
-              : `${teamSystems.length} system${teamSystems.length === 1 ? "" : "s"} owned by this team.`}
-          </CardDescription>
-        </CardHeader>
-        {teamSystems.length > 0 && (
-          <CardContent>
-            <EntityChipList
-              items={teamSystems.map((system) => ({
-                key: system.id,
-                href: `/catalog/systems/${system.id}`,
-                label: system.name,
-              }))}
-            />
-          </CardContent>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Services</CardTitle>
-          <CardDescription>
-            {teamServices.length === 0
-              ? "This team doesn't own any services."
-              : `${teamServices.length} service${teamServices.length === 1 ? "" : "s"} owned by this team.`}
-          </CardDescription>
-        </CardHeader>
-        {teamServices.length > 0 && (
-          <CardContent>
-            <EntityChipList
-              items={teamServices.map((service) => ({
-                key: service.id,
-                href: `/catalog/services/${service.id}`,
-                label: (
-                  <>
-                    <span className="font-medium">{service.name}</span>
-                    {service.technologies.map((link) => (
-                      <Badge key={link.technology.id} variant="outline">
-                        {link.technology.name}
-                      </Badge>
-                    ))}
-                  </>
-                ),
-              }))}
-            />
-          </CardContent>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Workflows</CardTitle>
-          <CardDescription>
-            {teamWorkflows.length === 0
-              ? "Nobody on this team is involved in a workflow."
-              : `${teamWorkflows.length} workflow${teamWorkflows.length === 1 ? "" : "s"} this team is involved in.`}
-          </CardDescription>
-        </CardHeader>
-        {teamWorkflows.length > 0 && (
-          <CardContent className="flex flex-col gap-2">
-            {teamWorkflows.map((workflow) => (
-              <EntityRow
-                key={workflow.id}
-                href={`/workflows/${workflow.id}`}
-                title={workflow.name}
-                titleBadge={
-                  <Badge variant={STATUS_VARIANT[workflow.status] ?? "outline"}>
-                    {workflow.status}
-                  </Badge>
-                }
-                footer={
-                  <div className="flex flex-wrap gap-1.5">
-                    {workflow.members.map((member) => (
-                      <Badge
-                        key={`${member.personId}-${member.role}`}
-                        variant="outline"
-                      >
-                        {member.name} · {member.role}
-                      </Badge>
-                    ))}
-                  </div>
-                }
-              />
-            ))}
-          </CardContent>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Technologies</CardTitle>
-          <CardDescription>
-            {teamTechnologies.length === 0
-              ? "This team's services don't use any technologies yet."
-              : `${teamTechnologies.length} technolog${teamTechnologies.length === 1 ? "y" : "ies"} used across this team's services.`}
-          </CardDescription>
-        </CardHeader>
-        {teamTechnologies.length > 0 && (
-          <CardContent className="flex flex-wrap gap-2">
-            {teamTechnologies.map((technology) => (
-              <Badge key={technology.id} variant="secondary">
-                {technology.name}
-              </Badge>
-            ))}
-          </CardContent>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Documents</CardTitle>
-          <CardDescription>
-            {teamDocuments.length === 0
-              ? "This team doesn't own any documents."
-              : `${teamDocuments.length} document${teamDocuments.length === 1 ? "" : "s"} owned by this team.`}
-          </CardDescription>
-        </CardHeader>
-        {teamDocuments.length > 0 && (
-          <CardContent>
-            <EntityChipList
-              items={teamDocuments.map((document) => ({
-                key: document.id,
-                href: document.url ?? undefined,
-                external: true,
-                label: (
-                  <>
-                    <span className="font-medium">{document.title}</span>
-                    <Badge variant="outline">{document.type}</Badge>
-                  </>
-                ),
-              }))}
-            />
-          </CardContent>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Repositories</CardTitle>
-          <CardDescription>
-            {teamRepositories.length === 0
-              ? "This team doesn't own any repositories."
-              : `${teamRepositories.length} repositor${teamRepositories.length === 1 ? "y" : "ies"} owned by this team.`}
-          </CardDescription>
-        </CardHeader>
-        {teamRepositories.length > 0 && (
-          <CardContent>
-            <EntityChipList
-              items={teamRepositories.map((repository) => ({
-                key: repository.id,
-                href: repository.url ?? undefined,
-                external: true,
-                label: repository.name,
-              }))}
-            />
-          </CardContent>
-        )}
-      </Card>
+      <TeamResources resources={resources} />
     </div>
   );
 }

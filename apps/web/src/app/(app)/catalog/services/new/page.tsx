@@ -12,7 +12,12 @@ import {
 } from "@/db/schema";
 import { requireRole } from "@/lib/auth/session";
 
-export default async function NewServicePage() {
+interface PageProps {
+  searchParams: Promise<{ teamId?: string }>;
+}
+
+export default async function NewServicePage({ searchParams }: PageProps) {
+  const { teamId } = await searchParams;
   // Creating a service is a write, and POST /api/services requires the
   // editor role: block viewers from this page entirely rather than let them
   // fill in a form that would only 403 on submit.
@@ -66,6 +71,9 @@ export default async function NewServicePage() {
         teams={teamOptions}
         technologies={technologyOptions}
         services={serviceOptions}
+        defaultOwnerTeamId={
+          teamOptions.some((team) => team.id === teamId) ? teamId : undefined
+        }
       />
     </div>
   );

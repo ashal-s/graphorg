@@ -30,16 +30,21 @@ export function SystemForm({
   system,
   teams,
   readOnly = false,
+  defaultOwnerTeamId,
 }: {
   mode: "create" | "edit";
   system?: SystemDetail;
   teams: { id: string; name: string }[];
   readOnly?: boolean;
+  /** Pre-selects the owner team on the create form (e.g. when arriving from a team page). */
+  defaultOwnerTeamId?: string;
 }) {
   const router = useRouter();
   const [name, setName] = useState(system?.name ?? "");
   const [description, setDescription] = useState(system?.description ?? "");
-  const [ownerTeamId, setOwnerTeamId] = useState(system?.ownerTeamId ?? "");
+  const [ownerTeamId, setOwnerTeamId] = useState(
+    system?.ownerTeamId ?? defaultOwnerTeamId ?? "",
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
