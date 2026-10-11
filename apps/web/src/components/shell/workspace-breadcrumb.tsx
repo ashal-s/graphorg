@@ -2,6 +2,7 @@
 
 import { Check, ChevronDown } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { GraphOrgMark } from "@/components/shell/graphorg-mark";
 import { OrganizationLogo } from "@/components/shared/organization-logo";
@@ -29,6 +30,7 @@ export function WorkspaceBreadcrumb({
   current: Workspace;
   others: Workspace[];
 }) {
+  const router = useRouter();
   return (
     <nav
       aria-label="Workspace"
@@ -66,7 +68,7 @@ export function WorkspaceBreadcrumb({
               Workspaces
             </DropdownMenuLabel>
           </DropdownMenuGroup>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/")}>
             <OrganizationLogo
               name={current.name}
               logoUrl={current.logoUrl}
@@ -91,11 +93,6 @@ export function WorkspaceBreadcrumb({
               <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
             </DropdownMenuItem>
           ))}
-          {others.length === 0 && (
-            <p className="px-1.5 py-1.5 text-xs text-muted-foreground">
-              You&apos;re only in this workspace.
-            </p>
-          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </nav>

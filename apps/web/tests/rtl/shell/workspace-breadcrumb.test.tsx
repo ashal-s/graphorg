@@ -3,6 +3,11 @@ import userEvent from "@testing-library/user-event";
 
 import { WorkspaceBreadcrumb } from "@/components/shell/workspace-breadcrumb";
 
+const pushMock = jest.fn();
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({ push: pushMock }),
+}));
+
 const switchWorkspaceMock = jest.fn();
 jest.mock("../../../src/lib/auth/actions", () => ({
   switchWorkspace: (slug: string) => switchWorkspaceMock(slug),
@@ -15,7 +20,10 @@ const others = [
 ];
 
 describe("WorkspaceBreadcrumb", () => {
-  beforeEach(() => switchWorkspaceMock.mockReset());
+  beforeEach(() => {
+    switchWorkspaceMock.mockReset();
+    pushMock.mockReset();
+  });
 
   it("reads as GraphOrg / workspace name, with the workspace's initials as its logo", () => {
     render(<WorkspaceBreadcrumb current={current} others={[]} />);
@@ -67,13 +75,29 @@ describe("WorkspaceBreadcrumb", () => {
     expect(switchWorkspaceMock).toHaveBeenCalledWith("globex");
   });
 
-  it("says so when there is no other workspace", async () => {
+  it("lists just the current workspace, with no extra message, when there is no other", async () => {
     const user = userEvent.setup();
     render(<WorkspaceBreadcrumb current={current} others={[]} />);
     await user.click(screen.getByRole("button", { name: /switch workspace/i }));
 
     expect(
-      await screen.findByText(/only in this workspace/i),
+      await screen.findByRole("menuitem", { name: /Acme Corp/ }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/only in this workspace/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole("menuitem")).toHaveLength(1);
+  });
+
+  it("opens the overview when the current workspace is chosen", async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceBreadcrumb current={current} others={others} />);
+    await user.click(screen.getByRole("button", { name: /switch workspace/i }));
+    await user.click(
+      await screen.findByRole("menuitem", { name: /Acme Corp/ }),
+    );
+
+    expect(pushMock).toHaveBeenCalledWith("/");
+    expect(switchWorkspaceMock).not.toHaveBeenCalled();
   });
 });
