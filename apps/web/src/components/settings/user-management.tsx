@@ -96,6 +96,7 @@ export function UserManagement({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editRole, setEditRole] = useState<Role>("viewer");
 
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [resetTarget, setResetTarget] = useState<Member | null>(null);
@@ -171,6 +172,7 @@ export function UserManagement({
     if (editEmail.trim().toLowerCase() !== member.email) {
       payload.email = editEmail;
     }
+    if (editRole !== member.role) payload.role = editRole;
     if (Object.keys(payload).length === 0) {
       setEditingId(null);
       return;
@@ -391,6 +393,18 @@ export function UserManagement({
                       required
                     />
                   </div>
+                  {manageable && !isSelf && (
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor={`edit-role-${member.id}`}>Role</Label>
+                      <NativeSelect
+                        id={`edit-role-${member.id}`}
+                        value={editRole}
+                        onChange={(e) => setEditRole(e.target.value as Role)}
+                      >
+                        <RoleOptions roles={roleChoices} />
+                      </NativeSelect>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" size="sm" disabled={busy}>
@@ -424,22 +438,7 @@ export function UserManagement({
                 </p>
               </div>
 
-              {manageable && !isSelf ? (
-                <div className="w-32">
-                  <NativeSelect
-                    aria-label={`Role for ${member.name}`}
-                    value={member.role}
-                    disabled={busy}
-                    onChange={(e) =>
-                      patchMember(member.id, { role: e.target.value })
-                    }
-                  >
-                    <RoleOptions roles={roleChoices} />
-                  </NativeSelect>
-                </div>
-              ) : (
-                <Badge variant="outline">{ROLE_LABELS[member.role]}</Badge>
-              )}
+              <Badge variant="outline">{ROLE_LABELS[member.role]}</Badge>
 
               <div className="flex gap-1">
                 {canEdit && (
@@ -457,6 +456,7 @@ export function UserManagement({
                             setEditingId(member.id);
                             setEditName(member.name);
                             setEditEmail(member.email);
+                            setEditRole(member.role);
                           }}
                         />
                       }
