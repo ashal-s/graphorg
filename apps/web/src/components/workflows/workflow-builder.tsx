@@ -33,7 +33,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect } from "@/components/ui/native-select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   PeoplePicker,
@@ -48,6 +54,15 @@ import {
   type WorkflowStepDraft,
 } from "@/components/workflows/step-list-editor";
 import { cn } from "@/lib/utils";
+
+const builderSelectTriggerClass =
+  "w-full border-[#2c333a] bg-[#22272b] text-[#f4f5f7] hover:bg-[#2c333a] focus-visible:border-[#579dff] focus-visible:ring-[#579dff]/30 data-placeholder:text-[#738496] dark:bg-[#22272b] dark:hover:bg-[#2c333a]";
+
+const builderSelectContentClass =
+  "border border-[#2c333a] bg-[#22272b] text-[#f4f5f7] shadow-xl ring-[#2c333a]";
+
+const builderSelectItemClass =
+  "focus:bg-[#2c333a] focus:text-[#f4f5f7]";
 
 type TriggerType = "manual" | "entity_created" | "entity_updated" | "scheduled";
 type WorkflowStatus = "draft" | "active" | "archived";
@@ -131,6 +146,42 @@ const ENTITY_TYPES = [
   { value: "person", label: "Person" },
   { value: "document", label: "Document" },
 ];
+
+const STATUS_OPTIONS: { value: WorkflowStatus; label: string }[] = [
+  { value: "draft", label: "Draft" },
+  { value: "active", label: "Active" },
+  { value: "archived", label: "Archived" },
+];
+
+const TYPE_LABELS: Record<"condition" | "action", Record<string, string>> = {
+  condition: {
+    field_equals: "Field equals",
+    field_not_equals: "Field does not equal",
+    status_is: "Status is",
+    entity_type_is: "Entity type is",
+  },
+  action: {
+    notify: "Notify",
+    assign_owner: "Assign owner",
+    create_task: "Create task",
+    update_field: "Update field",
+  },
+};
+
+function stepTypeOptions(
+  kind: "condition" | "action",
+  currentType: string,
+): { value: string; label: string }[] {
+  const suggestions = TYPE_SUGGESTIONS[kind].map((value) => ({
+    value,
+    label: TYPE_LABELS[kind][value] ?? value,
+  }));
+  const trimmed = currentType.trim();
+  if (trimmed.length > 0 && !suggestions.some((option) => option.value === trimmed)) {
+    return [{ value: trimmed, label: trimmed }, ...suggestions];
+  }
+  return suggestions;
+}
 
 const STEP_KIND_OPTIONS: {
   kind: "condition" | "action";
@@ -675,7 +726,7 @@ export function WorkflowBuilder({
                   }
                   title={
                     step.type.trim().length > 0
-                      ? step.type
+                      ? (TYPE_LABELS[step.kind][step.type] ?? step.type)
                       : step.kind === "condition"
                         ? "Add a condition"
                         : "Add an action"
@@ -799,50 +850,68 @@ export function WorkflowBuilder({
             {selection.kind === "trigger" && triggerChosen && (
               <div className="flex flex-col gap-4 p-4">
                 <div className="flex flex-col gap-1.5">
-                  <Label
-                    htmlFor="workflow-trigger"
-                    className="text-[#c7d1db]"
-                  >
-                    Trigger
-                  </Label>
-                  <NativeSelect
-                    id="workflow-trigger"
+                  <Label className="text-[#c7d1db]">Trigger</Label>
+                  <Select
                     value={triggerType}
-                    onChange={(event) =>
-                      setTriggerType(event.target.value as TriggerType)
-                    }
+                    onValueChange={(value) => {
+                      if (value) setTriggerType(value as TriggerType);
+                    }}
                     disabled={readOnly}
-                    className="border-[#2c333a] bg-[#22272b] text-[#f4f5f7]"
+                    items={Object.entries(TRIGGER_LABELS).map(
+                      ([value, label]) => ({ value, label }),
+                    )}
                   >
-                    {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </NativeSelect>
+                    <SelectTrigger
+                      id="workflow-trigger"
+                      className={builderSelectTriggerClass}
+                      aria-label="Trigger"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className={builderSelectContentClass}>
+                      {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
+                        <SelectItem
+                          key={value}
+                          value={value}
+                          className={builderSelectItemClass}
+                        >
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 {(triggerType === "entity_created" ||
                   triggerType === "entity_updated") && (
                   <div className="flex flex-col gap-1.5">
-                    <Label
-                      htmlFor="workflow-entity-type"
-                      className="text-[#c7d1db]"
-                    >
-                      Entity type
-                    </Label>
-                    <NativeSelect
-                      id="workflow-entity-type"
+                    <Label className="text-[#c7d1db]">Entity type</Label>
+                    <Select
                       value={entityType}
-                      onChange={(event) => setEntityType(event.target.value)}
+                      onValueChange={(value) => {
+                        if (value) setEntityType(value);
+                      }}
                       disabled={readOnly}
-                      className="border-[#2c333a] bg-[#22272b] text-[#f4f5f7]"
+                      items={ENTITY_TYPES}
                     >
-                      {ENTITY_TYPES.map((entity) => (
-                        <option key={entity.value} value={entity.value}>
-                          {entity.label}
-                        </option>
-                      ))}
-                    </NativeSelect>
+                      <SelectTrigger
+                        id="workflow-entity-type"
+                        className={builderSelectTriggerClass}
+                        aria-label="Entity type"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className={builderSelectContentClass}>
+                        {ENTITY_TYPES.map((entity) => (
+                          <SelectItem
+                            key={entity.value}
+                            value={entity.value}
+                            className={builderSelectItemClass}
+                          >
+                            {entity.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
                 {triggerType === "scheduled" && (
@@ -969,24 +1038,52 @@ export function WorkflowBuilder({
                 )}
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-[#c7d1db]">Type</Label>
-                  <Input
-                    list={`${selectedStep.kind}-type-suggestions`}
-                    placeholder={
-                      selectedStep.kind === "condition"
-                        ? "e.g. field_equals"
-                        : "e.g. notify"
+                  <Select
+                    value={
+                      selectedStep.type.trim().length > 0
+                        ? selectedStep.type
+                        : null
                     }
-                    value={selectedStep.type}
-                    onChange={(event) =>
-                      setSteps(
-                        updateStep(steps, selection.index, {
-                          type: event.target.value,
-                        }),
-                      )
-                    }
+                    onValueChange={(value) => {
+                      if (value) {
+                        setSteps(
+                          updateStep(steps, selection.index, { type: value }),
+                        );
+                      }
+                    }}
                     disabled={readOnly}
-                    className="border-[#2c333a] bg-[#22272b] text-[#f4f5f7] placeholder:text-[#738496]"
-                  />
+                    items={stepTypeOptions(
+                      selectedStep.kind,
+                      selectedStep.type,
+                    )}
+                  >
+                    <SelectTrigger
+                      className={builderSelectTriggerClass}
+                      aria-label={`${selectedStep.kind} type`}
+                    >
+                      <SelectValue
+                        placeholder={
+                          selectedStep.kind === "condition"
+                            ? "Choose a condition"
+                            : "Choose an action"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent className={builderSelectContentClass}>
+                      {stepTypeOptions(
+                        selectedStep.kind,
+                        selectedStep.type,
+                      ).map((option) => (
+                        <SelectItem
+                          key={option.value}
+                          value={option.value}
+                          className={builderSelectItemClass}
+                        >
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-[#c7d1db]">Config (JSON)</Label>
@@ -1004,16 +1101,6 @@ export function WorkflowBuilder({
                     className="min-h-28 border-[#2c333a] bg-[#22272b] font-mono text-xs text-[#f4f5f7] placeholder:text-[#738496]"
                   />
                 </div>
-                <datalist id="condition-type-suggestions">
-                  {TYPE_SUGGESTIONS.condition.map((suggestion) => (
-                    <option key={suggestion} value={suggestion} />
-                  ))}
-                </datalist>
-                <datalist id="action-type-suggestions">
-                  {TYPE_SUGGESTIONS.action.map((suggestion) => (
-                    <option key={suggestion} value={suggestion} />
-                  ))}
-                </datalist>
               </div>
             )}
 
@@ -1066,22 +1153,34 @@ export function WorkflowBuilder({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="workflow-status" className="text-[#c7d1db]">
-                    Status
-                  </Label>
-                  <NativeSelect
-                    id="workflow-status"
+                  <Label className="text-[#c7d1db]">Status</Label>
+                  <Select
                     value={status}
-                    onChange={(event) =>
-                      setStatus(event.target.value as WorkflowStatus)
-                    }
+                    onValueChange={(value) => {
+                      if (value) setStatus(value as WorkflowStatus);
+                    }}
                     disabled={readOnly}
-                    className="max-w-48 border-[#2c333a] bg-[#22272b] text-[#f4f5f7]"
+                    items={STATUS_OPTIONS}
                   >
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
-                    <option value="archived">Archived</option>
-                  </NativeSelect>
+                    <SelectTrigger
+                      id="workflow-status"
+                      className={cn(builderSelectTriggerClass, "max-w-48")}
+                      aria-label="Status"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className={builderSelectContentClass}>
+                      {STATUS_OPTIONS.map((option) => (
+                        <SelectItem
+                          key={option.value}
+                          value={option.value}
+                          className={builderSelectItemClass}
+                        >
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             )}
