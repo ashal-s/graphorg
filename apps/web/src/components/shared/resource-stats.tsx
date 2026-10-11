@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, Pencil, Plus, Trash2, UserPlus } from "lucide-react";
+import { Eye, Pencil, Plus, Trash2, UserPlus } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -308,12 +308,13 @@ export function ResourceStats({ resources }: { resources: Resource[] }) {
                             variant="ghost"
                             size="icon-sm"
                             nativeButton={false}
+                            className="text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-400"
                             aria-label={`View ${item.name}`}
                             render={<Link href={item.href} />}
                           />
                         }
                       >
-                        <ExternalLink aria-hidden="true" />
+                        <Eye aria-hidden="true" />
                       </TooltipTrigger>
                       <TooltipContent>View</TooltipContent>
                     </Tooltip>
