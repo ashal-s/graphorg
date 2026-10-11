@@ -46,7 +46,7 @@ const people = [
 const names = () =>
   screen
     .getAllByRole("link")
-    .map((link) => link.querySelector("p")?.textContent)
+    .map((link) => link.querySelector('[data-slot="name"]')?.textContent)
     .filter(Boolean);
 
 function renderDirectory() {

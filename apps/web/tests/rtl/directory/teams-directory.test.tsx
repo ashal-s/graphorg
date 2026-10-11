@@ -3,21 +3,36 @@ import userEvent from "@testing-library/user-event";
 
 import { TeamsDirectory } from "@/components/directory/teams-directory";
 
+const member = (
+  id: string,
+  name: string,
+  teamRole: "lead" | "member" = "member",
+) => ({ id, name, photoSrc: null, teamRole });
+
 const teams = [
   {
     id: "t1",
     name: "Payments",
     description: "Checkout and billing",
-    memberCount: 3,
+    members: [
+      member("p1", "Priya Shah", "lead"),
+      member("p2", "Alex Kim"),
+      member("p3", "Sam Rivera"),
+    ],
   },
-  { id: "t2", name: "Growth", description: "Acquisition", memberCount: 1 },
-  { id: "t3", name: "Platform", description: null, memberCount: 0 },
+  {
+    id: "t2",
+    name: "Growth",
+    description: "Acquisition",
+    members: [member("p4", "Riley Chen")],
+  },
+  { id: "t3", name: "Platform", description: null, members: [] },
 ];
 
 const names = () =>
   screen
     .getAllByRole("link")
-    .map((link) => link.querySelector("p")?.textContent);
+    .map((link) => link.querySelector('[data-slot="name"]')?.textContent);
 
 describe("TeamsDirectory", () => {
   it("filters on every character typed", async () => {
@@ -45,6 +60,8 @@ describe("TeamsDirectory", () => {
     render(<TeamsDirectory teams={teams} canEdit />);
     expect(screen.getByText("3 people")).toBeInTheDocument();
     expect(screen.getByText("1 person")).toBeInTheDocument();
+    expect(screen.getByText("Led by Priya Shah")).toBeInTheDocument();
+    expect(screen.getByText("No members yet")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Search teams"), "zzz");
     expect(screen.getByText("No teams match your search")).toBeInTheDocument();

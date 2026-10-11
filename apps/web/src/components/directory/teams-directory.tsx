@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { Users2 } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Users2 } from "lucide-react";
 
+import { AvatarStack } from "@/components/shared/avatar-stack";
 import { LiveSearch } from "@/components/shared/live-search";
-import { EntityRow } from "@/components/shared/entity-row";
 import { EmptyState } from "@/components/states/empty-state";
 import { matchesSearch } from "@/lib/text-search";
 
@@ -12,10 +13,20 @@ export interface DirectoryTeam {
   id: string;
   name: string;
   description: string | null;
-  memberCount: number;
+  members: {
+    id: string;
+    name: string;
+    photoSrc?: string | null;
+    teamRole: "lead" | "member" | "trainee";
+  }[];
 }
 
-/** The teams list with a search box that filters on every keystroke. */
+function joinNames(names: string[]) {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+/** The teams list: cards with who is on each, filtered as you type. */
 export function TeamsDirectory({
   teams,
   canEdit,
@@ -61,21 +72,68 @@ export function TeamsDirectory({
           action={canEdit && !searching ? emptyAction : undefined}
         />
       ) : (
-        <div className="flex flex-col gap-2">
-          {visible.map((team) => (
-            <EntityRow
-              key={team.id}
-              href={`/directory/teams/${team.id}`}
-              title={team.name}
-              meta={team.description}
-              trailing={
-                <p className="text-sm text-muted-foreground">
-                  {team.memberCount}{" "}
-                  {team.memberCount === 1 ? "person" : "people"}
-                </p>
-              }
-            />
-          ))}
+        <div className="flex flex-col gap-3">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            {visible.length} {visible.length === 1 ? "team" : "teams"}
+            {searching ? " found" : ""}
+          </p>
+          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {visible.map((team) => {
+              const leads = team.members
+                .filter((member) => member.teamRole === "lead")
+                .map((member) => member.name);
+              return (
+                <li key={team.id}>
+                  <Link
+                    href={`/directory/teams/${team.id}`}
+                    className="group flex h-full flex-col gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-all hover:-translate-y-px hover:shadow-md hover:ring-primary/40"
+                  >
+                    <span className="flex items-start gap-3">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Users2 className="size-5" aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span
+                          data-slot="name"
+                          className="block truncate font-medium"
+                        >
+                          {team.name}
+                        </span>
+                        <span className="line-clamp-2 text-sm text-muted-foreground">
+                          {team.description ?? "No description"}
+                        </span>
+                      </span>
+                      <ChevronRight
+                        className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                        aria-hidden="true"
+                      />
+                    </span>
+
+                    <span className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-3">
+                      {team.members.length > 0 ? (
+                        <AvatarStack people={team.members} />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          No members yet
+                        </span>
+                      )}
+                      <span className="min-w-0 text-right text-xs text-muted-foreground">
+                        <span className="block font-medium text-foreground">
+                          {team.members.length}{" "}
+                          {team.members.length === 1 ? "person" : "people"}
+                        </span>
+                        {leads.length > 0 && (
+                          <span className="block truncate">
+                            Led by {joinNames(leads)}
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
     </>

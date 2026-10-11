@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Users2 } from "lucide-react";
 
 import { TeamsDirectory } from "@/components/directory/teams-directory";
 import { PageHeader } from "@/components/shared/page-header";
@@ -9,6 +9,7 @@ import { getDb } from "@/db";
 import { teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { personPhotoSrc } from "@/lib/person-photo";
 
 export default async function TeamsPage() {
   const session = await requireSession();
@@ -17,7 +18,16 @@ export default async function TeamsPage() {
   // All teams are sent once; searching happens in the browser as you type.
   const rows = await getDb().query.teams.findMany({
     where: eq(teams.organizationId, session.organizationId),
-    with: { memberships: { columns: { personId: true } } },
+    with: {
+      memberships: {
+        columns: { teamRole: true },
+        with: {
+          person: {
+            columns: { id: true, name: true, photoUrl: true, updatedAt: true },
+          },
+        },
+      },
+    },
     orderBy: (row, { asc }) => asc(row.name),
   });
 
@@ -25,6 +35,7 @@ export default async function TeamsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Teams"
+        icon={Users2}
         description="Who owns what across your organisation."
         actions={
           canEdit && (
@@ -44,7 +55,19 @@ export default async function TeamsPage() {
           id: row.id,
           name: row.name,
           description: row.description,
-          memberCount: row.memberships.length,
+          members: row.memberships
+            .map((membership) => ({
+              id: membership.person.id,
+              name: membership.person.name,
+              photoSrc: personPhotoSrc(membership.person),
+              teamRole: membership.teamRole,
+            }))
+            // Leads first, so the stack shows who runs the team.
+            .sort(
+              (a, b) =>
+                Number(b.teamRole === "lead") - Number(a.teamRole === "lead") ||
+                a.name.localeCompare(b.name),
+            ),
         }))}
         canEdit={canEdit}
         emptyAction={

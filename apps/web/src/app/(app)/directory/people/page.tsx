@@ -2,11 +2,14 @@ import { eq } from "drizzle-orm";
 
 import { PeopleDirectory } from "@/components/directory/people-directory";
 import { PersonDialog } from "@/components/directory/person-dialog";
+import { Users } from "lucide-react";
+
 import { PageHeader } from "@/components/shared/page-header";
 import { getDb } from "@/db";
 import { organizations, people, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { personPhotoSrc } from "@/lib/person-photo";
 
 export default async function PeoplePage() {
   const session = await requireSession();
@@ -24,6 +27,8 @@ export default async function PeoplePage() {
         email: true,
         title: true,
         managerId: true,
+        photoUrl: true,
+        updatedAt: true,
       },
       with: {
         memberships: {
@@ -55,6 +60,7 @@ export default async function PeoplePage() {
     email: row.email,
     title: row.title,
     managerId: row.managerId,
+    photoSrc: personPhotoSrc(row),
     teams: row.memberships.map((membership) => membership.team),
   }));
 
@@ -62,6 +68,7 @@ export default async function PeoplePage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="People"
+        icon={Users}
         description="Everyone in your organisation's directory."
         actions={
           canEdit && (

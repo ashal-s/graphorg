@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { Users } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Users } from "lucide-react";
 
 import { LiveSearch } from "@/components/shared/live-search";
-import { EntityRow } from "@/components/shared/entity-row";
+import { PersonAvatar } from "@/components/shared/person-avatar";
 import { EmptyState } from "@/components/states/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { NativeSelect } from "@/components/ui/native-select";
 import { buildOrgChart, flattenOrgChart } from "@/lib/directory/org-chart";
 import { matchesSearch } from "@/lib/text-search";
@@ -17,6 +17,7 @@ export interface DirectoryPerson {
   email: string;
   title: string | null;
   managerId: string | null;
+  photoSrc?: string | null;
   teams: { id: string; name: string }[];
 }
 
@@ -104,28 +105,57 @@ export function PeopleDirectory({
           action={canEdit && !hasFilters ? emptyAction : undefined}
         />
       ) : (
-        <div className="flex flex-col gap-2">
-          {visible.map((person) => (
-            <EntityRow
-              key={person.id}
-              href={`/directory/people/${person.id}`}
-              title={person.name}
-              meta={person.title ?? undefined}
-              trailing={
-                person.teams.length > 0 && (
-                  <div className="flex flex-wrap justify-end gap-1.5">
-                    {[...person.teams]
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map((team) => (
-                        <Badge key={team.id} variant="outline">
-                          {team.name}
-                        </Badge>
-                      ))}
-                  </div>
-                )
-              }
-            />
-          ))}
+        <div className="flex flex-col gap-3">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            {visible.length} {visible.length === 1 ? "person" : "people"}
+            {hasFilters ? " found" : ""}
+          </p>
+          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {visible.map((person) => (
+              <li key={person.id}>
+                <Link
+                  href={`/directory/people/${person.id}`}
+                  className="group flex h-full items-center gap-3 rounded-xl bg-card p-3.5 ring-1 ring-foreground/10 transition-all hover:-translate-y-px hover:shadow-md hover:ring-primary/40"
+                >
+                  <PersonAvatar
+                    name={person.name}
+                    photoUrl={person.photoSrc}
+                    className="size-11"
+                    textClassName="text-sm"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span
+                      data-slot="name"
+                      className="block truncate text-sm font-medium"
+                    >
+                      {person.name}
+                    </span>
+                    <span className="block truncate text-sm text-muted-foreground">
+                      {person.title ?? person.email}
+                    </span>
+                    {person.teams.length > 0 && (
+                      <span className="mt-1.5 flex flex-wrap gap-1">
+                        {[...person.teams]
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map((team) => (
+                            <span
+                              key={team.id}
+                              className="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"
+                            >
+                              {team.name}
+                            </span>
+                          ))}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronRight
+                    className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                    aria-hidden="true"
+                  />
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </>
