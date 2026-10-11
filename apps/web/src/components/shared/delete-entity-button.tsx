@@ -68,8 +68,9 @@ export function DeleteEntityButton({
             render={
               <Button
                 type="button"
-                variant="destructive"
+                variant="ghost"
                 size="icon"
+                className="text-red-600 hover:bg-red-500/10 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400"
                 disabled={deleting}
                 onClick={handleDelete}
                 aria-label={`Delete ${entityLabel}`}

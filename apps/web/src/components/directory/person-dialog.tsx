@@ -191,8 +191,9 @@ export function PersonDialog({
             render={
               <Button
                 type="button"
-                variant={variant}
+                variant="ghost"
                 size="icon"
+                className="text-blue-600 hover:bg-blue-500/10 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-400"
                 aria-label="Edit details"
                 onClick={() => setOpen(true)}
               />
