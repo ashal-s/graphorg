@@ -150,6 +150,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
                 teams={teamOptions}
                 managers={managerOptions}
                 variant="outline"
+                iconOnly
               />
             )}
             {canDelete && (
@@ -158,6 +159,7 @@ export default async function PersonDetailPage({ params }: PageProps) {
                 entityName={person.name}
                 apiPath={`/api/people/${person.id}`}
                 redirectTo="/directory/people"
+                iconOnly
               />
             )}
           </div>

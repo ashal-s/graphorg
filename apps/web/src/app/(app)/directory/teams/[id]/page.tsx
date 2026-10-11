@@ -240,6 +240,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
               entityName={team.name}
               apiPath={`/api/teams/${team.id}`}
               redirectTo="/directory/teams"
+              iconOnly
             />
           )
         }

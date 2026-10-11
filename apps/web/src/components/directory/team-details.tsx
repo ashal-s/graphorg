@@ -5,6 +5,11 @@ import { Pencil } from "lucide-react";
 
 import { TeamForm, type TeamDetail } from "@/components/directory/team-form";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 /**
  * The team's name as the page heading with its description underneath, and
@@ -47,15 +52,22 @@ export function TeamDetails({
       </div>
       <div className="flex shrink-0 items-start gap-2">
         {!readOnly && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setEditing(true)}
-          >
-            <Pencil aria-hidden="true" />
-            Edit details
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Edit details"
+                  onClick={() => setEditing(true)}
+                />
+              }
+            >
+              <Pencil aria-hidden="true" />
+            </TooltipTrigger>
+            <TooltipContent>Edit</TooltipContent>
+          </Tooltip>
         )}
         {actions}
       </div>

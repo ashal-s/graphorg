@@ -14,6 +14,11 @@ import {
 } from "@/components/ui/dialog";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { imageFileToSquareDataUrl } from "@/lib/image-resize";
 import { Label } from "@/components/ui/label";
 import {
@@ -58,6 +63,7 @@ export function PersonDialog({
   withIcon = true,
   variant,
   emailDomain,
+  iconOnly = false,
 }: {
   /** Omit to create a new person. */
   person?: PersonDialogPerson;
@@ -69,6 +75,8 @@ export function PersonDialog({
   variant?: "default" | "outline";
   /** The organization's email domain (no "@"), pre-filled for new people. */
   emailDomain?: string | null;
+  /** Just the icon, with the action name on hover. Edit mode only. */
+  iconOnly?: boolean;
 }) {
   const defaultDomain = emailDomain ? asDomain(emailDomain) : "@";
   const initialEmail = person
@@ -177,15 +185,34 @@ export function PersonDialog({
 
   return (
     <>
-      <Button size={size} variant={variant} onClick={() => setOpen(true)}>
-        {withIcon &&
-          (editing ? (
+      {iconOnly && editing ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant={variant}
+                size="icon"
+                aria-label="Edit details"
+                onClick={() => setOpen(true)}
+              />
+            }
+          >
             <Pencil aria-hidden="true" />
-          ) : (
-            <Plus aria-hidden="true" />
-          ))}
-        {editing ? "Edit details" : "New person"}
-      </Button>
+          </TooltipTrigger>
+          <TooltipContent>Edit</TooltipContent>
+        </Tooltip>
+      ) : (
+        <Button size={size} variant={variant} onClick={() => setOpen(true)}>
+          {withIcon &&
+            (editing ? (
+              <Pencil aria-hidden="true" />
+            ) : (
+              <Plus aria-hidden="true" />
+            ))}
+          {editing ? "Edit details" : "New person"}
+        </Button>
+      )}
 
       <Dialog
         open={open}

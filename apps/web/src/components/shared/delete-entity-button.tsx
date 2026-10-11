@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { Trash2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 /**
  * Confirm, DELETE, and redirect: the same three steps every entity detail
@@ -15,12 +22,15 @@ export function DeleteEntityButton({
   entityName,
   apiPath,
   redirectTo,
+  iconOnly = false,
 }: {
   /** e.g. "team", used in the confirmation and error copy. */
   entityLabel: string;
   entityName: string;
   apiPath: string;
   redirectTo: string;
+  /** A trash icon with "Delete" on hover, instead of a labelled button. */
+  iconOnly?: boolean;
 }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
@@ -52,14 +62,34 @@ export function DeleteEntityButton({
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button
-        type="button"
-        variant="destructive"
-        disabled={deleting}
-        onClick={handleDelete}
-      >
-        {deleting ? "Deleting…" : `Delete ${entityLabel}`}
-      </Button>
+      {iconOnly ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                disabled={deleting}
+                onClick={handleDelete}
+                aria-label={`Delete ${entityLabel}`}
+              />
+            }
+          >
+            <Trash2 aria-hidden="true" />
+          </TooltipTrigger>
+          <TooltipContent>{deleting ? "Deleting…" : "Delete"}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <Button
+          type="button"
+          variant="destructive"
+          disabled={deleting}
+          onClick={handleDelete}
+        >
+          {deleting ? "Deleting…" : `Delete ${entityLabel}`}
+        </Button>
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );

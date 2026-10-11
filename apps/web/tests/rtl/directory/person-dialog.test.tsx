@@ -299,3 +299,31 @@ describe("PersonDialog photo", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("PersonDialog icon-only edit", () => {
+  it("shows just an icon but still opens the edit popup", async () => {
+    const user = userEvent.setup();
+    render(
+      <PersonDialog
+        iconOnly
+        person={{
+          id: "p-9",
+          name: "Jordan Lee",
+          email: "jordan@example.com",
+          title: null,
+          photoSrc: null,
+          teamIds: [],
+          managerId: null,
+        }}
+        teams={teams}
+        managers={managers}
+      />,
+    );
+
+    const button = screen.getByRole("button", { name: "Edit details" });
+    expect(button).toHaveTextContent("");
+    await user.click(button);
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Jordan Lee");
+  });
+});
