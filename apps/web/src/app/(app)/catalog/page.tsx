@@ -68,7 +68,6 @@ export default async function CatalogPage() {
                     aria-hidden="true"
                   />
                 </CardTitle>
-                <CardDescription>{terms.description}</CardDescription>
                 <p className="text-sm text-muted-foreground">
                   {count} {count === 1 ? terms.singular : terms.plural}
                 </p>
