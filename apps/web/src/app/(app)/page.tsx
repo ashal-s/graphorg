@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import Link from "next/link";
 import {
-  ArrowRight,
+  ArrowUpRight,
   Boxes,
   Cpu,
   Layers,
@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/states/empty-state";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { getDb } from "@/db";
 import {
+  organizations,
   people,
   services,
   systems,
@@ -35,6 +36,42 @@ import {
 } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
+
+function OrganizationHero({
+  name,
+  description,
+  logoUrl,
+}: {
+  name: string;
+  description: string | null;
+  logoUrl: string | null;
+}) {
+  return (
+    <header className="flex items-center gap-5">
+      <Avatar className="size-16 rounded-xl after:rounded-xl">
+        {logoUrl && (
+          <AvatarImage
+            src={logoUrl}
+            alt={`${name} logo`}
+            className="rounded-xl"
+          />
+        )}
+        <AvatarFallback className="rounded-xl bg-primary/10 text-xl font-semibold text-primary">
+          {name.trim().slice(0, 2).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      <div className="min-w-0">
+        <h1 className="truncate text-2xl font-semibold tracking-tight">
+          {name}
+        </h1>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          {description ||
+            "The whole organization in one view: who's here, what runs, and how it's built."}
+        </p>
+      </div>
+    </header>
+  );
+}
 
 const TECHNOLOGY_CATEGORY_LABELS: Record<string, string> = {
   language: "Languages",
@@ -49,6 +86,7 @@ export default async function OverviewPage() {
   const orgId = session.organizationId;
 
   const [
+    organization,
     peopleRows,
     teamRows,
     systemRows,
@@ -57,6 +95,10 @@ export default async function OverviewPage() {
     technologyRows,
     toolRows,
   ] = await Promise.all([
+    getDb().query.organizations.findFirst({
+      where: eq(organizations.id, orgId),
+      columns: { name: true, description: true, logoUrl: true },
+    }),
     getDb().query.people.findMany({
       where: eq(people.organizationId, orgId),
       columns: { id: true },
@@ -156,15 +198,20 @@ export default async function OverviewPage() {
     },
   ];
 
+  const hero = (
+    <OrganizationHero
+      name={organization?.name ?? session.organizationName}
+      description={organization?.description ?? null}
+      logoUrl={organization?.logoUrl ?? null}
+    />
+  );
+
   const hasAnyContext = stats.some((stat) => stat.count > 0);
 
   if (!hasAnyContext) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader
-          title="Overview"
-          description={`An overview of ${session.organizationName} lands here once it exists.`}
-        />
+        {hero}
         <EmptyState
           icon={
             <LayoutDashboard
@@ -216,47 +263,43 @@ export default async function OverviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Overview"
-        description={`The whole of ${session.organizationName} in one view: who's here, what runs, and how it's built.`}
-      />
+      {hero}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3 lg:grid-cols-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
-          const card = (
-            <Card
-              className={cn(
-                "h-full",
-                stat.href && "transition-colors hover:bg-muted/50",
-              )}
-            >
-              <CardHeader>
-                <Icon
-                  className="h-6 w-6 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <CardTitle className="flex items-center justify-between">
-                  {stat.label}
-                  {stat.href && (
-                    <ArrowRight
-                      className="h-4 w-4 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  {stat.count} {stat.count === 1 ? stat.singular : stat.plural}
-                </CardDescription>
-              </CardHeader>
-            </Card>
+          const body = (
+            <>
+              <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Icon className="h-4 w-4" aria-hidden="true" />
+                {stat.label}
+                {stat.href && (
+                  <ArrowUpRight
+                    className="ml-auto h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                    aria-hidden="true"
+                  />
+                )}
+              </span>
+              <span className="mt-2 block text-3xl font-semibold tracking-tight tabular-nums">
+                {stat.count}
+              </span>
+            </>
           );
           return stat.href ? (
-            <Link key={stat.label} href={stat.href}>
-              {card}
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className={cn(
+                "group bg-background p-5 outline-none transition-colors",
+                "hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+              )}
+            >
+              {body}
             </Link>
           ) : (
-            <div key={stat.label}>{card}</div>
+            <div key={stat.label} className="bg-background p-5">
+              {body}
+            </div>
           );
         })}
       </div>
