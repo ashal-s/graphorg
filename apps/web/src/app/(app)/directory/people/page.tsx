@@ -9,6 +9,7 @@ import { getDb } from "@/db";
 import { organizations, people, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { loadTones } from "@/lib/directory/tones";
 import { personPhotoSrc } from "@/lib/person-photo";
 
 export default async function PeoplePage() {
@@ -18,7 +19,7 @@ export default async function PeoplePage() {
 
   // Everyone is sent to the page once; searching and filtering happen in
   // the browser, so results update on every keystroke.
-  const [rows, teamOptions, organization] = await Promise.all([
+  const [rows, teamOptions, organization, tones] = await Promise.all([
     getDb().query.people.findMany({
       where: eq(people.organizationId, orgId),
       columns: {
@@ -47,6 +48,7 @@ export default async function PeoplePage() {
       where: eq(organizations.id, orgId),
       columns: { emailDomain: true },
     }),
+    loadTones(orgId),
   ]);
 
   // The new-person dialog's manager picker offers everyone.
@@ -61,7 +63,10 @@ export default async function PeoplePage() {
     title: row.title,
     managerId: row.managerId,
     photoSrc: personPhotoSrc(row),
-    teams: row.memberships.map((membership) => membership.team),
+    teams: row.memberships.map((membership) => ({
+      ...membership.team,
+      tone: tones.teams[membership.team.id],
+    })),
   }));
 
   return (

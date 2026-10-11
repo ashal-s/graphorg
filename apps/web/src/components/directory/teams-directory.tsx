@@ -17,6 +17,7 @@ export interface DirectoryTeam {
     id: string;
     name: string;
     photoSrc?: string | null;
+    tone?: number;
     teamRole: "lead" | "member" | "trainee";
   }[];
 }

@@ -7,9 +7,11 @@ import { PersonDialog } from "@/components/directory/person-dialog";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { ResourceStats } from "@/components/shared/resource-stats";
+import { TeamChip } from "@/components/shared/team-chip";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 import { loadPersonProfile } from "@/lib/directory/load-person-profile";
+import { loadTones } from "@/lib/directory/tones";
 import { personPhotoSrc } from "@/lib/person-photo";
 import { buildPersonResources } from "@/lib/directory/person-resources";
 import { getTerminology } from "@/lib/terminology-server";
@@ -27,11 +29,12 @@ export default async function PersonDetailPage({ params }: PageProps) {
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) notFound();
 
-  const [loaded, terminology] = await Promise.all([
+  const [loaded, terminology, tones] = await Promise.all([
     loadPersonProfile(session.organizationId, id, {
       withAssignOptions: canDelete,
     }),
     getTerminology(session.organizationId),
+    loadTones(session.organizationId),
   ]);
   if (!loaded) notFound();
 
@@ -122,12 +125,10 @@ export default async function PersonDetailPage({ params }: PageProps) {
             <ul className="mt-3 flex flex-wrap gap-1.5">
               {profile.teams.map((team) => (
                 <li key={team.id}>
-                  <Link
+                  <TeamChip
+                    team={{ ...team, tone: tones.teams[team.id] }}
                     href={`/directory/teams/${team.id}`}
-                    className="inline-flex rounded-full border border-border px-2.5 py-0.5 text-xs font-medium hover:bg-muted"
-                  >
-                    {team.name}
-                  </Link>
+                  />
                 </li>
               ))}
             </ul>

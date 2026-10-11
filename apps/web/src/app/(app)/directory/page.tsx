@@ -6,9 +6,11 @@ import type { ReactNode } from "react";
 
 import { AvatarStack } from "@/components/shared/avatar-stack";
 import { PageHeader } from "@/components/shared/page-header";
+import { TeamChip } from "@/components/shared/team-chip";
 import { getDb } from "@/db";
 import { people, teams } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
+import { loadTones } from "@/lib/directory/tones";
 import { personPhotoSrc } from "@/lib/person-photo";
 
 function SectionCard({
@@ -64,7 +66,7 @@ export default async function DirectoryPage() {
   const session = await requireSession();
   const orgId = session.organizationId;
 
-  const [peopleRows, teamRows] = await Promise.all([
+  const [peopleRows, teamRows, tones] = await Promise.all([
     getDb().query.people.findMany({
       where: eq(people.organizationId, orgId),
       columns: { id: true, name: true, photoUrl: true, updatedAt: true },
@@ -75,6 +77,7 @@ export default async function DirectoryPage() {
       columns: { id: true, name: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
+    loadTones(orgId),
   ]);
 
   return (
@@ -100,6 +103,7 @@ export default async function DirectoryPage() {
                 id: person.id,
                 name: person.name,
                 photoSrc: personPhotoSrc(person),
+                tone: tones.people[person.id],
               }))}
             />
           ) : (
@@ -119,12 +123,10 @@ export default async function DirectoryPage() {
           {teamRows.length > 0 ? (
             <span className="flex flex-wrap gap-1.5">
               {teamRows.slice(0, 4).map((team) => (
-                <span
+                <TeamChip
                   key={team.id}
-                  className="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"
-                >
-                  {team.name}
-                </span>
+                  team={{ ...team, tone: tones.teams[team.id] }}
+                />
               ))}
               {teamRows.length > 4 && (
                 <span className="px-1 py-0.5 text-xs font-medium text-muted-foreground">

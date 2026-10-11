@@ -6,6 +6,7 @@ import { ChevronRight, Users } from "lucide-react";
 
 import { LiveSearch } from "@/components/shared/live-search";
 import { PersonAvatar } from "@/components/shared/person-avatar";
+import { TeamChip } from "@/components/shared/team-chip";
 import { EmptyState } from "@/components/states/empty-state";
 import { NativeSelect } from "@/components/ui/native-select";
 import { buildOrgChart, flattenOrgChart } from "@/lib/directory/org-chart";
@@ -18,7 +19,7 @@ export interface DirectoryPerson {
   title: string | null;
   managerId: string | null;
   photoSrc?: string | null;
-  teams: { id: string; name: string }[];
+  teams: { id: string; name: string; tone?: number }[];
 }
 
 /**
@@ -138,12 +139,7 @@ export function PeopleDirectory({
                         {[...person.teams]
                           .sort((a, b) => a.name.localeCompare(b.name))
                           .map((team) => (
-                            <span
-                              key={team.id}
-                              className="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"
-                            >
-                              {team.name}
-                            </span>
+                            <TeamChip key={team.id} team={team} />
                           ))}
                       </span>
                     )}

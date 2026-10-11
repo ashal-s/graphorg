@@ -9,6 +9,7 @@ import { getDb } from "@/db";
 import { teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { loadTones } from "@/lib/directory/tones";
 import { personPhotoSrc } from "@/lib/person-photo";
 
 export default async function TeamsPage() {
@@ -16,6 +17,7 @@ export default async function TeamsPage() {
   const canEdit = hasRole(session.role, "editor");
 
   // All teams are sent once; searching happens in the browser as you type.
+  const tones = await loadTones(session.organizationId);
   const rows = await getDb().query.teams.findMany({
     where: eq(teams.organizationId, session.organizationId),
     with: {
@@ -60,6 +62,7 @@ export default async function TeamsPage() {
               id: membership.person.id,
               name: membership.person.name,
               photoSrc: personPhotoSrc(membership.person),
+              tone: tones.people[membership.person.id],
               teamRole: membership.teamRole,
             }))
             // Leads first, so the stack shows who runs the team.
