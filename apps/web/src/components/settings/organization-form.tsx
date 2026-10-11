@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Pencil } from "lucide-react";
 
 import { OrganizationLogo } from "@/components/shared/organization-logo";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   SettingRow,
   SettingsSectionHeader,
 } from "@/components/settings/setting-row";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export interface OrganizationDetail {
   name: string;
@@ -18,6 +19,15 @@ export interface OrganizationDetail {
   description: string | null;
   logoUrl: string | null;
 }
+
+type Field = "logoUrl" | "name" | "description" | "slug";
+
+const FIELD_LABELS: Record<Field, string> = {
+  logoUrl: "Logo",
+  name: "Name",
+  description: "Description",
+  slug: "Workspace slug",
+};
 
 export function OrganizationForm({
   organization,
@@ -27,40 +37,42 @@ export function OrganizationForm({
   readOnly?: boolean;
 }) {
   const router = useRouter();
-  const [name, setName] = useState(organization.name);
-  const [slug, setSlug] = useState(organization.slug);
-  const [description, setDescription] = useState(
-    organization.description ?? "",
-  );
-  const [logoUrl, setLogoUrl] = useState(organization.logoUrl ?? "");
+  const [current, setCurrent] = useState(organization);
+  const [editing, setEditing] = useState<Field | null>(null);
+  const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  function startEditing(field: Field) {
     setError(null);
-    setSaved(false);
+    setDraft(current[field] ?? "");
+    setEditing(field);
+  }
 
-    if (name.trim().length === 0) {
-      setError("Name is required.");
+  function cancel() {
+    setEditing(null);
+    setError(null);
+  }
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    if (!editing) return;
+    const value = draft.trim();
+    if ((editing === "name" || editing === "slug") && value.length === 0) {
+      setError(`${FIELD_LABELS[editing]} is required.`);
       return;
     }
-    if (slug.trim().length === 0) {
-      setError("Workspace slug is required.");
+    if (value === (current[editing] ?? "")) {
+      cancel();
       return;
     }
 
     setSaving(true);
+    setError(null);
     const response = await fetch("/api/organization", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name.trim(),
-        slug: slug.trim(),
-        description: description.trim(),
-        logoUrl: logoUrl.trim(),
-      }),
+      body: JSON.stringify({ [editing]: value }),
     });
     setSaving(false);
 
@@ -83,18 +95,57 @@ export function OrganizationForm({
     const body = (await response.json()) as {
       organization: OrganizationDetail;
     };
-    setName(body.organization.name);
-    setSlug(body.organization.slug);
-    setDescription(body.organization.description ?? "");
-    setLogoUrl(body.organization.logoUrl ?? "");
-    setSaved(true);
+    setCurrent(body.organization);
+    setEditing(null);
     router.refresh();
   }
 
-  const slugChanged = slug.trim() !== organization.slug;
+  function editor(field: Field, input: React.ReactNode, hint?: string) {
+    return (
+      <form onSubmit={save} className="flex flex-col gap-2">
+        {input}
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <div className="flex gap-2">
+          <Button type="submit" size="sm" disabled={saving}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={cancel}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    );
+  }
+
+  function display(field: Field, value: React.ReactNode) {
+    return (
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 text-sm">{value}</div>
+        {!readOnly && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Edit ${FIELD_LABELS[field].toLowerCase()}`}
+            onClick={() => startEditing(field)}
+            disabled={editing !== null}
+          >
+            <Pencil aria-hidden="true" />
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  const empty = <span className="text-muted-foreground">Not set</span>;
 
   return (
-    <form onSubmit={handleSubmit}>
+    <div>
       <SettingsSectionHeader
         title="Organization"
         description={
@@ -106,84 +157,96 @@ export function OrganizationForm({
       <div className="divide-y divide-border">
         <SettingRow
           label="Logo"
-          htmlFor="org-logo"
           hint="A link to an image. Its proportions are kept."
         >
-          <div className="flex items-center gap-4">
-            <OrganizationLogo name={name} logoUrl={logoUrl} />
-            <Input
-              id="org-logo"
-              type="url"
-              inputMode="url"
-              value={logoUrl}
-              onChange={(event) => setLogoUrl(event.target.value)}
-              placeholder="https://example.com/logo.png"
-              disabled={readOnly}
-              className="flex-1"
-            />
-          </div>
+          {editing === "logoUrl"
+            ? editor(
+                "logoUrl",
+                <div className="flex items-center gap-4">
+                  <OrganizationLogo
+                    name={current.name}
+                    logoUrl={draft.trim() || null}
+                  />
+                  <Input
+                    autoFocus
+                    type="url"
+                    inputMode="url"
+                    aria-label="Logo URL"
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    placeholder="https://example.com/logo.png"
+                    className="flex-1"
+                  />
+                </div>,
+                "Leave blank to remove the logo.",
+              )
+            : display(
+                "logoUrl",
+                <OrganizationLogo
+                  name={current.name}
+                  logoUrl={current.logoUrl}
+                />,
+              )}
         </SettingRow>
-        <SettingRow label="Name" htmlFor="org-name">
-          <Input
-            id="org-name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="e.g. Acme Inc."
-            required
-            disabled={readOnly}
-          />
+
+        <SettingRow label="Name">
+          {editing === "name"
+            ? editor(
+                "name",
+                <Input
+                  autoFocus
+                  aria-label="Name"
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  placeholder="e.g. Acme Inc."
+                />,
+              )
+            : display("name", current.name)}
         </SettingRow>
-        <SettingRow
-          label="Description"
-          htmlFor="org-description"
-          hint="Up to 500 characters."
-        >
-          <Textarea
-            id="org-description"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="What does this organization do?"
-            maxLength={500}
-            disabled={readOnly}
-          />
+
+        <SettingRow label="Description" hint="Up to 500 characters.">
+          {editing === "description"
+            ? editor(
+                "description",
+                <Textarea
+                  autoFocus
+                  aria-label="Description"
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  placeholder="What does this organization do?"
+                  maxLength={500}
+                />,
+              )
+            : display(
+                "description",
+                current.description ? (
+                  <p className="whitespace-pre-wrap">{current.description}</p>
+                ) : (
+                  empty
+                ),
+              )}
         </SettingRow>
+
         <SettingRow
           label="Workspace slug"
-          htmlFor="org-slug"
           hint="The identifier members sign in with."
         >
-          <Input
-            id="org-slug"
-            value={slug}
-            onChange={(event) => setSlug(event.target.value)}
-            required
-            disabled={readOnly}
-          />
-          {slugChanged && (
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Everyone must use the new value the next time they sign in.
-            </p>
-          )}
+          {editing === "slug"
+            ? editor(
+                "slug",
+                <Input
+                  autoFocus
+                  aria-label="Workspace slug"
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                />,
+                draft.trim() !== current.slug
+                  ? "Everyone must use the new value the next time they sign in."
+                  : undefined,
+              )
+            : display("slug", current.slug)}
         </SettingRow>
       </div>
-
-      {!readOnly && (
-        <div className="flex items-center gap-3 border-t border-border pt-5">
-          <Button type="submit" disabled={saving}>
-            {saving ? "Saving…" : "Save changes"}
-          </Button>
-          {error && (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          {saved && (
-            <p role="status" className="text-sm text-muted-foreground">
-              Saved.
-            </p>
-          )}
-        </div>
-      )}
-    </form>
+    </div>
   );
 }
