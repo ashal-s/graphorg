@@ -55,15 +55,6 @@ import {
 } from "@/components/workflows/step-list-editor";
 import { cn } from "@/lib/utils";
 
-const builderSelectTriggerClass =
-  "w-full border-[#2c333a] bg-[#22272b] text-[#f4f5f7] hover:bg-[#2c333a] focus-visible:border-[#579dff] focus-visible:ring-[#579dff]/30 data-placeholder:text-[#738496] dark:bg-[#22272b] dark:hover:bg-[#2c333a]";
-
-const builderSelectContentClass =
-  "border border-[#2c333a] bg-[#22272b] text-[#f4f5f7] shadow-xl ring-[#2c333a]";
-
-const builderSelectItemClass =
-  "focus:bg-[#2c333a] focus:text-[#f4f5f7]";
-
 type TriggerType = "manual" | "entity_created" | "entity_updated" | "scheduled";
 type WorkflowStatus = "draft" | "active" | "archived";
 
@@ -244,10 +235,10 @@ function FlowNode({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex w-[320px] items-start gap-3 rounded-lg border bg-[#2c2c2c] px-3.5 py-3 text-left shadow-sm transition-colors",
+        "flex w-[320px] items-start gap-3 rounded-lg border bg-card px-3.5 py-3 text-left shadow-sm transition-colors",
         selected
-          ? "border-[#579dff]"
-          : "border-[#444] hover:border-[#6b6b6b]",
+          ? "border-primary ring-1 ring-primary/30"
+          : "border-border hover:border-foreground/25",
         disabled && "cursor-default opacity-80",
       )}
     >
@@ -260,10 +251,10 @@ function FlowNode({
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-[#f4f5f7]">
+        <span className="block text-sm font-semibold text-foreground">
           {title}
         </span>
-        <span className="mt-0.5 block text-xs leading-snug text-[#9fadbc]">
+        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
           {subtitle}
         </span>
       </span>
@@ -280,13 +271,13 @@ function FlowConnector({
 }) {
   return (
     <div className="relative flex h-10 w-[320px] flex-col items-center">
-      <div className="h-full w-px bg-[#5e6c84]" />
+      <div className="h-full w-px bg-border" />
       {onAdd && !disabled ? (
         <button
           type="button"
           onClick={onAdd}
           aria-label="Add step"
-          className="absolute top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-[#5e6c84] bg-[#1d1d1d] text-[#c7d1db] transition-colors hover:border-[#579dff] hover:text-[#579dff]"
+          className="absolute top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:border-primary hover:text-primary"
         >
           <Plus className="size-3.5" aria-hidden="true" />
         </button>
@@ -554,10 +545,10 @@ export function WorkflowBuilder({
         event.preventDefault();
         void persist(status === "archived" ? "archived" : "active");
       }}
-      className="-m-4 flex h-[calc(100svh-3.5rem)] flex-col overflow-hidden bg-[#1d1d1d] text-[#f4f5f7] md:-m-6"
+      className="-m-4 flex h-[calc(100svh-3.5rem)] flex-col overflow-hidden bg-background text-foreground md:-m-6"
     >
       {/* Top bar */}
-      <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-[#2c333a] bg-[#1d1d1d] px-3">
+      <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border bg-background px-3">
         <div className="flex min-w-0 items-center gap-2">
           <Button
             type="button"
@@ -565,12 +556,11 @@ export function WorkflowBuilder({
             size="icon-sm"
             nativeButton={false}
             render={<Link href="/workflows" />}
-            className="text-[#c7d1db] hover:bg-[#2c2c2c] hover:text-white"
             aria-label="Back to workflows"
           >
             <ArrowLeft aria-hidden="true" />
           </Button>
-          <span className="flex size-7 items-center justify-center rounded-md bg-[#579dff]/20 text-[#579dff]">
+          <span className="flex size-7 items-center justify-center rounded-md bg-primary/15 text-primary">
             <Zap className="size-3.5" aria-hidden="true" />
           </span>
           <input
@@ -579,16 +569,12 @@ export function WorkflowBuilder({
             placeholder="Untitled flow"
             disabled={readOnly}
             aria-label="Workflow name"
-            className="min-w-0 flex-1 truncate bg-transparent text-sm font-medium text-[#f4f5f7] outline-none placeholder:text-[#738496] disabled:opacity-70"
+            className="min-w-0 flex-1 truncate bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-70"
           />
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {!readOnly && (
-            <Button
-              type="submit"
-              disabled={!canSave}
-              className="h-8 bg-[#579dff] px-3 text-sm font-medium text-[#1d1d1d] hover:bg-[#85b8ff] disabled:bg-[#2c333a] disabled:text-[#738496]"
-            >
+            <Button type="submit" disabled={!canSave} className="h-8 px-3">
               {saving ? "Saving…" : "Save and enable"}
             </Button>
           )}
@@ -599,7 +585,6 @@ export function WorkflowBuilder({
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  className="text-[#c7d1db] hover:bg-[#2c2c2c] hover:text-white"
                   aria-label="More actions"
                 />
               }
@@ -638,11 +623,11 @@ export function WorkflowBuilder({
       </header>
 
       {(readOnly || error) && (
-        <div className="shrink-0 space-y-2 border-b border-[#2c333a] px-4 py-2">
+        <div className="shrink-0 space-y-2 border-b border-border px-4 py-2">
           {readOnly && (
-            <Alert className="border-[#2c333a] bg-[#22272b] text-[#f4f5f7]">
+            <Alert>
               <AlertTitle>View-only</AlertTitle>
-              <AlertDescription className="text-[#9fadbc]">
+              <AlertDescription>
                 You have viewer access, so this workflow can be viewed but not
                 changed.
               </AlertDescription>
@@ -659,15 +644,9 @@ export function WorkflowBuilder({
 
       <div className="flex min-h-0 flex-1">
         {/* Canvas */}
-        <div className="relative min-w-0 flex-1 overflow-auto">
+        <div className="relative min-w-0 flex-1 overflow-auto bg-background">
           <div
-            className="absolute inset-0"
-            style={{
-              backgroundColor: "#1d1d1d",
-              backgroundImage:
-                "radial-gradient(circle, #3d3d3d 1px, transparent 1px)",
-              backgroundSize: "20px 20px",
-            }}
+            className="absolute inset-0 bg-background [background-image:radial-gradient(circle,var(--border)_1px,transparent_1px)] [background-size:20px_20px]"
             aria-hidden="true"
           />
           <div
@@ -759,11 +738,11 @@ export function WorkflowBuilder({
           </div>
 
           {/* Zoom controls */}
-          <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border border-[#2c333a] bg-[#22272b] px-2 py-1 text-xs text-[#c7d1db] shadow-lg">
+          <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-xs text-muted-foreground shadow-lg">
             <button
               type="button"
               aria-label="Zoom out"
-              className="flex size-6 items-center justify-center rounded-full hover:bg-[#2c333a]"
+              className="flex size-6 items-center justify-center rounded-full hover:bg-muted"
               onClick={() => setZoom((z) => Math.max(50, z - 10))}
             >
               −
@@ -772,7 +751,7 @@ export function WorkflowBuilder({
             <button
               type="button"
               aria-label="Zoom in"
-              className="flex size-6 items-center justify-center rounded-full hover:bg-[#2c333a]"
+              className="flex size-6 items-center justify-center rounded-full hover:bg-muted"
               onClick={() => setZoom((z) => Math.min(150, z + 10))}
             >
               +
@@ -781,9 +760,9 @@ export function WorkflowBuilder({
         </div>
 
         {/* Right sidebar */}
-        <aside className="flex w-[360px] shrink-0 flex-col border-l border-[#2c333a] bg-[#1d1d1d]">
-          <div className="flex h-12 shrink-0 items-center border-b border-[#2c333a] px-4">
-            <h2 className="text-sm font-semibold text-[#f4f5f7]">{panelTitle}</h2>
+        <aside className="flex w-[360px] shrink-0 flex-col border-l border-border bg-background">
+          <div className="flex h-12 shrink-0 items-center border-b border-border px-4">
+            <h2 className="text-sm font-semibold text-foreground">{panelTitle}</h2>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
@@ -791,7 +770,7 @@ export function WorkflowBuilder({
               <div className="flex flex-col gap-3 p-3">
                 <div className="relative">
                   <Search
-                    className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-[#738496]"
+                    className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
                     aria-hidden="true"
                   />
                   <Input
@@ -799,7 +778,7 @@ export function WorkflowBuilder({
                     onChange={(event) => setTriggerQuery(event.target.value)}
                     placeholder="Search triggers"
                     disabled={readOnly}
-                    className="h-9 border-[#2c333a] bg-[#22272b] pl-8 text-[#f4f5f7] placeholder:text-[#738496] focus-visible:border-[#579dff]"
+                    className="h-9 pl-8"
                   />
                 </div>
                 <div className="flex flex-col gap-4">
@@ -807,10 +786,10 @@ export function WorkflowBuilder({
                     ([category, options]) => (
                       <div key={category}>
                         <div className="mb-1.5 flex items-center gap-2 px-1">
-                          <span className="rounded bg-[#2c333a] px-1.5 py-0.5 text-[11px] font-medium text-[#f4f5f7]">
+                          <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-foreground">
                             {category}
                           </span>
-                          <span className="text-[11px] text-[#738496]">
+                          <span className="text-[11px] text-muted-foreground">
                             {options.length}
                           </span>
                         </div>
@@ -826,9 +805,9 @@ export function WorkflowBuilder({
                                     setTriggerType(option.value);
                                     setTriggerChosen(true);
                                   }}
-                                  className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm text-[#f4f5f7] hover:bg-[#2c333a] disabled:opacity-60"
+                                  className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm text-foreground hover:bg-muted disabled:opacity-60"
                                 >
-                                  <span className="flex size-6 shrink-0 items-center justify-center rounded bg-[#22272b] text-[#579dff]">
+                                  <span className="flex size-6 shrink-0 items-center justify-center rounded bg-muted text-primary">
                                     <Icon
                                       className="size-3.5"
                                       aria-hidden="true"
@@ -850,7 +829,7 @@ export function WorkflowBuilder({
             {selection.kind === "trigger" && triggerChosen && (
               <div className="flex flex-col gap-4 p-4">
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-[#c7d1db]">Trigger</Label>
+                  <Label className="text-muted-foreground">Trigger</Label>
                   <Select
                     value={triggerType}
                     onValueChange={(value) => {
@@ -863,18 +842,16 @@ export function WorkflowBuilder({
                   >
                     <SelectTrigger
                       id="workflow-trigger"
-                      className={builderSelectTriggerClass}
+                      className="w-full"
                       aria-label="Trigger"
                     >
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className={builderSelectContentClass}>
+                    <SelectContent>
                       {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
                         <SelectItem
                           key={value}
-                          value={value}
-                          className={builderSelectItemClass}
-                        >
+                          value={value}>
                           {label}
                         </SelectItem>
                       ))}
@@ -884,7 +861,7 @@ export function WorkflowBuilder({
                 {(triggerType === "entity_created" ||
                   triggerType === "entity_updated") && (
                   <div className="flex flex-col gap-1.5">
-                    <Label className="text-[#c7d1db]">Entity type</Label>
+                    <Label className="text-muted-foreground">Entity type</Label>
                     <Select
                       value={entityType}
                       onValueChange={(value) => {
@@ -895,18 +872,16 @@ export function WorkflowBuilder({
                     >
                       <SelectTrigger
                         id="workflow-entity-type"
-                        className={builderSelectTriggerClass}
+                        className="w-full"
                         aria-label="Entity type"
                       >
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className={builderSelectContentClass}>
+                      <SelectContent>
                         {ENTITY_TYPES.map((entity) => (
                           <SelectItem
                             key={entity.value}
-                            value={entity.value}
-                            className={builderSelectItemClass}
-                          >
+                            value={entity.value}>
                             {entity.label}
                           </SelectItem>
                         ))}
@@ -916,7 +891,7 @@ export function WorkflowBuilder({
                 )}
                 {triggerType === "scheduled" && (
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="workflow-cron" className="text-[#c7d1db]">
+                    <Label htmlFor="workflow-cron" className="text-muted-foreground">
                       Schedule (cron expression)
                     </Label>
                     <Input
@@ -925,7 +900,6 @@ export function WorkflowBuilder({
                       onChange={(event) => setCron(event.target.value)}
                       placeholder="0 9 * * 1"
                       disabled={readOnly}
-                      className="border-[#2c333a] bg-[#22272b] text-[#f4f5f7] placeholder:text-[#738496]"
                     />
                   </div>
                 )}
@@ -934,7 +908,7 @@ export function WorkflowBuilder({
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="w-fit border-[#2c333a] bg-transparent text-[#c7d1db] hover:bg-[#2c333a] hover:text-white"
+                    className="w-fit"
                     onClick={() => {
                       setTriggerChosen(false);
                       setTriggerQuery("");
@@ -954,7 +928,7 @@ export function WorkflowBuilder({
                     type="button"
                     disabled={readOnly}
                     onClick={() => handleAddStep(option.kind)}
-                    className="flex items-start gap-2.5 rounded-md px-2 py-2.5 text-left hover:bg-[#2c333a] disabled:opacity-60"
+                    className="flex items-start gap-2.5 rounded-md px-2 py-2.5 text-left hover:bg-muted disabled:opacity-60"
                   >
                     <span
                       className={cn(
@@ -971,10 +945,10 @@ export function WorkflowBuilder({
                       )}
                     </span>
                     <span>
-                      <span className="block text-sm font-medium text-[#f4f5f7]">
+                      <span className="block text-sm font-medium text-foreground">
                         {option.label}
                       </span>
-                      <span className="block text-xs text-[#9fadbc]">
+                      <span className="block text-xs text-muted-foreground">
                         {option.description}
                       </span>
                     </span>
@@ -1000,7 +974,6 @@ export function WorkflowBuilder({
                         });
                       }}
                       aria-label="Move step up"
-                      className="text-[#c7d1db] hover:bg-[#2c333a] hover:text-white"
                     >
                       <ArrowUp aria-hidden="true" />
                     </Button>
@@ -1017,7 +990,6 @@ export function WorkflowBuilder({
                         });
                       }}
                       aria-label="Move step down"
-                      className="text-[#c7d1db] hover:bg-[#2c333a] hover:text-white"
                     >
                       <ArrowDown aria-hidden="true" />
                     </Button>
@@ -1030,14 +1002,14 @@ export function WorkflowBuilder({
                         setSelection({ kind: "trigger" });
                       }}
                       aria-label="Remove step"
-                      className="ml-auto text-[#c7d1db] hover:bg-[#2c333a] hover:text-red-400"
+                      className="ml-auto text-muted-foreground hover:text-destructive"
                     >
                       <Trash2 aria-hidden="true" />
                     </Button>
                   </div>
                 )}
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-[#c7d1db]">Type</Label>
+                  <Label className="text-muted-foreground">Type</Label>
                   <Select
                     value={
                       selectedStep.type.trim().length > 0
@@ -1058,7 +1030,7 @@ export function WorkflowBuilder({
                     )}
                   >
                     <SelectTrigger
-                      className={builderSelectTriggerClass}
+                      className="w-full"
                       aria-label={`${selectedStep.kind} type`}
                     >
                       <SelectValue
@@ -1069,16 +1041,14 @@ export function WorkflowBuilder({
                         }
                       />
                     </SelectTrigger>
-                    <SelectContent className={builderSelectContentClass}>
+                    <SelectContent>
                       {stepTypeOptions(
                         selectedStep.kind,
                         selectedStep.type,
                       ).map((option) => (
                         <SelectItem
                           key={option.value}
-                          value={option.value}
-                          className={builderSelectItemClass}
-                        >
+                          value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}
@@ -1086,7 +1056,7 @@ export function WorkflowBuilder({
                   </Select>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-[#c7d1db]">Config (JSON)</Label>
+                  <Label className="text-muted-foreground">Config (JSON)</Label>
                   <Textarea
                     placeholder="{}"
                     value={selectedStep.configText}
@@ -1098,7 +1068,7 @@ export function WorkflowBuilder({
                       )
                     }
                     disabled={readOnly}
-                    className="min-h-28 border-[#2c333a] bg-[#22272b] font-mono text-xs text-[#f4f5f7] placeholder:text-[#738496]"
+                    className="min-h-28 font-mono text-xs"
                   />
                 </div>
               </div>
@@ -1107,7 +1077,7 @@ export function WorkflowBuilder({
             {selection.kind === "people" && (
               <div className="flex flex-col gap-5 p-4">
                 {creators.length > 0 && (
-                  <p className="text-sm text-[#9fadbc]">
+                  <p className="text-sm text-muted-foreground">
                     Created by{" "}
                     {creators
                       .map((assignment) => assignment.person.name)
@@ -1115,7 +1085,7 @@ export function WorkflowBuilder({
                   </p>
                 )}
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-[#c7d1db]">Owner</Label>
+                  <Label className="text-muted-foreground">Owner</Label>
                   <PeoplePicker
                     label="Owner"
                     people={people}
@@ -1125,7 +1095,7 @@ export function WorkflowBuilder({
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-[#c7d1db]">Workers</Label>
+                  <Label className="text-muted-foreground">Workers</Label>
                   <PeoplePicker
                     label="Workers"
                     people={people}
@@ -1140,7 +1110,7 @@ export function WorkflowBuilder({
             {selection.kind === "details" && (
               <div className="flex flex-col gap-4 p-4">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="workflow-description" className="text-[#c7d1db]">
+                  <Label htmlFor="workflow-description" className="text-muted-foreground">
                     Description
                   </Label>
                   <Textarea
@@ -1149,11 +1119,11 @@ export function WorkflowBuilder({
                     onChange={(event) => setDescription(event.target.value)}
                     placeholder="What is this workflow for?"
                     disabled={readOnly}
-                    className="border-[#2c333a] bg-[#22272b] text-[#f4f5f7] placeholder:text-[#738496]"
+                    
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <Label className="text-[#c7d1db]">Status</Label>
+                  <Label className="text-muted-foreground">Status</Label>
                   <Select
                     value={status}
                     onValueChange={(value) => {
@@ -1164,18 +1134,16 @@ export function WorkflowBuilder({
                   >
                     <SelectTrigger
                       id="workflow-status"
-                      className={cn(builderSelectTriggerClass, "max-w-48")}
+                      className="w-full max-w-48"
                       aria-label="Status"
                     >
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className={builderSelectContentClass}>
+                    <SelectContent>
                       {STATUS_OPTIONS.map((option) => (
                         <SelectItem
                           key={option.value}
-                          value={option.value}
-                          className={builderSelectItemClass}
-                        >
+                          value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}
