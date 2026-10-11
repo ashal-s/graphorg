@@ -90,9 +90,10 @@ export function TeamsDirectory({
                     className="group flex h-full flex-col gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-all hover:-translate-y-px hover:shadow-md hover:ring-primary/40"
                   >
                     <span className="flex items-start gap-3">
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <Users2 className="size-5" aria-hidden="true" />
-                      </span>
+                      <Users2
+                        className="mt-0.5 size-6 shrink-0 text-primary"
+                        aria-hidden="true"
+                      />
                       <span className="min-w-0 flex-1">
                         <span
                           data-slot="name"

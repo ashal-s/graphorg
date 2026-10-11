@@ -34,9 +34,7 @@ function SectionCard({
       className="group flex h-full flex-col gap-5 rounded-xl bg-card p-5 ring-1 ring-foreground/10 transition-all hover:-translate-y-px hover:shadow-md hover:ring-primary/40"
     >
       <span className="flex items-start justify-between gap-3">
-        <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Icon className="size-5" aria-hidden="true" />
-        </span>
+        <Icon className="size-7 text-primary" aria-hidden="true" />
         <ArrowRight
           className="size-4 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
           aria-hidden="true"
