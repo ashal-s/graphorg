@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SettingsSectionHeader } from "@/components/settings/setting-row";
 import type { Role } from "@/lib/auth/roles";
 import { assignableRoles, canManageRole } from "@/lib/auth/user-management";
 
@@ -167,32 +167,31 @@ export function UserManagement({
 
   return (
     <div className="flex flex-col gap-6">
-      {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Couldn&apos;t update members</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <SettingsSectionHeader
+        title="Members"
+        description={`${members.length} ${members.length === 1 ? "member" : "members"} can sign in to this workspace.`}
+        actions={
+          <Button
+            type="button"
+            size="sm"
+            variant={showAdd ? "outline" : "default"}
+            onClick={() => setShowAdd((open) => !open)}
+          >
+            {showAdd ? "Cancel" : "Add member"}
+          </Button>
+        }
+      />
 
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-muted-foreground">
-          {members.length} {members.length === 1 ? "member" : "members"} can
-          sign in to this workspace.
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
         </p>
-        <Button
-          type="button"
-          size="sm"
-          variant={showAdd ? "outline" : "default"}
-          onClick={() => setShowAdd((open) => !open)}
-        >
-          {showAdd ? "Cancel" : "Add member"}
-        </Button>
-      </div>
+      )}
 
       {showAdd && (
         <form
           onSubmit={addMember}
-          className="flex flex-col gap-4 border-b border-border pb-6"
+          className="flex flex-col gap-4 border-b border-border py-5"
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
@@ -251,7 +250,7 @@ export function UserManagement({
         </form>
       )}
 
-      <div className="flex flex-col divide-y divide-border border-y border-border">
+      <div className="flex flex-col divide-y divide-border">
         {members.map((member) => {
           const isSelf = member.id === currentUserId;
           const manageable = canManageRole(actorRole, member.role);

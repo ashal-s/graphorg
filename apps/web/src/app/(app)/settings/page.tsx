@@ -30,21 +30,24 @@ export default async function SettingsPage({ searchParams }: PageProps) {
     canManageUsers && tab === "members" ? "members" : "organization";
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Settings"
         description="Manage your organization and who has access to it."
       />
-      {tabs.length > 1 && <SettingsTabs tabs={tabs} activeId={activeId} />}
-
-      {activeId === "members" ? (
-        <MembersTab session={session} />
-      ) : (
-        <OrganizationTab
-          organizationId={session.organizationId}
-          readOnly={!canManageUsers}
-        />
-      )}
+      <div className="flex flex-col gap-6 md:flex-row md:gap-10">
+        {tabs.length > 1 && <SettingsTabs tabs={tabs} activeId={activeId} />}
+        <div className="min-w-0 max-w-3xl flex-1">
+          {activeId === "members" ? (
+            <MembersTab session={session} />
+          ) : (
+            <OrganizationTab
+              organizationId={session.organizationId}
+              readOnly={!canManageUsers}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

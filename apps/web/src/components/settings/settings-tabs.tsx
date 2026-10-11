@@ -8,7 +8,11 @@ export interface SettingsTab {
   href: string;
 }
 
-/** Underlined, link-based tabs: each is a real URL, so they're shareable and survive refresh. */
+/**
+ * Settings sub-navigation, styled like the main sidebar: a vertical list
+ * beside the content on wide screens, a horizontal row on narrow ones. Each
+ * item is a real URL, so sections are linkable and survive refresh.
+ */
 export function SettingsTabs({
   tabs,
   activeId,
@@ -19,7 +23,7 @@ export function SettingsTabs({
   return (
     <nav
       aria-label="Settings sections"
-      className="flex gap-6 border-b border-border"
+      className="flex shrink-0 gap-1 md:w-44 md:flex-col"
     >
       {tabs.map((tab) => {
         const active = tab.id === activeId;
@@ -29,10 +33,10 @@ export function SettingsTabs({
             href={tab.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "-mb-px border-b-2 py-2 text-sm font-medium transition-colors",
+              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
               active
-                ? "border-primary text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
             )}
           >
             {tab.label}

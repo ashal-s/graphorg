@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { OrganizationLogo } from "@/components/shared/organization-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  SettingRow,
+  SettingsSectionHeader,
+} from "@/components/settings/setting-row";
 
 export interface OrganizationDetail {
   name: string;
@@ -92,35 +94,23 @@ export function OrganizationForm({
   const slugChanged = slug.trim() !== organization.slug;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      {readOnly && (
-        <Alert>
-          <AlertTitle>View-only</AlertTitle>
-          <AlertDescription>
-            Only owners and admins can edit the organization profile.
-          </AlertDescription>
-        </Alert>
-      )}
-      {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Couldn&apos;t save</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      {saved && (
-        <Alert>
-          <AlertTitle>Saved</AlertTitle>
-          <AlertDescription>
-            The organization profile has been updated.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="flex flex-col gap-5">
-        <div className="flex items-center gap-4">
-          <OrganizationLogo name={name} logoUrl={logoUrl} />
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <Label htmlFor="org-logo">Logo URL</Label>
+    <form onSubmit={handleSubmit}>
+      <SettingsSectionHeader
+        title="Organization"
+        description={
+          readOnly
+            ? "Only owners and admins can edit the organization profile."
+            : "Shown on the overview page and in the workspace switcher."
+        }
+      />
+      <div className="divide-y divide-border">
+        <SettingRow
+          label="Logo"
+          htmlFor="org-logo"
+          hint="A link to an image. Its proportions are kept."
+        >
+          <div className="flex items-center gap-4">
+            <OrganizationLogo name={name} logoUrl={logoUrl} />
             <Input
               id="org-logo"
               type="url"
@@ -129,11 +119,11 @@ export function OrganizationForm({
               onChange={(event) => setLogoUrl(event.target.value)}
               placeholder="https://example.com/logo.png"
               disabled={readOnly}
+              className="flex-1"
             />
           </div>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="org-name">Name</Label>
+        </SettingRow>
+        <SettingRow label="Name" htmlFor="org-name">
           <Input
             id="org-name"
             value={name}
@@ -142,9 +132,12 @@ export function OrganizationForm({
             required
             disabled={readOnly}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="org-description">Description</Label>
+        </SettingRow>
+        <SettingRow
+          label="Description"
+          htmlFor="org-description"
+          hint="Up to 500 characters."
+        >
           <Textarea
             id="org-description"
             value={description}
@@ -153,9 +146,12 @@ export function OrganizationForm({
             maxLength={500}
             disabled={readOnly}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="org-slug">Workspace slug</Label>
+        </SettingRow>
+        <SettingRow
+          label="Workspace slug"
+          htmlFor="org-slug"
+          hint="The identifier members sign in with."
+        >
           <Input
             id="org-slug"
             value={slug}
@@ -163,19 +159,29 @@ export function OrganizationForm({
             required
             disabled={readOnly}
           />
-          <p className="text-xs text-muted-foreground">
-            The workspace identifier members sign in with.
-            {slugChanged &&
-              " Changing it means everyone must use the new value the next time they sign in."}
-          </p>
-        </div>
+          {slugChanged && (
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Everyone must use the new value the next time they sign in.
+            </p>
+          )}
+        </SettingRow>
       </div>
 
       {!readOnly && (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3 border-t border-border pt-5">
           <Button type="submit" disabled={saving}>
             {saving ? "Saving…" : "Save changes"}
           </Button>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          {saved && (
+            <p role="status" className="text-sm text-muted-foreground">
+              Saved.
+            </p>
+          )}
         </div>
       )}
     </form>
