@@ -15,12 +15,13 @@ import {
   people,
   repositories,
   services,
-  systems,
   teams,
   workflowPeople,
 } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { lowerLabel } from "@/lib/terminology";
+import { getTerminology } from "@/lib/terminology-server";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -34,14 +35,15 @@ export default async function TeamDetailPage({ params }: PageProps) {
 
   const orgId = session.organizationId;
   const [
+    terminology,
     team,
     teamPeople,
     teamServices,
-    teamSystems,
     teamRepositories,
     teamDocuments,
     otherPeople,
   ] = await Promise.all([
+    getTerminology(orgId),
     getDb().query.teams.findFirst({
       where: and(eq(teams.id, id), eq(teams.organizationId, orgId)),
     }),
@@ -55,17 +57,10 @@ export default async function TeamDetailPage({ params }: PageProps) {
         eq(services.organizationId, orgId),
       ),
       with: {
-        technologies: {
-          with: { technology: { columns: { id: true, name: true } } },
+        tools: {
+          with: { tool: { columns: { id: true, name: true } } },
         },
       },
-      orderBy: (row, { asc }) => asc(row.name),
-    }),
-    getDb().query.systems.findMany({
-      where: and(
-        eq(systems.ownerTeamId, id),
-        eq(systems.organizationId, orgId),
-      ),
       orderBy: (row, { asc }) => asc(row.name),
     }),
     getDb().query.repositories.findMany({
@@ -152,36 +147,26 @@ export default async function TeamDetailPage({ params }: PageProps) {
     a.name.localeCompare(b.name),
   );
 
-  const teamTechnologiesById = new Map<string, string>();
+  const teamToolsById = new Map<string, string>();
   for (const service of teamServices) {
-    for (const link of service.technologies) {
-      teamTechnologiesById.set(link.technology.id, link.technology.name);
+    for (const link of service.tools) {
+      teamToolsById.set(link.tool.id, link.tool.name);
     }
   }
-  const teamTechnologies = Array.from(teamTechnologiesById.entries())
-    .map(([techId, name]) => ({ id: techId, name }))
+  const teamTools = Array.from(teamToolsById.entries())
+    .map(([toolId, name]) => ({ id: toolId, name }))
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  const serviceTerms = terminology.services;
+  const toolTerms = terminology.tools;
 
   const canCreate = !readOnly;
   const resources: TeamResource[] = [
     {
-      key: "systems",
-      label: "Systems",
-      singular: "system",
-      emptyText: "This team doesn't own any systems.",
-      addHref: canCreate ? `/catalog/systems/new?teamId=${team.id}` : undefined,
-      items: teamSystems.map((system) => ({
-        id: system.id,
-        name: system.name,
-        href: `/catalog/systems/${system.id}`,
-        editHref: canCreate ? `/catalog/systems/${system.id}` : undefined,
-      })),
-    },
-    {
       key: "services",
-      label: "Services",
-      singular: "service",
-      emptyText: "This team doesn't own any services.",
+      label: serviceTerms.plural,
+      singular: lowerLabel(serviceTerms.singular),
+      emptyText: `This team doesn't own any ${lowerLabel(serviceTerms.plural)}.`,
       addHref: canCreate
         ? `/catalog/services/new?teamId=${team.id}`
         : undefined,
@@ -190,7 +175,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
         name: service.name,
         href: `/catalog/services/${service.id}`,
         editHref: canCreate ? `/catalog/services/${service.id}` : undefined,
-        badges: service.technologies.map((link) => link.technology.name),
+        badges: service.tools.map((link) => link.tool.name),
       })),
     },
     {
@@ -208,14 +193,14 @@ export default async function TeamDetailPage({ params }: PageProps) {
       })),
     },
     {
-      key: "technologies",
-      label: "Technologies",
-      singular: "technology",
-      emptyText: "This team's services don't use any technologies yet.",
-      items: teamTechnologies.map((technology) => ({
-        id: technology.id,
-        name: technology.name,
-        href: `/catalog/technologies/${technology.id}`,
+      key: "tools",
+      label: toolTerms.plural,
+      singular: lowerLabel(toolTerms.singular),
+      emptyText: `This team's ${lowerLabel(serviceTerms.plural)} don't use any ${lowerLabel(toolTerms.plural)} yet.`,
+      items: teamTools.map((tool) => ({
+        id: tool.id,
+        name: tool.name,
+        href: `/catalog/tools/${tool.id}`,
       })),
     },
     {

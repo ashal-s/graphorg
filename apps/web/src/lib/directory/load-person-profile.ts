@@ -7,7 +7,6 @@ import {
   repositories,
   services,
   teams,
-  tools,
   workflowPeople,
 } from "@/db/schema";
 
@@ -34,7 +33,6 @@ export async function loadPersonProfile(orgId: string, personId: string) {
     teamServices,
     teamRepositories,
     teamDocuments,
-    orgTools,
   ] = await Promise.all([
     db.query.teams.findMany({
       where: eq(teams.organizationId, orgId),
@@ -76,8 +74,10 @@ export async function loadPersonProfile(orgId: string, personId: string) {
             eq(services.organizationId, orgId),
           ),
           with: {
-            technologies: {
-              with: { technology: { columns: { id: true, name: true } } },
+            tools: {
+              with: {
+                tool: { columns: { id: true, name: true, category: true } },
+              },
             },
             repository: { columns: { id: true, name: true, url: true } },
           },
@@ -104,11 +104,6 @@ export async function loadPersonProfile(orgId: string, personId: string) {
           orderBy: (row, { asc }) => asc(row.title),
         })
       : Promise.resolve([]),
-    db.query.tools.findMany({
-      where: eq(tools.organizationId, orgId),
-      columns: { id: true, name: true, category: true },
-      orderBy: (row, { asc }) => asc(row.name),
-    }),
   ]);
 
   return {
@@ -124,7 +119,6 @@ export async function loadPersonProfile(orgId: string, personId: string) {
       services: teamServices,
       repositories: teamRepositories,
       documents: teamDocuments,
-      tools: orgTools,
     }),
   };
 }

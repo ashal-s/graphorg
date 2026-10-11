@@ -26,8 +26,6 @@ export interface ProfileService extends ProfileRecord {
   description: string | null;
 }
 
-export type ProfileTechnology = ProfileRecord;
-
 export interface ProfileTool extends ProfileRecord {
   category: string;
 }
@@ -49,7 +47,6 @@ export interface AssembledPersonProfile {
   directReports: ProfileRecord[];
   workflows: ProfileWorkflow[];
   services: ProfileService[];
-  technologies: ProfileTechnology[];
   tools: ProfileTool[];
   repositories: ProfileRepository[];
   documents: ProfileDocument[];
@@ -74,11 +71,10 @@ export interface AssemblePersonProfileInput {
     name: string;
     description: string | null;
     repository?: ProfileRepository | null;
-    technologies: Array<{ technology: ProfileTechnology | null }>;
+    tools: Array<{ tool: ProfileTool | null }>;
   }>;
   repositories: ProfileRepository[];
   documents: ProfileDocument[];
-  tools: ProfileTool[];
 }
 
 function byName<T extends { name: string }>(a: T, b: T) {
@@ -95,9 +91,7 @@ function sortRoles(roles: WorkflowRole[]) {
  * Pure shaping of a person's profile relationships. Ownership of services,
  * repositories and documents is team-level in the schema, so those lists
  * come from the person's team. Workflows come from `workflow_people`.
- * Technologies are the unique stack across the team's services. Tools are
- * the organisation catalog — there is no service↔tool join — shown here
- * because they are the tools those services sit alongside.
+ * Tools are the unique set used across the team's services.
  */
 export function assemblePersonProfile(
   input: AssemblePersonProfileInput,
@@ -125,7 +119,7 @@ export function assemblePersonProfile(
     }
   }
 
-  const technologiesById = new Map<string, ProfileTechnology>();
+  const toolsById = new Map<string, ProfileTool>();
   const repositoriesById = new Map<string, ProfileRepository>();
   for (const repository of input.repositories) {
     repositoriesById.set(repository.id, repository);
@@ -133,10 +127,8 @@ export function assemblePersonProfile(
 
   const services: ProfileService[] = input.services
     .map((service) => {
-      for (const link of service.technologies) {
-        if (link.technology) {
-          technologiesById.set(link.technology.id, link.technology);
-        }
+      for (const link of service.tools) {
+        if (link.tool) toolsById.set(link.tool.id, link.tool);
       }
       if (service.repository) {
         repositoriesById.set(service.repository.id, service.repository);
@@ -160,8 +152,7 @@ export function assemblePersonProfile(
       }))
       .sort(byName),
     services,
-    technologies: [...technologiesById.values()].sort(byName),
-    tools: [...input.tools].sort(byName),
+    tools: [...toolsById.values()].sort(byName),
     repositories: [...repositoriesById.values()].sort(byName),
     documents: [...input.documents].sort((a, b) =>
       a.title.localeCompare(b.title),

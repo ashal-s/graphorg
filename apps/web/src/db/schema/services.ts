@@ -1,20 +1,30 @@
 import { relations } from "drizzle-orm";
-import { index, pgTable, text, unique, uuid } from "drizzle-orm/pg-core";
+import {
+  index,
+  pgTable,
+  text,
+  unique,
+  uuid,
+  type AnyPgColumn,
+} from "drizzle-orm/pg-core";
 
 import { id, organizationId, timestamps } from "./_columns";
 import { organizations } from "./organizations";
 import { repositories } from "./repositories";
 import { serviceDependencies } from "./service-dependencies";
-import { serviceTechnologies } from "./service-technologies";
-import { systems } from "./systems";
+import { serviceTools } from "./service-tools";
 import { teams } from "./teams";
 
+/**
+ * What the organization delivers or runs. A service can sit under a parent
+ * service (`parent_id`), so a "system" is just a service that has children.
+ */
 export const services = pgTable(
   "services",
   {
     id: id(),
     organizationId: organizationId(),
-    systemId: uuid("system_id").references(() => systems.id, {
+    parentId: uuid("parent_id").references((): AnyPgColumn => services.id, {
       onDelete: "set null",
     }),
     repositoryId: uuid("repository_id").references(() => repositories.id, {
@@ -30,7 +40,7 @@ export const services = pgTable(
   (table) => [
     unique().on(table.organizationId, table.name),
     index("services_organization_id_idx").on(table.organizationId),
-    index("services_system_id_idx").on(table.systemId),
+    index("services_parent_id_idx").on(table.parentId),
     index("services_repository_id_idx").on(table.repositoryId),
     index("services_owner_team_id_idx").on(table.ownerTeamId),
   ],
@@ -41,10 +51,12 @@ export const servicesRelations = relations(services, ({ one, many }) => ({
     fields: [services.organizationId],
     references: [organizations.id],
   }),
-  system: one(systems, {
-    fields: [services.systemId],
-    references: [systems.id],
+  parent: one(services, {
+    fields: [services.parentId],
+    references: [services.id],
+    relationName: "parent",
   }),
+  children: many(services, { relationName: "parent" }),
   repository: one(repositories, {
     fields: [services.repositoryId],
     references: [repositories.id],
@@ -53,7 +65,7 @@ export const servicesRelations = relations(services, ({ one, many }) => ({
     fields: [services.ownerTeamId],
     references: [teams.id],
   }),
-  technologies: many(serviceTechnologies),
+  tools: many(serviceTools),
   dependencies: many(serviceDependencies, { relationName: "service" }),
   dependents: many(serviceDependencies, { relationName: "dependsOnService" }),
 }));

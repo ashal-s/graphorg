@@ -10,40 +10,48 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { getDb } from "@/db";
-import { services, systems, teams } from "@/db/schema";
+import { services, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { lowerLabel } from "@/lib/terminology";
+import { getTerminology } from "@/lib/terminology-server";
 
 interface PageProps {
-  searchParams: Promise<{ q?: string; systemId?: string; teamId?: string }>;
+  searchParams: Promise<{ q?: string; parentId?: string; teamId?: string }>;
 }
 
 export default async function ServicesPage({ searchParams }: PageProps) {
   const session = await requireSession();
   const canEdit = hasRole(session.role, "editor");
-  const { q, systemId, teamId } = await searchParams;
+  const { q, parentId, teamId } = await searchParams;
   const orgId = session.organizationId;
+  const terms = (await getTerminology(orgId)).services;
+  const singular = lowerLabel(terms.singular);
+  const plural = lowerLabel(terms.plural);
 
-  const [rows, systemOptions, teamOptions] = await Promise.all([
+  const [rows, parentOptions, teamOptions] = await Promise.all([
     getDb().query.services.findMany({
       where: and(
         eq(services.organizationId, orgId),
         q ? ilike(services.name, `%${q}%`) : undefined,
-        systemId ? eq(services.systemId, systemId) : undefined,
+        parentId ? eq(services.parentId, parentId) : undefined,
         teamId ? eq(services.ownerTeamId, teamId) : undefined,
       ),
       with: {
-        system: { columns: { id: true, name: true } },
+        parent: { columns: { id: true, name: true } },
+        children: { columns: { id: true } },
         ownerTeam: { columns: { id: true, name: true } },
-        technologies: {
-          with: { technology: { columns: { id: true, name: true } } },
+        tools: {
+          with: { tool: { columns: { id: true, name: true } } },
         },
       },
       orderBy: (row, { asc }) => asc(row.name),
     }),
-    getDb().query.systems.findMany({
-      where: eq(systems.organizationId, orgId),
+    // Only services that have something under them are useful to filter by.
+    getDb().query.services.findMany({
+      where: eq(services.organizationId, orgId),
       columns: { id: true, name: true },
+      with: { children: { columns: { id: true }, limit: 1 } },
       orderBy: (row, { asc }) => asc(row.name),
     }),
     getDb().query.teams.findMany({
@@ -53,13 +61,14 @@ export default async function ServicesPage({ searchParams }: PageProps) {
     }),
   ]);
 
-  const hasFilters = Boolean(q || systemId || teamId);
+  const hasFilters = Boolean(q || parentId || teamId);
+  const parents = parentOptions.filter((option) => option.children.length > 0);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Services"
-        description="What's actually running, its tech stack, and its dependencies."
+        title={terms.plural}
+        description={terms.description}
         actions={
           canEdit && (
             <Button
@@ -67,22 +76,22 @@ export default async function ServicesPage({ searchParams }: PageProps) {
               nativeButton={false}
             >
               <Plus aria-hidden="true" />
-              New service
+              New {singular}
             </Button>
           )
         }
       />
 
-      <SearchBar defaultValue={q} placeholder="Search services">
+      <SearchBar defaultValue={q} placeholder={`Search ${plural}`}>
         <NativeSelect
-          name="systemId"
-          defaultValue={systemId ?? ""}
+          name="parentId"
+          defaultValue={parentId ?? ""}
           className="max-w-48"
         >
-          <option value="">All systems</option>
-          {systemOptions.map((system) => (
-            <option key={system.id} value={system.id}>
-              {system.name}
+          <option value="">All {plural}</option>
+          {parents.map((parent) => (
+            <option key={parent.id} value={parent.id}>
+              Under {parent.name}
             </option>
           ))}
         </NativeSelect>
@@ -109,12 +118,12 @@ export default async function ServicesPage({ searchParams }: PageProps) {
             />
           }
           title={
-            hasFilters ? "No services match your search" : "No services yet"
+            hasFilters ? `No ${plural} match your search` : `No ${plural} yet`
           }
           description={
             canEdit
-              ? "Create a service to start mapping your catalog."
-              : "Nobody has created a service yet."
+              ? `Add a ${singular} to start building your catalog.`
+              : `Nobody has added a ${singular} yet.`
           }
           action={
             canEdit &&
@@ -124,7 +133,7 @@ export default async function ServicesPage({ searchParams }: PageProps) {
                 render={<Link href="/catalog/services/new" />}
                 nativeButton={false}
               >
-                New service
+                New {singular}
               </Button>
             )
           }
@@ -136,18 +145,24 @@ export default async function ServicesPage({ searchParams }: PageProps) {
               key={service.id}
               href={`/catalog/services/${service.id}`}
               title={service.name}
-              meta={service.system ? service.system.name : "No system"}
+              meta={
+                service.parent
+                  ? `Under ${service.parent.name}`
+                  : service.children.length > 0
+                    ? `${service.children.length} under it`
+                    : undefined
+              }
               trailing={
                 service.ownerTeam && (
                   <Badge variant="outline">{service.ownerTeam.name}</Badge>
                 )
               }
               footer={
-                service.technologies.length > 0 && (
+                service.tools.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {service.technologies.map((link) => (
-                      <Badge key={link.technology.id} variant="secondary">
-                        {link.technology.name}
+                    {service.tools.map((link) => (
+                      <Badge key={link.tool.id} variant="secondary">
+                        {link.tool.name}
                       </Badge>
                     ))}
                   </div>

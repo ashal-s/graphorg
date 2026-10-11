@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+/** Empty string resets the wording to its default. */
+const label = z.string().trim().max(40);
+const oneLine = z
+  .string()
+  .trim()
+  .max(160)
+  .refine((value) => !/[\r\n]/.test(value), "Must be a single line");
+
 export const updateOrganizationSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   /** The workspace login identifier (`loginSchema.workspace`) — validated and normalized the same way signup does. */
@@ -21,4 +29,10 @@ export const updateOrganizationSchema = z.object({
         ),
     ])
     .optional(),
+  servicesLabelSingular: label.optional(),
+  servicesLabelPlural: label.optional(),
+  servicesDescription: oneLine.optional(),
+  toolsLabelSingular: label.optional(),
+  toolsLabelPlural: label.optional(),
+  toolsDescription: oneLine.optional(),
 });

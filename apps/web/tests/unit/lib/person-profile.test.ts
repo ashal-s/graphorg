@@ -46,9 +46,9 @@ function paymentsProfileInput(
           name: "checkout-api",
           url: "https://github.com/acme/checkout-api",
         },
-        technologies: [
-          { technology: { id: "tech-go", name: "Go" } },
-          { technology: { id: "tech-pg", name: "PostgreSQL" } },
+        tools: [
+          { tool: { id: "tool-github", name: "GitHub", category: "source" } },
+          { tool: { id: "tool-jira", name: "Jira", category: "tracking" } },
         ],
       },
       {
@@ -60,9 +60,8 @@ function paymentsProfileInput(
           name: "checkout-web",
           url: "https://github.com/acme/checkout-web",
         },
-        technologies: [
-          { technology: { id: "tech-ts", name: "TypeScript" } },
-          { technology: { id: "tech-react", name: "React" } },
+        tools: [
+          { tool: { id: "tool-jira", name: "Jira", category: "tracking" } },
         ],
       },
       {
@@ -70,7 +69,7 @@ function paymentsProfileInput(
         name: "payments-worker",
         description: "Async payments.",
         repository: null,
-        technologies: [{ technology: { id: "tech-py", name: "Python" } }],
+        tools: [],
       },
     ],
     repositories: [
@@ -92,10 +91,6 @@ function paymentsProfileInput(
         type: "adr",
         url: "https://docs.acme.example/adr/checkout-api",
       },
-    ],
-    tools: [
-      { id: "tool-github", name: "GitHub", category: "source_control" },
-      { id: "tool-jira", name: "Jira", category: "issue_tracking" },
     ],
     ...overrides,
   };
@@ -148,7 +143,7 @@ describe("assemblePersonProfile", () => {
     expect(profile.workflows).toEqual([]);
   });
 
-  it("dedupes technologies across the team's services", () => {
+  it("dedupes tools across the team's services", () => {
     const profile = assemblePersonProfile(
       paymentsProfileInput({
         services: [
@@ -156,22 +151,24 @@ describe("assemblePersonProfile", () => {
             id: "svc-a",
             name: "a",
             description: null,
-            technologies: [
-              { technology: { id: "tech-go", name: "Go" } },
-              { technology: { id: "tech-pg", name: "PostgreSQL" } },
+            tools: [
+              { tool: { id: "tool-go", name: "Go", category: "other" } },
+              {
+                tool: { id: "tool-pg", name: "PostgreSQL", category: "other" },
+              },
             ],
           },
           {
             id: "svc-b",
             name: "b",
             description: null,
-            technologies: [{ technology: { id: "tech-go", name: "Go" } }],
+            tools: [{ tool: { id: "tool-go", name: "Go", category: "other" } }],
           },
         ],
       }),
     );
 
-    expect(profile.technologies.map((tech) => tech.name)).toEqual([
+    expect(profile.tools.map((tool) => tool.name)).toEqual([
       "Go",
       "PostgreSQL",
     ]);
@@ -197,7 +194,7 @@ describe("assemblePersonProfile", () => {
               name: "linked-repo",
               url: "https://github.com/acme/linked",
             },
-            technologies: [],
+            tools: [],
           },
         ],
       }),
@@ -230,7 +227,6 @@ describe("assemblePersonProfile", () => {
         services: [],
         repositories: [],
         documents: [],
-        tools: [],
         workflowLinks: [],
       }),
     );
@@ -238,7 +234,6 @@ describe("assemblePersonProfile", () => {
     expect(profile.team).toBeNull();
     expect(profile.services).toEqual([]);
     expect(profile.repositories).toEqual([]);
-    expect(profile.technologies).toEqual([]);
     expect(profile.documents).toEqual([]);
     expect(profile.workflows).toEqual([]);
     expect(profile.tools).toEqual([]);

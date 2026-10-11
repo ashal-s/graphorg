@@ -58,7 +58,7 @@ function postRequest(body: unknown) {
 }
 
 /**
- * Same shape of coverage as tests/unit/api/systems.test.ts: rejects
+ * Same shape of coverage as tests/unit/api/services.test.ts: rejects
  * unauthenticated access before touching the database, and always scopes by
  * the caller's own organization_id. A live-DB integration suite (real
  * pagination behavior against real rows) is WEB-135's job.

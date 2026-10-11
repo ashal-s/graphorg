@@ -18,7 +18,7 @@ import { createTeamSchema } from "./schema";
 
 /**
  * Tenant-scoped, paginated Route Handler for `teams`, the pattern every
- * other WEB-136 entity (people, tools, technologies) follows: cursor
+ * other WEB-136 entity (people, tools, services) follows: cursor
  * pagination via `parsePageParams`/`toPage` (see src/lib/api/pagination.ts),
  * an optional `q` substring filter on name, and the same auth/tenancy shape
  * WEB-133 established on this exact route (`GET /api/teams`) and WEB-132

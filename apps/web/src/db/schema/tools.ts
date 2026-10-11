@@ -1,29 +1,21 @@
-import { relations, sql } from "drizzle-orm";
-import { check, index, pgTable, text, unique } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { index, pgTable, text, unique } from "drizzle-orm/pg-core";
 
 import { id, organizationId, timestamps } from "./_columns";
 import { organizations } from "./organizations";
 
+/**
+ * What the organization uses to do its work: software, platforms, equipment.
+ * `category` is free text so each organization can group tools its own way.
+ */
 export const tools = pgTable(
   "tools",
   {
     id: id(),
     organizationId: organizationId(),
     name: text("name").notNull(),
-    category: text("category", {
-      enum: [
-        "source_control",
-        "ci_cd",
-        "issue_tracking",
-        "documentation",
-        "feature_flags",
-        "cloud",
-        "observability",
-        "other",
-      ],
-    })
-      .notNull()
-      .default("other"),
+    category: text("category").notNull().default("other"),
+    description: text("description"),
     vendor: text("vendor"),
     url: text("url"),
     ...timestamps(),
@@ -31,10 +23,6 @@ export const tools = pgTable(
   (table) => [
     unique().on(table.organizationId, table.name),
     index("tools_organization_id_idx").on(table.organizationId),
-    check(
-      "tools_category_check",
-      sql`${table.category} in ('source_control', 'ci_cd', 'issue_tracking', 'documentation', 'feature_flags', 'cloud', 'observability', 'other')`,
-    ),
   ],
 );
 

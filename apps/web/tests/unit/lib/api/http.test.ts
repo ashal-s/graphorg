@@ -11,7 +11,7 @@ describe("requireUuidParam", () => {
   it.each(["not-a-uuid", "", "123", "11111111-1111-4111-8111-11111111111"])(
     "returns a 400 response for a malformed id (%s)",
     (id) => {
-      // Every `[id]` route (people, teams, tools, technologies, systems,
+      // Every `[id]` route (people, teams, tools,
       // repositories, documents, services) compares this route param
       // directly against a Postgres `uuid` column; without this check, a
       // value like this would reach the database as an invalid cast and

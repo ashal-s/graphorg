@@ -14,7 +14,7 @@ import {
   toPage,
 } from "@/lib/api/pagination";
 
-import { createToolSchema, toolCategorySchema } from "./schema";
+import { createToolSchema } from "./schema";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -24,20 +24,14 @@ export async function GET(request: NextRequest) {
   if (page instanceof NextResponse) return page;
 
   const q = request.nextUrl.searchParams.get("q");
-  const categoryRaw = request.nextUrl.searchParams.get("category");
-  const category = categoryRaw
-    ? toolCategorySchema.safeParse(categoryRaw)
-    : null;
-  if (category && !category.success) {
-    return jsonError(400, "category is not a valid tool category");
-  }
+  const category = request.nextUrl.searchParams.get("category");
 
   const db = getDb();
   const rows = await db.query.tools.findMany({
     where: and(
       eq(tools.organizationId, session.organizationId),
       q ? ilike(tools.name, `%${q}%`) : undefined,
-      category ? eq(tools.category, category.data) : undefined,
+      category ? eq(tools.category, category) : undefined,
       afterCursorPredicate(tools.name, tools.id, page),
     ),
     orderBy: (row) => orderByNameThenId(row.name, row.id),

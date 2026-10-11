@@ -19,7 +19,7 @@ interface EntityRowProps {
 }
 
 /**
- * Full-width card row used for index-page lists (people, systems, services,
+ * Full-width card row used for index-page lists (people, services, tools,
  * workflows). Kept as the one "list of things" idiom, alongside
  * EntityChipList for the flat/wrapping case below.
  */
@@ -97,7 +97,7 @@ function EntityChip({ href, label, external, className }: EntityChipProps) {
 
 /**
  * Wrapping chip cloud used for short related-item lists on detail pages
- * (e.g. a team's people, technologies, repositories). Shares EntityRow's
+ * (e.g. a team's people, tools, repositories). Shares EntityRow's
  * rounded/hover treatment so the two idioms read as one visual language.
  */
 export function EntityChipList({

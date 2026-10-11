@@ -2,7 +2,10 @@ import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { Badge } from "@/components/ui/badge";
+import { RelatedRecordLink } from "@/components/directory/related-record-link";
+import { ToolForm } from "@/components/catalog/tool-form";
+import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
+import { PageHeader } from "@/components/shared/page-header";
 import {
   Card,
   CardContent,
@@ -11,8 +14,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getDb } from "@/db";
-import { tools } from "@/db/schema";
+import { serviceTools, tools } from "@/db/schema";
+import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { lowerLabel } from "@/lib/terminology";
+import { getTerminology } from "@/lib/terminology-server";
+
+import { loadToolCategories } from "../../categories";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -20,46 +28,81 @@ interface PageProps {
 
 export default async function ToolDetailPage({ params }: PageProps) {
   const session = await requireSession();
+  const readOnly = !hasRole(session.role, "editor");
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) notFound();
 
-  const tool = await getDb().query.tools.findFirst({
-    where: and(
-      eq(tools.id, id),
-      eq(tools.organizationId, session.organizationId),
-    ),
-  });
+  const orgId = session.organizationId;
+  const [terminology, tool, links, categories] = await Promise.all([
+    getTerminology(orgId),
+    getDb().query.tools.findFirst({
+      where: and(eq(tools.id, id), eq(tools.organizationId, orgId)),
+    }),
+    getDb().query.serviceTools.findMany({
+      where: eq(serviceTools.toolId, id),
+      with: {
+        service: { columns: { id: true, name: true, organizationId: true } },
+      },
+    }),
+    loadToolCategories(orgId),
+  ]);
   if (!tool) notFound();
+
+  const relatedServices = links
+    .map((link) => link.service)
+    .filter((service) => service.organizationId === orgId)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const toolTerms = terminology.tools;
+  const serviceTerms = terminology.services;
+  const singular = lowerLabel(toolTerms.singular);
+  const servicePlural = lowerLabel(serviceTerms.plural);
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{tool.name}</h1>
-        <p className="text-sm text-muted-foreground">
-          <Badge variant="outline">{tool.category.replaceAll("_", " ")}</Badge>
-          {tool.vendor ? ` · ${tool.vendor}` : ""}
-        </p>
-      </div>
+      <PageHeader
+        title={tool.name}
+        description={`Edit this ${singular}'s details, or see where it's used below.`}
+        align="start"
+        actions={
+          !readOnly && (
+            <DeleteEntityButton
+              entityLabel={singular}
+              entityName={tool.name}
+              apiPath={`/api/tools/${tool.id}`}
+              redirectTo="/catalog/tools"
+            />
+          )
+        }
+      />
+
+      <ToolForm
+        mode="edit"
+        tool={tool}
+        terms={toolTerms}
+        categories={categories}
+        readOnly={readOnly}
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle>Link</CardTitle>
+          <CardTitle>Used by</CardTitle>
           <CardDescription>
-            {tool.url
-              ? "External homepage for this tool."
-              : "No URL recorded for this tool."}
+            {relatedServices.length === 0
+              ? `No ${servicePlural} use this ${singular} yet.`
+              : `${relatedServices.length} ${relatedServices.length === 1 ? lowerLabel(serviceTerms.singular) : servicePlural} use this ${singular}.`}
           </CardDescription>
         </CardHeader>
-        {tool.url && (
-          <CardContent>
-            <a
-              href={tool.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block rounded-lg border border-border px-2.5 py-1.5 text-sm hover:bg-muted"
-            >
-              {tool.url}
-            </a>
+        {relatedServices.length > 0 && (
+          <CardContent className="flex flex-wrap gap-2">
+            {relatedServices.map((service) => (
+              <RelatedRecordLink
+                key={service.id}
+                href={`/catalog/services/${service.id}`}
+              >
+                {service.name}
+              </RelatedRecordLink>
+            ))}
           </CardContent>
         )}
       </Card>

@@ -50,6 +50,20 @@
       "when": 1791705100115,
       "tag": "0006_drop_team_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791735877192,
+      "tag": "0007_merge_systems_technologies",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791736012267,
+      "tag": "0008_add_catalog_terminology",
+      "breakpoints": true
     }
   ]
 }

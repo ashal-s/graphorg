@@ -19,11 +19,10 @@ const seededProfile: AssembledPersonProfile = {
     { id: "svc-checkout-api", name: "checkout-api", description: null },
     { id: "svc-checkout-web", name: "checkout-web", description: null },
   ],
-  technologies: [
-    { id: "tech-go", name: "Go" },
-    { id: "tech-ts", name: "TypeScript" },
+  tools: [
+    { id: "tool-github", name: "GitHub", category: "source_control" },
+    { id: "tool-jira", name: "Jira", category: "issue_tracking" },
   ],
-  tools: [{ id: "tool-github", name: "GitHub", category: "source_control" }],
   repositories: [
     {
       id: "repo-checkout-api",
@@ -42,7 +41,7 @@ const seededProfile: AssembledPersonProfile = {
 };
 
 describe("PersonProfileRelationships", () => {
-  it("links a seeded person's team, workflows, stack, ownership, and documents", () => {
+  it("links a seeded person's team, workflows, tools, ownership, and documents", () => {
     render(<PersonProfileRelationships profile={seededProfile} />);
 
     expect(screen.getByRole("link", { name: "Payments" })).toHaveAttribute(
@@ -79,13 +78,9 @@ describe("PersonProfileRelationships", () => {
       ]),
     );
 
-    expect(screen.getByRole("link", { name: "Go" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Jira" })).toHaveAttribute(
       "href",
-      "/catalog/technologies/tech-go",
-    );
-    expect(screen.getByRole("link", { name: "TypeScript" })).toHaveAttribute(
-      "href",
-      "/catalog/technologies/tech-ts",
+      "/catalog/tools/tool-jira",
     );
     expect(screen.getByRole("link", { name: "GitHub" })).toHaveAttribute(
       "href",
@@ -106,7 +101,6 @@ describe("PersonProfileRelationships", () => {
           directReports: [],
           workflows: [],
           services: [],
-          technologies: [],
           tools: [],
           repositories: [],
           documents: [],
@@ -131,12 +125,7 @@ describe("PersonProfileRelationships", () => {
       screen.getByText("This person's team doesn't own any repositories."),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "No technologies are recorded on this person's services.",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("No tools are recorded in this organisation."),
+      screen.getByText("No tools are recorded on this person's services."),
     ).toBeInTheDocument();
     expect(
       screen.getByText("This person's team doesn't manage any documents."),

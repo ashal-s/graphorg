@@ -51,7 +51,7 @@ export function TeamResources({ resources }: { resources: TeamResource[] }) {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3 lg:grid-cols-5">
         {resources.map((resource) => {
           const selected = resource.key === activeKey;
           return (

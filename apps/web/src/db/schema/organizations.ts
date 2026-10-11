@@ -6,9 +6,7 @@ import { documents } from "./documents";
 import { people } from "./people";
 import { repositories } from "./repositories";
 import { services } from "./services";
-import { systems } from "./systems";
 import { teams } from "./teams";
-import { technologies } from "./technologies";
 import { tools } from "./tools";
 import { users } from "./users";
 import { workflows } from "./workflows";
@@ -19,6 +17,14 @@ export const organizations = pgTable("organizations", {
   slug: text("slug").notNull().unique(),
   description: text("description"),
   logoUrl: text("logo_url"),
+  // How this organization names, and in one line describes, the two catalog
+  // concepts. Null means "use the default wording" (see lib/terminology.ts).
+  servicesLabelSingular: text("services_label_singular"),
+  servicesLabelPlural: text("services_label_plural"),
+  servicesDescription: text("services_description"),
+  toolsLabelSingular: text("tools_label_singular"),
+  toolsLabelPlural: text("tools_label_plural"),
+  toolsDescription: text("tools_description"),
   ...timestamps(),
 });
 
@@ -26,9 +32,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   users: many(users),
   teams: many(teams),
   people: many(people),
-  technologies: many(technologies),
   tools: many(tools),
-  systems: many(systems),
   services: many(services),
   repositories: many(repositories),
   documents: many(documents),

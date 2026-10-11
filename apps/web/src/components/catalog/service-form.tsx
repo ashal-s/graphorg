@@ -18,35 +18,40 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { MultiSelectPicker } from "@/components/catalog/multi-select-picker";
+import { lowerLabel, type Terminology } from "@/lib/terminology";
 
 export interface ServiceDetail {
   id: string;
   name: string;
   description: string | null;
-  systemId: string | null;
+  parentId: string | null;
   repositoryId: string | null;
   ownerTeamId: string | null;
-  technologies: { id: string; name: string }[];
+  tools: { id: string; name: string }[];
   dependencies: { id: string; name: string }[];
 }
 
 export function ServiceForm({
   mode,
   service,
-  systems,
+  terminology,
+  parents,
   repositories,
   teams,
-  technologies,
+  tools,
   services,
   readOnly = false,
   defaultOwnerTeamId,
 }: {
   mode: "create" | "edit";
   service?: ServiceDetail;
-  systems: { id: string; name: string }[];
+  /** The organization's wording for services and tools. */
+  terminology: Terminology;
+  /** Services this one may sit under (never itself or anything beneath it). */
+  parents: { id: string; name: string }[];
   repositories: { id: string; name: string }[];
   teams: { id: string; name: string }[];
-  technologies: { id: string; name: string; category: string }[];
+  tools: { id: string; name: string; category: string }[];
   /** Every other service in the org, for the "depends on" picker (never
    * includes this service: a service can't depend on itself). */
   services: { id: string; name: string }[];
@@ -55,15 +60,18 @@ export function ServiceForm({
   defaultOwnerTeamId?: string;
 }) {
   const router = useRouter();
+  const serviceTerms = terminology.services;
+  const toolTerms = terminology.tools;
+  const singular = lowerLabel(serviceTerms.singular);
   const [name, setName] = useState(service?.name ?? "");
   const [description, setDescription] = useState(service?.description ?? "");
-  const [systemId, setSystemId] = useState(service?.systemId ?? "");
+  const [parentId, setParentId] = useState(service?.parentId ?? "");
   const [repositoryId, setRepositoryId] = useState(service?.repositoryId ?? "");
   const [ownerTeamId, setOwnerTeamId] = useState(
     service?.ownerTeamId ?? defaultOwnerTeamId ?? "",
   );
-  const [technologyIds, setTechnologyIds] = useState<string[]>(
-    (service?.technologies ?? []).map((technology) => technology.id),
+  const [toolIds, setToolIds] = useState<string[]>(
+    (service?.tools ?? []).map((tool) => tool.id),
   );
   const [dependsOnServiceIds, setDependsOnServiceIds] = useState<string[]>(
     (service?.dependencies ?? []).map((dependency) => dependency.id),
@@ -83,10 +91,10 @@ export function ServiceForm({
     const payload = {
       name: name.trim(),
       description: description.trim().length > 0 ? description.trim() : null,
-      systemId: systemId.length > 0 ? systemId : null,
+      parentId: parentId.length > 0 ? parentId : null,
       repositoryId: repositoryId.length > 0 ? repositoryId : null,
       ownerTeamId: ownerTeamId.length > 0 ? ownerTeamId : null,
-      technologyIds,
+      toolIds,
       dependsOnServiceIds,
     };
 
@@ -122,7 +130,7 @@ export function ServiceForm({
         <Alert>
           <AlertTitle>View-only</AlertTitle>
           <AlertDescription>
-            You have viewer access, so this service can be viewed but not
+            You have viewer access, so this {singular} can be viewed but not
             changed.
           </AlertDescription>
         </Alert>
@@ -136,10 +144,8 @@ export function ServiceForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Service details</CardTitle>
-          <CardDescription>
-            What this service does and where it lives.
-          </CardDescription>
+          <CardTitle>{serviceTerms.singular} details</CardTitle>
+          <CardDescription>{serviceTerms.description}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
@@ -148,7 +154,7 @@ export function ServiceForm({
               id="service-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="e.g. checkout-api"
+              placeholder={`Name this ${singular}`}
               required
               disabled={readOnly}
             />
@@ -159,23 +165,23 @@ export function ServiceForm({
               id="service-description"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              placeholder="What does this service do?"
+              placeholder={`What is this ${singular} about?`}
               disabled={readOnly}
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="service-system">System</Label>
+              <Label htmlFor="service-parent">Part of</Label>
               <NativeSelect
-                id="service-system"
-                value={systemId}
-                onChange={(event) => setSystemId(event.target.value)}
+                id="service-parent"
+                value={parentId}
+                onChange={(event) => setParentId(event.target.value)}
                 disabled={readOnly}
               >
-                <option value="">No system</option>
-                {systems.map((system) => (
-                  <option key={system.id} value={system.id}>
-                    {system.name}
+                <option value="">Top level</option>
+                {parents.map((parent) => (
+                  <option key={parent.id} value={parent.id}>
+                    {parent.name}
                   </option>
                 ))}
               </NativeSelect>
@@ -218,21 +224,21 @@ export function ServiceForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Technologies</CardTitle>
-          <CardDescription>What this service is built with.</CardDescription>
+          <CardTitle>{toolTerms.plural}</CardTitle>
+          <CardDescription>{toolTerms.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <MultiSelectPicker
-            label="Technologies"
-            addLabel="Add technology"
-            emptyLabel="No technologies recorded yet."
-            options={technologies.map((technology) => ({
-              id: technology.id,
-              label: technology.name,
-              sublabel: technology.category,
+            label={toolTerms.plural}
+            addLabel={`Add ${lowerLabel(toolTerms.singular)}`}
+            emptyLabel={`No ${lowerLabel(toolTerms.plural)} recorded yet.`}
+            options={tools.map((tool) => ({
+              id: tool.id,
+              label: tool.name,
+              sublabel: tool.category,
             }))}
-            selectedIds={technologyIds}
-            onChange={setTechnologyIds}
+            selectedIds={toolIds}
+            onChange={setToolIds}
             disabled={readOnly}
           />
         </CardContent>
@@ -242,7 +248,7 @@ export function ServiceForm({
         <CardHeader>
           <CardTitle>Depends on</CardTitle>
           <CardDescription>
-            Other services this one relies on to work.
+            Other {lowerLabel(serviceTerms.plural)} this one relies on.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -264,7 +270,7 @@ export function ServiceForm({
             {saving
               ? "Saving…"
               : mode === "create"
-                ? "Create service"
+                ? `Create ${singular}`
                 : "Save changes"}
           </Button>
         )}

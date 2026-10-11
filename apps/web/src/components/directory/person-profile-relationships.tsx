@@ -159,34 +159,11 @@ export function PersonProfileRelationships({
 
       <Card>
         <CardHeader>
-          <CardTitle>Technologies</CardTitle>
-          <CardDescription>
-            {profile.technologies.length === 0
-              ? "No technologies are recorded on this person's services."
-              : "Technologies associated with this person's services."}
-          </CardDescription>
-        </CardHeader>
-        {profile.technologies.length > 0 && (
-          <CardContent className="flex flex-wrap gap-2">
-            {profile.technologies.map((technology) => (
-              <RelatedRecordLink
-                key={technology.id}
-                href={`/catalog/technologies/${technology.id}`}
-              >
-                {technology.name}
-              </RelatedRecordLink>
-            ))}
-          </CardContent>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Tools</CardTitle>
           <CardDescription>
             {profile.tools.length === 0
-              ? "No tools are recorded in this organisation."
-              : "Tools in this organisation's catalog, used alongside this person's services."}
+              ? "No tools are recorded on this person's services."
+              : "Tools used by this person's services."}
           </CardDescription>
         </CardHeader>
         {profile.tools.length > 0 && (

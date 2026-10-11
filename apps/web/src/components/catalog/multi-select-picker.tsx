@@ -26,7 +26,7 @@ export interface MultiSelectOption {
 
 /**
  * Multi-select for a full-replacement id list on a create/edit form (a
- * service's technologies or dependencies). A Sheet, not a dropdown/combobox:
+ * service's tools or dependencies). A Sheet, not a dropdown/combobox:
  * the app has no listbox primitive yet, and a side panel gives room for a
  * search box plus a scrollable list without extra dependencies.
  */
