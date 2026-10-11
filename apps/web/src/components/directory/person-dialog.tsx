@@ -19,6 +19,19 @@ import {
   SearchableSelect,
 } from "@/components/ui/searchable-select";
 
+/** "jordan@acme.com" -> the part before the "@" and the "@…" after it. */
+function splitEmail(email: string): { username: string; domain: string } {
+  const at = email.lastIndexOf("@");
+  return at < 0
+    ? { username: email, domain: "" }
+    : { username: email.slice(0, at), domain: email.slice(at) };
+}
+
+/** Always starts with exactly one "@", so the box reads as a domain. */
+function asDomain(value: string): string {
+  return `@${value.replace(/@/g, "")}`;
+}
+
 export interface PersonDialogPerson {
   id: string;
   name: string;
@@ -41,6 +54,7 @@ export function PersonDialog({
   size,
   withIcon = true,
   variant,
+  emailDomain,
 }: {
   /** Omit to create a new person. */
   person?: PersonDialogPerson;
@@ -50,12 +64,19 @@ export function PersonDialog({
   size?: "sm";
   withIcon?: boolean;
   variant?: "default" | "outline";
+  /** The organization's email domain (no "@"), pre-filled for new people. */
+  emailDomain?: string | null;
 }) {
+  const defaultDomain = emailDomain ? asDomain(emailDomain) : "@";
+  const initialEmail = person
+    ? splitEmail(person.email)
+    : { username: "", domain: defaultDomain };
   const editing = Boolean(person);
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(person?.name ?? "");
-  const [email, setEmail] = useState(person?.email ?? "");
+  const [username, setUsername] = useState(initialEmail.username);
+  const [domain, setDomain] = useState(initialEmail.domain || "@");
   const [title, setTitle] = useState(person?.title ?? "");
   const [photoUrl, setPhotoUrl] = useState(person?.photoUrl ?? "");
   const [teamIds, setTeamIds] = useState<string[]>(person?.teamIds ?? []);
@@ -66,7 +87,8 @@ export function PersonDialog({
   /** Back to the saved values (or blank, when creating). */
   function reset() {
     setName(person?.name ?? "");
-    setEmail(person?.email ?? "");
+    setUsername(initialEmail.username);
+    setDomain(initialEmail.domain || "@");
     setTitle(person?.title ?? "");
     setPhotoUrl(person?.photoUrl ?? "");
     setTeamIds(person?.teamIds ?? []);
@@ -82,8 +104,12 @@ export function PersonDialog({
       setError("Name is required.");
       return;
     }
-    if (email.trim().length === 0) {
+    if (username.trim().length === 0) {
       setError("Email is required.");
+      return;
+    }
+    if (domain.trim().length <= 1) {
+      setError("Enter the email domain, like @example.com.");
       return;
     }
 
@@ -95,7 +121,7 @@ export function PersonDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: name.trim(),
-          email: email.trim(),
+          email: `${username.trim()}${domain.trim()}`,
           title: title.trim().length > 0 ? title.trim() : null,
           photoUrl: photoUrl.trim(),
           teamIds,
@@ -175,14 +201,36 @@ export function PersonDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="person-dialog-email">Email</Label>
-              <Input
-                id="person-dialog-email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="jordan@example.com"
-                required
-              />
+              {/* Two boxes that read as one address: username, then @domain. */}
+              <div className="flex">
+                <Input
+                  id="person-dialog-email"
+                  value={username}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    // Pasting a whole address fills both boxes.
+                    if (value.includes("@")) {
+                      const parts = splitEmail(value.trim());
+                      setUsername(parts.username);
+                      if (parts.domain.length > 1) setDomain(parts.domain);
+                    } else {
+                      setUsername(value);
+                    }
+                  }}
+                  placeholder="jordan"
+                  autoComplete="off"
+                  required
+                  className="min-w-0 flex-1 rounded-r-none"
+                />
+                <Input
+                  aria-label="Email domain"
+                  value={domain}
+                  onChange={(event) => setDomain(asDomain(event.target.value))}
+                  placeholder="@example.com"
+                  autoComplete="off"
+                  className="-ml-px w-44 shrink-0 rounded-l-none bg-muted/40"
+                />
+              </div>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="person-dialog-title">Title</Label>

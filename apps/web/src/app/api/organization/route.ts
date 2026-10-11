@@ -58,6 +58,7 @@ export async function PATCH(request: NextRequest) {
     slug?: string;
     description?: string | null;
     logoUrl?: string | null;
+    emailDomain?: string | null;
     servicesLabelSingular?: string | null;
     servicesLabelPlural?: string | null;
     servicesDescription?: string | null;
@@ -71,6 +72,9 @@ export async function PATCH(request: NextRequest) {
   }
   if (parsed.data.logoUrl !== undefined) {
     values.logoUrl = parsed.data.logoUrl || null;
+  }
+  if (parsed.data.emailDomain !== undefined) {
+    values.emailDomain = parsed.data.emailDomain || null;
   }
   for (const key of [
     "servicesLabelSingular",

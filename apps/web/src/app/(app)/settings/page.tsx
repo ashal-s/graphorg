@@ -70,7 +70,13 @@ async function OrganizationTab({
 }) {
   const organization = await getDb().query.organizations.findFirst({
     where: eq(organizations.id, organizationId),
-    columns: { name: true, slug: true, description: true, logoUrl: true },
+    columns: {
+      name: true,
+      slug: true,
+      description: true,
+      logoUrl: true,
+      emailDomain: true,
+    },
   });
   if (!organization) notFound();
 

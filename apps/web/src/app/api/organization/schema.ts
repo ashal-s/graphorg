@@ -29,6 +29,25 @@ export const updateOrganizationSchema = z.object({
         ),
     ])
     .optional(),
+  /** Email domain, with or without a leading "@". Empty string clears it. */
+  emailDomain: z
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .trim()
+        .toLowerCase()
+        .max(253)
+        .transform((value) => value.replace(/^@+/, ""))
+        .refine(
+          (value) =>
+            /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(
+              value,
+            ),
+          "Enter a domain like example.com",
+        ),
+    ])
+    .optional(),
   servicesLabelSingular: label.optional(),
   servicesLabelPlural: label.optional(),
   servicesDescription: oneLine.optional(),

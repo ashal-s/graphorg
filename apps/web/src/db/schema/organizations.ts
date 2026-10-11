@@ -16,6 +16,8 @@ export const organizations = pgTable("organizations", {
   slug: text("slug").notNull().unique(),
   description: text("description"),
   logoUrl: text("logo_url"),
+  /** Email domain without the "@" (e.g. "acme.com"), used to fill in new people's addresses. */
+  emailDomain: text("email_domain"),
   // How this organization names, and in one line describes, the two catalog
   // concepts. Null means "use the default wording" (see lib/terminology.ts).
   servicesLabelSingular: text("services_label_singular"),

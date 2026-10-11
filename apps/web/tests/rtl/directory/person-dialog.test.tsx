@@ -14,8 +14,14 @@ const teams = [
 ];
 const managers = [{ id: "person-1", name: "Priya Shah" }];
 
-function renderDialog() {
-  return render(<PersonDialog teams={teams} managers={managers} />);
+function renderDialog(emailDomain: string | null = "example.com") {
+  return render(
+    <PersonDialog
+      teams={teams}
+      managers={managers}
+      emailDomain={emailDomain}
+    />,
+  );
 }
 
 describe("PersonDialog", () => {
@@ -36,6 +42,7 @@ describe("PersonDialog", () => {
 
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
+    expect(screen.getByLabelText("Email domain")).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toBeInTheDocument();
     expect(screen.getByLabelText("Teams")).toBeInTheDocument();
     expect(screen.getByLabelText("Manager")).toBeInTheDocument();
@@ -49,7 +56,7 @@ describe("PersonDialog", () => {
     await user.click(screen.getByRole("button", { name: /new person/i }));
 
     await user.type(screen.getByLabelText("Name"), "Jordan Lee");
-    await user.type(screen.getByLabelText("Email"), "jordan@example.com");
+    await user.type(screen.getByLabelText("Email"), "jordan");
     await user.type(screen.getByLabelText("Title"), "Engineer");
 
     // Teams: a searchable, multi-select dropdown.
@@ -92,7 +99,7 @@ describe("PersonDialog", () => {
     renderDialog();
     await user.click(screen.getByRole("button", { name: /new person/i }));
     await user.type(screen.getByLabelText("Name"), "Jordan Lee");
-    await user.type(screen.getByLabelText("Email"), "jordan@example.com");
+    await user.type(screen.getByLabelText("Email"), "jordan");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(
@@ -100,6 +107,82 @@ describe("PersonDialog", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toHaveValue("Jordan Lee");
     expect(refreshMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("PersonDialog email domain", () => {
+  beforeEach(() => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ person: { id: "new" } }),
+    });
+  });
+
+  async function openAndFill(emailDomain: string | null) {
+    const user = userEvent.setup();
+    renderDialog(emailDomain);
+    await user.click(screen.getByRole("button", { name: /new person/i }));
+    await user.type(screen.getByLabelText("Name"), "Jordan Lee");
+    return user;
+  }
+
+  const sentEmail = () =>
+    JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body).email;
+
+  it("pre-fills the organization's domain after an @", async () => {
+    const user = userEvent.setup();
+    renderDialog("acme.com");
+    await user.click(screen.getByRole("button", { name: /new person/i }));
+
+    expect(screen.getByLabelText("Email domain")).toHaveValue("@acme.com");
+  });
+
+  it("joins the username and domain into the address", async () => {
+    const user = await openAndFill("acme.com");
+    await user.type(screen.getByLabelText("Email"), "jordan");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(sentEmail()).toBe("jordan@acme.com");
+  });
+
+  it("lets the domain be edited for this person", async () => {
+    const user = await openAndFill("acme.com");
+    await user.type(screen.getByLabelText("Email"), "jordan");
+    const domain = screen.getByLabelText("Email domain");
+    await user.clear(domain);
+    await user.type(domain, "contractor.io");
+    expect(domain).toHaveValue("@contractor.io");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(sentEmail()).toBe("jordan@contractor.io");
+  });
+
+  it("splits a pasted full address across both boxes", async () => {
+    const user = await openAndFill("acme.com");
+    await user.click(screen.getByLabelText("Email"));
+    await user.paste("jordan@other.org");
+
+    expect(screen.getByLabelText("Email")).toHaveValue("jordan");
+    expect(screen.getByLabelText("Email domain")).toHaveValue("@other.org");
+  });
+
+  it("starts with just an @ when the organization has no domain", async () => {
+    const user = userEvent.setup();
+    renderDialog(null);
+    await user.click(screen.getByRole("button", { name: /new person/i }));
+
+    expect(screen.getByLabelText("Email domain")).toHaveValue("@");
+  });
+
+  it("asks for a domain if it was left empty", async () => {
+    const user = await openAndFill(null);
+    await user.type(screen.getByLabelText("Email"), "jordan");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(
+      await screen.findByText(/enter the email domain/i),
+    ).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });
 
@@ -129,7 +212,8 @@ describe("PersonDialog (edit)", () => {
     await user.click(screen.getByRole("button", { name: /edit details/i }));
 
     expect(screen.getByLabelText("Name")).toHaveValue("Jordan Lee");
-    expect(screen.getByLabelText("Email")).toHaveValue("jordan@example.com");
+    expect(screen.getByLabelText("Email")).toHaveValue("jordan");
+    expect(screen.getByLabelText("Email domain")).toHaveValue("@example.com");
     expect(screen.getByLabelText("Title")).toHaveValue("Engineer");
     expect(screen.getByText("Alpha")).toBeInTheDocument();
 

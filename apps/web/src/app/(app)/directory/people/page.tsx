@@ -10,7 +10,7 @@ import { SearchBar } from "@/components/shared/search-bar";
 import { Badge } from "@/components/ui/badge";
 import { NativeSelect } from "@/components/ui/native-select";
 import { getDb } from "@/db";
-import { people, teamMembers, teams } from "@/db/schema";
+import { organizations, people, teamMembers, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 
@@ -24,7 +24,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
   const { q, teamId } = await searchParams;
   const orgId = session.organizationId;
 
-  const [rows, teamOptions, managerOptions] = await Promise.all([
+  const [rows, teamOptions, managerOptions, organization] = await Promise.all([
     getDb().query.people.findMany({
       where: and(
         eq(people.organizationId, orgId),
@@ -62,6 +62,10 @@ export default async function PeoplePage({ searchParams }: PageProps) {
           orderBy: (row, { asc }) => asc(row.name),
         })
       : Promise.resolve([]),
+    getDb().query.organizations.findFirst({
+      where: eq(organizations.id, orgId),
+      columns: { emailDomain: true },
+    }),
   ]);
 
   const hasFilters = Boolean(q || teamId);
@@ -89,7 +93,11 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         description="Everyone in your organisation's directory."
         actions={
           canEdit && (
-            <PersonDialog teams={teamOptions} managers={managerOptions} />
+            <PersonDialog
+              teams={teamOptions}
+              managers={managerOptions}
+              emailDomain={organization?.emailDomain}
+            />
           )
         }
       />
@@ -129,6 +137,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
               <PersonDialog
                 teams={teamOptions}
                 managers={managerOptions}
+                emailDomain={organization?.emailDomain}
                 size="sm"
                 withIcon={false}
               />
