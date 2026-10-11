@@ -16,6 +16,7 @@ import { eq } from "drizzle-orm";
 
 import { getDb } from "../src/db";
 import {
+  documentFolders,
   documents,
   organizations,
   people,
@@ -387,6 +388,26 @@ async function main() {
 
   // --- Documents -----------------------------------------------------
 
+  const folderRows = await db
+    .insert(documentFolders)
+    .values(
+      ["Engineering", "People"].map((name) => ({
+        name,
+        organizationId: org.id,
+      })),
+    )
+    .returning();
+  const [engineeringFolder, peopleFolder] = folderRows;
+  const [runbooksFolder] = await db
+    .insert(documentFolders)
+    .values({
+      name: "Runbooks",
+      parentId: engineeringFolder!.id,
+      organizationId: org.id,
+    })
+    .returning();
+  console.log(`Created ${folderRows.length + 1} document folders`);
+
   const documentRows = await db
     .insert(documents)
     .values(
@@ -396,23 +417,30 @@ async function main() {
           type: "adr" as const,
           url: "https://docs.acme.example/adr/checkout-api",
           ownerTeam: "Payments",
+          folderId: engineeringFolder!.id,
+          ownerPerson: "Jordan Lee",
         },
         {
           title: "Incident Response Runbook",
           type: "runbook" as const,
           url: "https://docs.acme.example/runbooks/incident-response",
           ownerTeam: "Site Reliability",
+          folderId: runbooksFolder!.id,
+          ownerPerson: "Dana Whitfield",
         },
         {
           title: "New Engineer Onboarding",
           type: "other" as const,
           url: "https://docs.acme.example/onboarding",
           ownerTeam: "Platform Engineering",
+          folderId: peopleFolder!.id,
+          ownerPerson: null as string | null,
         },
-      ].map(({ ownerTeam, ...d }) => ({
+      ].map(({ ownerTeam, ownerPerson, ...d }) => ({
         ...d,
         organizationId: org.id,
         ownerTeamId: teamByName.get(ownerTeam)!.id,
+        ownerPersonId: ownerPerson ? personByName.get(ownerPerson)!.id : null,
       })),
     )
     .returning();

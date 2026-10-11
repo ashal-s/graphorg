@@ -1,5 +1,6 @@
 import {
   Boxes,
+  FileText,
   LayoutDashboard,
   Network,
   Settings,
@@ -19,6 +20,7 @@ export const navItems: NavItem[] = [
   { href: "/directory", label: "Directory", icon: Users },
   { href: "/org-chart", label: "Org chart", icon: Network },
   { href: "/catalog", label: "Catalog", icon: Boxes },
+  { href: "/documents", label: "Documents", icon: FileText },
   { href: "/workflows", label: "Workflows", icon: Workflow },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

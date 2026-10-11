@@ -41,7 +41,7 @@ describe("buildPersonResources", () => {
       workflows: ["/workflows/wf-1"],
       services: ["/catalog/services/svc-1"],
       tools: ["/catalog/tools/tool-1"],
-      documents: ["/catalog/documents/doc-1"],
+      documents: ["/documents/doc-1"],
       reports: ["/directory/people/p-2"],
     });
   });

@@ -8,6 +8,7 @@ export * from "./services";
 export * from "./service-tools";
 export * from "./service-people";
 export * from "./service-dependencies";
+export * from "./document-folders";
 export * from "./documents";
 export * from "./workflows";
 export * from "./workflow-steps";

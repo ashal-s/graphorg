@@ -21,7 +21,8 @@ src/db/
     ├── service-tools.ts          join table: the tools a service uses
     ├── service-people.ts         join table: people assigned directly to a service (on top of its owner team)
     ├── service-dependencies.ts   join table: direct service-to-service dependencies
-    ├── documents.ts
+    ├── document-folders.ts       folders documents are filed in; nest via parent_id
+    ├── documents.ts              a name and a link, optionally in a folder and assigned to a team and/or person
     ├── workflows.ts               trigger, status; a documentation record, not an execution engine
     ├── workflow-steps.ts          a workflow's condition/action steps, in order
     ├── workflow-people.ts         join table: a person's role (owner/creator/worker) on a workflow
@@ -35,6 +36,7 @@ scripts/seed.ts                 populates the "Acme Corp" demo organisation
 - **Ownership**: modeled as direct `owner_team_id` foreign keys (nullable, `onDelete: set null`) on `services` and `documents` — not a generic polymorphic ownership table. `team_members` (a person can be on any number of teams, with a level of lead, member or trainee on each) and `people.manager_id` (self-referential) round out the org chart.
 - **Dependencies**: `service_dependencies` is a self-referential many-to-many join on `services`, with a `CHECK` constraint that a service can't depend on itself.
 - **Hierarchy**: `services.parent_id` is a self-reference (`onDelete: set null`), so a service can sit under another one; a "system" is just a service with children. The API rejects a parent that would create a loop.
+- **Documents**: `document_folders` nest through a self-referencing `parent_id`; deleting a folder moves its subfolders and documents up a level (done in the API). A document has an optional `folder_id`, `owner_team_id` and `owner_person_id`, so it can be assigned to a team, a person or both.
 - **Assignees**: `service_people` lists people assigned directly to a service. A person's services on their profile are the union of this and the services their teams own.
 - **Tools**: `service_tools` is a many-to-many join between `services` and `tools`. `tools.category` is free text so each organization groups its tools its own way.
 - **Wording**: `organizations` carries optional `services_label_*`/`tools_label_*` and `*_description` columns. Null means "use the default" (see `src/lib/terminology.ts`); the app reads them wherever it names a service or tool.

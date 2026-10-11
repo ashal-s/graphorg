@@ -99,6 +99,13 @@
       "when": 1791739524922,
       "tag": "0013_add_email_domain",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791742033416,
+      "tag": "0014_add_document_folders",
+      "breakpoints": true
     }
   ]
 }

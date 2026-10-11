@@ -222,7 +222,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
       items: teamDocuments.map((document) => ({
         id: document.id,
         name: document.title,
-        href: `/catalog/documents/${document.id}`,
+        href: `/documents/${document.id}`,
         badges: [document.type],
       })),
     },

@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import { documents, teams } from "@/db/schema";
+import { documents } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import {
@@ -12,8 +12,8 @@ import {
   requireNonEmptyPatch,
   requireUuidParam,
 } from "@/lib/api/http";
-import { findMissingInOrg } from "@/lib/api/org-refs";
 
+import { validateDocumentRefs } from "../refs";
 import { createDocumentSchema } from "../schema";
 
 const updateDocumentSchema = createDocumentSchema.partial();
@@ -36,7 +36,11 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       eq(documents.id, id),
       eq(documents.organizationId, session.organizationId),
     ),
-    with: { ownerTeam: { columns: { id: true, name: true } } },
+    with: {
+      ownerTeam: { columns: { id: true, name: true } },
+      ownerPerson: { columns: { id: true, name: true } },
+      folder: { columns: { id: true, name: true } },
+    },
   });
   if (!row) return jsonError(404, "Document not found");
 
@@ -67,20 +71,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const emptyPatchError = requireNonEmptyPatch(parsed.data);
   if (emptyPatchError) return emptyPatchError;
 
-  if (parsed.data.ownerTeamId) {
-    const missing = await findMissingInOrg(
-      teams.id,
-      teams.organizationId,
-      session.organizationId,
-      [parsed.data.ownerTeamId],
-    );
-    if (missing.length > 0) {
-      return jsonError(
-        400,
-        "ownerTeamId does not reference a team in this organization",
-      );
-    }
-  }
+  const refError = await validateDocumentRefs(
+    session.organizationId,
+    parsed.data,
+  );
+  if (refError) return refError;
 
   const [row] = await db
     .update(documents)

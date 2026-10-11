@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import { pgTable, text } from "drizzle-orm/pg-core";
 
 import { id, timestamps } from "./_columns";
+import { documentFolders } from "./document-folders";
 import { documents } from "./documents";
 import { people } from "./people";
 import { services } from "./services";
@@ -36,5 +37,6 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   tools: many(tools),
   services: many(services),
   documents: many(documents),
+  documentFolders: many(documentFolders),
   workflows: many(workflows),
 }));

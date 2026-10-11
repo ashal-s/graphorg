@@ -202,7 +202,7 @@ export function buildPersonResources(
       items: profile.documents.map((document) => ({
         id: document.id,
         name: document.title,
-        href: `/catalog/documents/${document.id}`,
+        href: `/documents/${document.id}`,
         badges: [document.type],
       })),
     },
