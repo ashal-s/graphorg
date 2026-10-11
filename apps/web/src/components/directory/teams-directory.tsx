@@ -91,7 +91,7 @@ export function TeamsDirectory({
                   >
                     <span className="flex items-start gap-3">
                       <Users2
-                        className="mt-0.5 size-6 shrink-0 text-primary"
+                        className="mt-0.5 size-6 shrink-0 text-muted-foreground"
                         aria-hidden="true"
                       />
                       <span className="min-w-0 flex-1">

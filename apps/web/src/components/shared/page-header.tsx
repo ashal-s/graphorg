@@ -29,7 +29,10 @@ export function PageHeader({
     >
       <div className="flex min-w-0 items-center gap-3">
         {Icon && (
-          <Icon className="size-7 shrink-0 text-primary" aria-hidden="true" />
+          <Icon
+            className="size-6 shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
         )}
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
