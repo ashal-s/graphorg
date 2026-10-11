@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 
 export interface SystemDetail {
@@ -30,16 +30,21 @@ export function SystemForm({
   system,
   teams,
   readOnly = false,
+  defaultOwnerTeamId,
 }: {
   mode: "create" | "edit";
   system?: SystemDetail;
   teams: { id: string; name: string }[];
   readOnly?: boolean;
+  /** Pre-selects the owner team on the create form (e.g. when arriving from a team page). */
+  defaultOwnerTeamId?: string;
 }) {
   const router = useRouter();
   const [name, setName] = useState(system?.name ?? "");
   const [description, setDescription] = useState(system?.description ?? "");
-  const [ownerTeamId, setOwnerTeamId] = useState(system?.ownerTeamId ?? "");
+  const [ownerTeamId, setOwnerTeamId] = useState(
+    system?.ownerTeamId ?? defaultOwnerTeamId ?? "",
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -133,7 +138,7 @@ export function SystemForm({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="system-owner-team">Owner team</Label>
-            <Select
+            <NativeSelect
               id="system-owner-team"
               value={ownerTeamId}
               onChange={(event) => setOwnerTeamId(event.target.value)}
@@ -146,7 +151,7 @@ export function SystemForm({
                   {team.name}
                 </option>
               ))}
-            </Select>
+            </NativeSelect>
           </div>
         </CardContent>
       </Card>

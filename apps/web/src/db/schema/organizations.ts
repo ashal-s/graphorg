@@ -17,6 +17,8 @@ export const organizations = pgTable("organizations", {
   id: id(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  description: text("description"),
+  logoUrl: text("logo_url"),
   ...timestamps(),
 });
 

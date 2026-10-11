@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SearchBar } from "@/components/shared/search-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 import { getDb } from "@/db";
 import { people, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
@@ -66,14 +66,18 @@ export default async function PeoplePage({ searchParams }: PageProps) {
       />
 
       <SearchBar defaultValue={q} placeholder="Search by name or email">
-        <Select name="teamId" defaultValue={teamId ?? ""} className="max-w-52">
+        <NativeSelect
+          name="teamId"
+          defaultValue={teamId ?? ""}
+          className="max-w-52"
+        >
           <option value="">All teams</option>
           {teamOptions.map((team) => (
             <option key={team.id} value={team.id}>
               {team.name}
             </option>
           ))}
-        </Select>
+        </NativeSelect>
       </SearchBar>
 
       {rows.length === 0 ? (

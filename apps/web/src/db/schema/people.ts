@@ -1,6 +1,7 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   type AnyPgColumn,
+  check,
   index,
   pgTable,
   text,
@@ -31,6 +32,10 @@ export const people = pgTable(
     managerId: uuid("manager_id").references((): AnyPgColumn => people.id, {
       onDelete: "set null",
     }),
+    /** How much responsibility they carry on their team. Any number of leads is fine: leads are peers. */
+    teamRole: text("team_role", { enum: ["lead", "member", "trainee"] })
+      .notNull()
+      .default("member"),
     name: text("name").notNull(),
     email: text("email").notNull(),
     title: text("title"),
@@ -41,6 +46,10 @@ export const people = pgTable(
     index("people_organization_id_idx").on(table.organizationId),
     index("people_team_id_idx").on(table.teamId),
     index("people_manager_id_idx").on(table.managerId),
+    check(
+      "people_team_role_check",
+      sql`${table.teamRole} in ('lead', 'member', 'trainee')`,
+    ),
   ],
 );
 

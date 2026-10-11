@@ -6,7 +6,12 @@ import { getDb } from "@/db";
 import { teams } from "@/db/schema";
 import { requireRole } from "@/lib/auth/session";
 
-export default async function NewSystemPage() {
+interface PageProps {
+  searchParams: Promise<{ teamId?: string }>;
+}
+
+export default async function NewSystemPage({ searchParams }: PageProps) {
+  const { teamId } = await searchParams;
   // Creating a system is a write, and POST /api/systems requires the editor
   // role: block viewers from this page entirely rather than let them fill
   // in a form that would only 403 on submit.
@@ -24,7 +29,13 @@ export default async function NewSystemPage() {
         title="New system"
         description="Add a system to your catalog."
       />
-      <SystemForm mode="create" teams={teamOptions} />
+      <SystemForm
+        mode="create"
+        teams={teamOptions}
+        defaultOwnerTeamId={
+          teamOptions.some((team) => team.id === teamId) ? teamId : undefined
+        }
+      />
     </div>
   );
 }

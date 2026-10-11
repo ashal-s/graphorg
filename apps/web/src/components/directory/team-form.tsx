@@ -27,10 +27,16 @@ export function TeamForm({
   mode,
   team,
   readOnly = false,
+  onCancel,
+  onSaved,
 }: {
   mode: "create" | "edit";
   team?: TeamDetail;
   readOnly?: boolean;
+  /** When set, Cancel calls this instead of navigating away (inline editing). */
+  onCancel?: () => void;
+  /** When set, a successful save calls this instead of navigating to the team. */
+  onSaved?: () => void;
 }) {
   const router = useRouter();
   const [name, setName] = useState(team?.name ?? "");
@@ -74,7 +80,11 @@ export function TeamForm({
     }
 
     const body = (await response.json()) as { team: TeamDetail };
-    router.push(`/directory/teams/${body.team.id}`);
+    if (onSaved) {
+      onSaved();
+    } else {
+      router.push(`/directory/teams/${body.team.id}`);
+    }
     router.refresh();
   }
 
@@ -96,10 +106,14 @@ export function TeamForm({
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>Team details</CardTitle>
-          <CardDescription>Who this team is and what it does.</CardDescription>
-        </CardHeader>
+        {!onCancel && (
+          <CardHeader>
+            <CardTitle>Team details</CardTitle>
+            <CardDescription>
+              Who this team is and what it does.
+            </CardDescription>
+          </CardHeader>
+        )}
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="team-name">Name</Label>
@@ -135,22 +149,28 @@ export function TeamForm({
                 : "Save changes"}
           </Button>
         )}
-        <Button
-          type="button"
-          variant="outline"
-          nativeButton={false}
-          render={
-            <Link
-              href={
-                mode === "create"
-                  ? "/directory/teams"
-                  : `/directory/teams/${team?.id}`
-              }
-            />
-          }
-        >
-          {readOnly ? "Back" : "Cancel"}
-        </Button>
+        {onCancel ? (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link
+                href={
+                  mode === "create"
+                    ? "/directory/teams"
+                    : `/directory/teams/${team?.id}`
+                }
+              />
+            }
+          >
+            {readOnly ? "Back" : "Cancel"}
+          </Button>
+        )}
       </div>
     </form>
   );

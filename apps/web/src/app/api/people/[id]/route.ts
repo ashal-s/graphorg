@@ -67,7 +67,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       eq(people.id, id),
       eq(people.organizationId, session.organizationId),
     ),
-    columns: { id: true },
+    columns: { id: true, teamId: true },
   });
   if (!existing) return jsonError(404, "Person not found");
 
@@ -123,7 +123,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
   }
 
-  const patch = { ...values, teamId, managerId, userId };
+  const patch: Partial<typeof people.$inferInsert> = {
+    ...values,
+    teamId,
+    managerId,
+    userId,
+  };
+  // Moving to another team (or leaving one) starts over as a plain member,
+  // unless the same request sets a level explicitly.
+  if (
+    teamId !== undefined &&
+    teamId !== existing.teamId &&
+    values.teamRole === undefined
+  ) {
+    patch.teamRole = "member";
+  }
 
   try {
     const person = await db.transaction(async (tx) => {

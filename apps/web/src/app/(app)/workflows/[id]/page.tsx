@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { fetchWorkflowDetail } from "@/app/api/workflows/detail";
-import { PageHeader } from "@/components/shared/page-header";
 import {
   WorkflowBuilder,
   type WorkflowDetail,
@@ -35,18 +34,11 @@ export default async function WorkflowDetailPage({ params }: PageProps) {
   if (!workflow) notFound();
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title={workflow.name}
-        description="Edit this workflow's trigger, steps, and who's responsible."
-        align="start"
-      />
-      <WorkflowBuilder
-        mode="edit"
-        workflow={workflow as unknown as WorkflowDetail}
-        people={directory}
-        readOnly={readOnly}
-      />
-    </div>
+    <WorkflowBuilder
+      mode="edit"
+      workflow={workflow as unknown as WorkflowDetail}
+      people={directory}
+      readOnly={readOnly}
+    />
   );
 }

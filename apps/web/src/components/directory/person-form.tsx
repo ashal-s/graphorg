@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 
 export interface PersonDetail {
   id: string;
@@ -158,7 +158,7 @@ export function PersonForm({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="person-team">Team</Label>
-            <Select
+            <NativeSelect
               id="person-team"
               value={teamId}
               onChange={(event) => setTeamId(event.target.value)}
@@ -171,11 +171,11 @@ export function PersonForm({
                   {team.name}
                 </option>
               ))}
-            </Select>
+            </NativeSelect>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="person-manager">Manager</Label>
-            <Select
+            <NativeSelect
               id="person-manager"
               value={managerId}
               onChange={(event) => setManagerId(event.target.value)}
@@ -188,7 +188,7 @@ export function PersonForm({
                   {manager.name}
                 </option>
               ))}
-            </Select>
+            </NativeSelect>
           </div>
         </CardContent>
       </Card>

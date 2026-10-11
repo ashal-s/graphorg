@@ -1,33 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  ArrowLeft,
+  Filter,
+  GitBranch,
+  MoreHorizontal,
+  Play,
+  Plus,
+  Search,
+  Users,
+  Zap,
+  ArrowDown,
+  ArrowUp,
+  Trash2,
+  Clock,
+  Hand,
+  Pencil,
+  Sparkles,
+} from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   PeoplePicker,
   type WorkflowPersonOption,
 } from "@/components/workflows/people-picker";
 import {
-  StepListEditor,
+  TYPE_SUGGESTIONS,
+  addStep,
+  moveStep,
+  removeStep,
+  updateStep,
   type WorkflowStepDraft,
 } from "@/components/workflows/step-list-editor";
+import { cn } from "@/lib/utils";
 
 type TriggerType = "manual" | "entity_created" | "entity_updated" | "scheduled";
 type WorkflowStatus = "draft" | "active" | "archived";
+
+type Selection =
+  | { kind: "trigger" }
+  | { kind: "step"; index: number }
+  | { kind: "people" }
+  | { kind: "details" }
+  | { kind: "insert"; after: "trigger" | number };
 
 export interface WorkflowDetail {
   id: string;
@@ -49,6 +85,43 @@ export interface WorkflowDetail {
   }[];
 }
 
+const TRIGGER_OPTIONS: {
+  value: TriggerType;
+  label: string;
+  description: string;
+  category: string;
+  icon: typeof Hand;
+}[] = [
+  {
+    value: "manual",
+    label: "Run manually",
+    description: "Start this workflow yourself when you need it.",
+    category: "Automation",
+    icon: Hand,
+  },
+  {
+    value: "scheduled",
+    label: "Scheduled",
+    description: "Run on a cron schedule.",
+    category: "Automation",
+    icon: Clock,
+  },
+  {
+    value: "entity_created",
+    label: "Entity created",
+    description: "When a catalog entity is created.",
+    category: "Catalog",
+    icon: Sparkles,
+  },
+  {
+    value: "entity_updated",
+    label: "Entity updated",
+    description: "When a catalog entity is updated.",
+    category: "Catalog",
+    icon: Pencil,
+  },
+];
+
 const TRIGGER_LABELS: Record<TriggerType, string> = {
   manual: "Run manually",
   entity_created: "When an entity is created",
@@ -65,12 +138,68 @@ const ENTITY_TYPES = [
   { value: "document", label: "Document" },
 ];
 
+const STATUS_OPTIONS: { value: WorkflowStatus; label: string }[] = [
+  { value: "draft", label: "Draft" },
+  { value: "active", label: "Active" },
+  { value: "archived", label: "Archived" },
+];
+
+const TYPE_LABELS: Record<"condition" | "action", Record<string, string>> = {
+  condition: {
+    field_equals: "Field equals",
+    field_not_equals: "Field does not equal",
+    status_is: "Status is",
+    entity_type_is: "Entity type is",
+  },
+  action: {
+    notify: "Notify",
+    assign_owner: "Assign owner",
+    create_task: "Create task",
+    update_field: "Update field",
+  },
+};
+
+function stepTypeOptions(
+  kind: "condition" | "action",
+  currentType: string,
+): { value: string; label: string }[] {
+  const suggestions = TYPE_SUGGESTIONS[kind].map((value) => ({
+    value,
+    label: TYPE_LABELS[kind][value] ?? value,
+  }));
+  const trimmed = currentType.trim();
+  if (
+    trimmed.length > 0 &&
+    !suggestions.some((option) => option.value === trimmed)
+  ) {
+    return [{ value: trimmed, label: trimmed }, ...suggestions];
+  }
+  return suggestions;
+}
+
+const STEP_KIND_OPTIONS: {
+  kind: "condition" | "action";
+  label: string;
+  description: string;
+}[] = [
+  {
+    kind: "condition",
+    label: "Condition",
+    description: "Only continue when a rule matches.",
+  },
+  {
+    kind: "action",
+    label: "Action",
+    description: "Do something when the flow reaches this step.",
+  },
+];
+
 function stepsFromDetail(steps: WorkflowDetail["steps"]): WorkflowStepDraft[] {
   return [...steps]
     .sort((a, b) => a.stepOrder - b.stepOrder)
     .map((step) => ({
       key: step.id,
-      // Preserved as-is unless the user explicitly reorders (StepListEditor
+      // Preserved as-is unless the user explicitly reorders (moveStep
       // swaps this between two slots on a move): step_order is intentionally
       // non-unique and can be tied or non-contiguous (see src/db/README.md),
       // so re-deriving it from array position on every save would silently
@@ -84,6 +213,80 @@ function stepsFromDetail(steps: WorkflowDetail["steps"]): WorkflowStepDraft[] {
       // script) put in config.
       configText: JSON.stringify(step.config ?? {}, null, 2),
     }));
+}
+
+function FlowNode({
+  selected,
+  onClick,
+  icon,
+  iconClassName,
+  title,
+  subtitle,
+  disabled,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  iconClassName?: string;
+  title: string;
+  subtitle: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex w-[320px] items-start gap-3 rounded-lg border bg-card px-3.5 py-3 text-left shadow-sm transition-colors",
+        selected
+          ? "border-primary ring-1 ring-primary/30"
+          : "border-border hover:border-foreground/25",
+        disabled && "cursor-default opacity-80",
+      )}
+    >
+      <span
+        className={cn(
+          "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
+          iconClassName ?? "bg-emerald-600 text-white",
+        )}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-foreground">
+          {title}
+        </span>
+        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+          {subtitle}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function FlowConnector({
+  onAdd,
+  disabled,
+}: {
+  onAdd?: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="relative flex h-10 w-[320px] flex-col items-center">
+      <div className="h-full w-px bg-border" />
+      {onAdd && !disabled ? (
+        <button
+          type="button"
+          onClick={onAdd}
+          aria-label="Add step"
+          className="absolute top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+        >
+          <Plus className="size-3.5" aria-hidden="true" />
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 export function WorkflowBuilder({
@@ -108,6 +311,7 @@ export function WorkflowBuilder({
   const [triggerType, setTriggerType] = useState<TriggerType>(
     workflow?.triggerType ?? "manual",
   );
+  const [triggerChosen, setTriggerChosen] = useState(mode === "edit");
   const [entityType, setEntityType] = useState(
     typeof workflow?.triggerConfig.entityType === "string"
       ? workflow.triggerConfig.entityType
@@ -151,12 +355,16 @@ export function WorkflowBuilder({
     ),
   );
 
+  const [selection, setSelection] = useState<Selection>({ kind: "trigger" });
+  const [triggerQuery, setTriggerQuery] = useState("");
+  const [zoom, setZoom] = useState(100);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  const canSave = !readOnly && name.trim().length > 0 && !saving && !deleting;
+
+  async function persist(nextStatus: WorkflowStatus = status) {
     setError(null);
 
     if (name.trim().length === 0) {
@@ -217,7 +425,7 @@ export function WorkflowBuilder({
       description: description.trim().length > 0 ? description.trim() : null,
       triggerType,
       triggerConfig,
-      status,
+      status: nextStatus,
       steps: parsedSteps,
       people: [
         ...creators.map((assignment) => ({
@@ -254,6 +462,7 @@ export function WorkflowBuilder({
     }
 
     const body = (await response.json()) as { workflow: WorkflowDetail };
+    setStatus(nextStatus);
     router.push(`/workflows/${body.workflow.id}`);
     router.refresh();
   }
@@ -279,222 +488,676 @@ export function WorkflowBuilder({
     router.refresh();
   }
 
+  function handleAddStep(kind: "condition" | "action") {
+    const insertAt =
+      selection.kind === "insert"
+        ? selection.after === "trigger"
+          ? 0
+          : selection.after + 1
+        : undefined;
+    const next = addStep(steps, kind, insertAt);
+    setSteps(next);
+    const newIndex =
+      insertAt === undefined
+        ? next.length - 1
+        : Math.min(insertAt, next.length - 1);
+    setSelection({ kind: "step", index: newIndex });
+  }
+
+  const filteredTriggers = TRIGGER_OPTIONS.filter((option) => {
+    const q = triggerQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      option.label.toLowerCase().includes(q) ||
+      option.description.toLowerCase().includes(q) ||
+      option.category.toLowerCase().includes(q)
+    );
+  });
+
+  const triggersByCategory = filteredTriggers.reduce<
+    Record<string, typeof TRIGGER_OPTIONS>
+  >((acc, option) => {
+    (acc[option.category] ??= []).push(option);
+    return acc;
+  }, {});
+
+  const selectedStep =
+    selection.kind === "step" ? steps[selection.index] : undefined;
+
+  const peopleSummary =
+    ownerIds.length + workerIds.length === 0
+      ? "Who's accountable and who carries this out."
+      : `${ownerIds.length} owner${ownerIds.length === 1 ? "" : "s"}, ${workerIds.length} worker${workerIds.length === 1 ? "" : "s"}`;
+
+  const panelTitle =
+    selection.kind === "trigger"
+      ? triggerChosen
+        ? "Trigger"
+        : "Add a trigger"
+      : selection.kind === "insert"
+        ? "Add a component"
+        : selection.kind === "step"
+          ? selectedStep?.kind === "condition"
+            ? "Condition"
+            : "Action"
+          : selection.kind === "people"
+            ? "People"
+            : "Details";
+
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      {readOnly && (
-        <Alert>
-          <AlertTitle>View-only</AlertTitle>
-          <AlertDescription>
-            You have viewer access, so this workflow can be viewed but not
-            changed.
-          </AlertDescription>
-        </Alert>
-      )}
-      {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Couldn&apos;t save</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Details</CardTitle>
-          <CardDescription>
-            What this workflow is and why it exists.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="workflow-name">Name</Label>
-            <Input
-              id="workflow-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="e.g. New service onboarding"
-              required
-              disabled={readOnly}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="workflow-description">Description</Label>
-            <Textarea
-              id="workflow-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="What is this workflow for?"
-              disabled={readOnly}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="workflow-status">Status</Label>
-            <Select
-              id="workflow-status"
-              value={status}
-              onChange={(event) =>
-                setStatus(event.target.value as WorkflowStatus)
-              }
-              className="max-w-48"
-              disabled={readOnly}
-            >
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Trigger</CardTitle>
-          <CardDescription>What starts this workflow.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="workflow-trigger">Trigger</Label>
-            <Select
-              id="workflow-trigger"
-              value={triggerType}
-              onChange={(event) =>
-                setTriggerType(event.target.value as TriggerType)
-              }
-              className="max-w-72"
-              disabled={readOnly}
-            >
-              {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </Select>
-          </div>
-          {(triggerType === "entity_created" ||
-            triggerType === "entity_updated") && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="workflow-entity-type">Entity type</Label>
-              <Select
-                id="workflow-entity-type"
-                value={entityType}
-                onChange={(event) => setEntityType(event.target.value)}
-                className="max-w-72"
-                disabled={readOnly}
-              >
-                {ENTITY_TYPES.map((entity) => (
-                  <option key={entity.value} value={entity.value}>
-                    {entity.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          )}
-          {triggerType === "scheduled" && (
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="workflow-cron">Schedule (cron expression)</Label>
-              <Input
-                id="workflow-cron"
-                value={cron}
-                onChange={(event) => setCron(event.target.value)}
-                placeholder="0 9 * * 1"
-                className="max-w-72"
-                disabled={readOnly}
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Steps</CardTitle>
-          <CardDescription>
-            The ordered conditions and actions that make up this workflow.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <StepListEditor
-            steps={steps}
-            onChange={setSteps}
-            readOnly={readOnly}
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void persist(status === "archived" ? "archived" : "active");
+      }}
+      className="-m-4 flex h-[calc(100svh-3.5rem)] flex-col overflow-hidden bg-background text-foreground md:-m-6"
+    >
+      {/* Top bar */}
+      <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border bg-background px-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            nativeButton={false}
+            render={<Link href="/workflows" />}
+            aria-label="Back to workflows"
+          >
+            <ArrowLeft aria-hidden="true" />
+          </Button>
+          <span className="flex size-7 items-center justify-center rounded-md bg-primary/15 text-primary">
+            <Zap className="size-3.5" aria-hidden="true" />
+          </span>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Untitled flow"
+            disabled={readOnly}
+            aria-label="Workflow name"
+            className="min-w-0 flex-1 truncate bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-70"
           />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>People</CardTitle>
-          <CardDescription>
-            Who&apos;s accountable for this workflow and who carries it out.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          {creators.length > 0 && (
-            <p className="text-sm text-muted-foreground">
-              Created by{" "}
-              {creators.map((assignment) => assignment.person.name).join(", ")}
-            </p>
-          )}
-          <div className="flex flex-col gap-1.5">
-            <Label>Owner</Label>
-            <PeoplePicker
-              label="Owner"
-              people={people}
-              selectedIds={ownerIds}
-              onChange={setOwnerIds}
-              readOnly={readOnly}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Workers</Label>
-            <PeoplePicker
-              label="Workers"
-              people={people}
-              selectedIds={workerIds}
-              onChange={setWorkerIds}
-              readOnly={readOnly}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex gap-2">
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
           {!readOnly && (
-            <Button type="submit" disabled={saving || deleting}>
-              {saving
-                ? "Saving…"
-                : mode === "create"
-                  ? "Create workflow"
-                  : "Save changes"}
+            <Button type="submit" disabled={!canSave} className="h-8 px-3">
+              {saving ? "Saving…" : "Save and enable"}
             </Button>
           )}
-          <Button
-            type="button"
-            variant="outline"
-            nativeButton={false}
-            render={
-              <Link
-                href={
-                  mode === "create"
-                    ? "/workflows"
-                    : `/workflows/${workflow?.id}`
-                }
-              />
-            }
-          >
-            {readOnly ? "Back" : "Cancel"}
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="More actions"
+                />
+              }
+            >
+              <MoreHorizontal aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => setSelection({ kind: "details" })}
+              >
+                Edit details
+              </DropdownMenuItem>
+              {!readOnly && (
+                <DropdownMenuItem
+                  disabled={saving || deleting || name.trim().length === 0}
+                  onClick={() => void persist("draft")}
+                >
+                  Save as draft
+                </DropdownMenuItem>
+              )}
+              {mode === "edit" && !readOnly && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="destructive"
+                    disabled={saving || deleting}
+                    onClick={() => void handleDelete()}
+                  >
+                    {deleting ? "Deleting…" : "Delete workflow"}
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        {mode === "edit" && !readOnly && (
-          <Button
-            type="button"
-            variant="destructive"
-            disabled={saving || deleting}
-            onClick={handleDelete}
+      </header>
+
+      {(readOnly || error) && (
+        <div className="shrink-0 space-y-2 border-b border-border px-4 py-2">
+          {readOnly && (
+            <Alert>
+              <AlertTitle>View-only</AlertTitle>
+              <AlertDescription>
+                You have viewer access, so this workflow can be viewed but not
+                changed.
+              </AlertDescription>
+            </Alert>
+          )}
+          {error && (
+            <Alert variant="destructive">
+              <AlertTitle>Couldn&apos;t save</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
+
+      <div className="flex min-h-0 flex-1">
+        {/* Canvas */}
+        <div className="relative min-w-0 flex-1 overflow-auto bg-background">
+          <div
+            className="absolute inset-0 bg-background [background-image:radial-gradient(circle,var(--border)_1px,transparent_1px)] [background-size:20px_20px]"
+            aria-hidden="true"
+          />
+          <div
+            className="relative flex min-h-full origin-top-left flex-col items-start px-10 py-8 pb-20 transition-transform"
+            style={{ transform: `scale(${zoom / 100})` }}
           >
-            {deleting ? "Deleting…" : "Delete workflow"}
-          </Button>
-        )}
+            <FlowNode
+              selected={selection.kind === "trigger"}
+              onClick={() => setSelection({ kind: "trigger" })}
+              icon={
+                <Play className="size-3.5 fill-current" aria-hidden="true" />
+              }
+              iconClassName="bg-emerald-600 text-white"
+              title={
+                triggerChosen ? TRIGGER_LABELS[triggerType] : "Add a trigger"
+              }
+              subtitle={
+                triggerChosen
+                  ? triggerType === "scheduled" && cron
+                    ? `Cron: ${cron}`
+                    : triggerType === "entity_created" ||
+                        triggerType === "entity_updated"
+                      ? `Entity type: ${entityType}`
+                      : "An event that triggers the flow to run."
+                  : "An event that triggers the flow to run."
+              }
+            />
+
+            <FlowConnector
+              onAdd={
+                readOnly
+                  ? undefined
+                  : () => setSelection({ kind: "insert", after: "trigger" })
+              }
+              disabled={readOnly}
+            />
+
+            {steps.map((step, index) => (
+              <div key={step.key} className="flex flex-col items-start">
+                <FlowNode
+                  selected={
+                    selection.kind === "step" && selection.index === index
+                  }
+                  onClick={() => setSelection({ kind: "step", index })}
+                  icon={
+                    step.kind === "condition" ? (
+                      <Filter className="size-3.5" aria-hidden="true" />
+                    ) : (
+                      <GitBranch className="size-3.5" aria-hidden="true" />
+                    )
+                  }
+                  iconClassName={
+                    step.kind === "condition"
+                      ? "bg-amber-600 text-white"
+                      : "bg-sky-600 text-white"
+                  }
+                  title={
+                    step.type.trim().length > 0
+                      ? (TYPE_LABELS[step.kind][step.type] ?? step.type)
+                      : step.kind === "condition"
+                        ? "Add a condition"
+                        : "Add an action"
+                  }
+                  subtitle={
+                    step.kind === "condition"
+                      ? "Only continue when this rule matches."
+                      : "Do something when the flow reaches this step."
+                  }
+                />
+                <FlowConnector
+                  onAdd={
+                    readOnly
+                      ? undefined
+                      : () => setSelection({ kind: "insert", after: index })
+                  }
+                  disabled={readOnly}
+                />
+              </div>
+            ))}
+
+            <FlowNode
+              selected={selection.kind === "people"}
+              onClick={() => setSelection({ kind: "people" })}
+              icon={<Users className="size-3.5" aria-hidden="true" />}
+              iconClassName="bg-violet-600 text-white"
+              title="People"
+              subtitle={peopleSummary}
+            />
+          </div>
+
+          {/* Zoom controls */}
+          <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-xs text-muted-foreground shadow-lg">
+            <button
+              type="button"
+              aria-label="Zoom out"
+              className="flex size-6 items-center justify-center rounded-full hover:bg-muted"
+              onClick={() => setZoom((z) => Math.max(50, z - 10))}
+            >
+              −
+            </button>
+            <span className="min-w-10 text-center tabular-nums">{zoom}%</span>
+            <button
+              type="button"
+              aria-label="Zoom in"
+              className="flex size-6 items-center justify-center rounded-full hover:bg-muted"
+              onClick={() => setZoom((z) => Math.min(150, z + 10))}
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        {/* Right sidebar */}
+        <aside className="flex w-[360px] shrink-0 flex-col border-l border-border bg-background">
+          <div className="flex h-12 shrink-0 items-center border-b border-border px-4">
+            <h2 className="text-sm font-semibold text-foreground">
+              {panelTitle}
+            </h2>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {selection.kind === "trigger" && !triggerChosen && (
+              <div className="flex flex-col gap-3 p-3">
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    value={triggerQuery}
+                    onChange={(event) => setTriggerQuery(event.target.value)}
+                    placeholder="Search triggers"
+                    disabled={readOnly}
+                    className="h-9 pl-8"
+                  />
+                </div>
+                <div className="flex flex-col gap-4">
+                  {Object.entries(triggersByCategory).map(
+                    ([category, options]) => (
+                      <div key={category}>
+                        <div className="mb-1.5 flex items-center gap-2 px-1">
+                          <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] font-medium text-foreground">
+                            {category}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {options.length}
+                          </span>
+                        </div>
+                        <ul className="flex flex-col">
+                          {options.map((option) => {
+                            const Icon = option.icon;
+                            return (
+                              <li key={option.value}>
+                                <button
+                                  type="button"
+                                  disabled={readOnly}
+                                  onClick={() => {
+                                    setTriggerType(option.value);
+                                    setTriggerChosen(true);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm text-foreground hover:bg-muted disabled:opacity-60"
+                                >
+                                  <span className="flex size-6 shrink-0 items-center justify-center rounded bg-muted text-primary">
+                                    <Icon
+                                      className="size-3.5"
+                                      aria-hidden="true"
+                                    />
+                                  </span>
+                                  {option.label}
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
+
+            {selection.kind === "trigger" && triggerChosen && (
+              <div className="flex flex-col gap-4 p-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-muted-foreground">Trigger</Label>
+                  <Select
+                    value={triggerType}
+                    onValueChange={(value) => {
+                      if (value) setTriggerType(value as TriggerType);
+                    }}
+                    disabled={readOnly}
+                    items={Object.entries(TRIGGER_LABELS).map(
+                      ([value, label]) => ({ value, label }),
+                    )}
+                  >
+                    <SelectTrigger
+                      id="workflow-trigger"
+                      className="w-full"
+                      aria-label="Trigger"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {(triggerType === "entity_created" ||
+                  triggerType === "entity_updated") && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-muted-foreground">Entity type</Label>
+                    <Select
+                      value={entityType}
+                      onValueChange={(value) => {
+                        if (value) setEntityType(value);
+                      }}
+                      disabled={readOnly}
+                      items={ENTITY_TYPES}
+                    >
+                      <SelectTrigger
+                        id="workflow-entity-type"
+                        className="w-full"
+                        aria-label="Entity type"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ENTITY_TYPES.map((entity) => (
+                          <SelectItem key={entity.value} value={entity.value}>
+                            {entity.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {triggerType === "scheduled" && (
+                  <div className="flex flex-col gap-1.5">
+                    <Label
+                      htmlFor="workflow-cron"
+                      className="text-muted-foreground"
+                    >
+                      Schedule (cron expression)
+                    </Label>
+                    <Input
+                      id="workflow-cron"
+                      value={cron}
+                      onChange={(event) => setCron(event.target.value)}
+                      placeholder="0 9 * * 1"
+                      disabled={readOnly}
+                    />
+                  </div>
+                )}
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-fit"
+                    onClick={() => {
+                      setTriggerChosen(false);
+                      setTriggerQuery("");
+                    }}
+                  >
+                    Change trigger
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {selection.kind === "insert" && (
+              <div className="flex flex-col p-2">
+                {STEP_KIND_OPTIONS.map((option) => (
+                  <button
+                    key={option.kind}
+                    type="button"
+                    disabled={readOnly}
+                    onClick={() => handleAddStep(option.kind)}
+                    className="flex items-start gap-2.5 rounded-md px-2 py-2.5 text-left hover:bg-muted disabled:opacity-60"
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded",
+                        option.kind === "condition"
+                          ? "bg-amber-600/20 text-amber-400"
+                          : "bg-sky-600/20 text-sky-400",
+                      )}
+                    >
+                      {option.kind === "condition" ? (
+                        <Filter className="size-3.5" aria-hidden="true" />
+                      ) : (
+                        <GitBranch className="size-3.5" aria-hidden="true" />
+                      )}
+                    </span>
+                    <span>
+                      <span className="block text-sm font-medium text-foreground">
+                        {option.label}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {option.description}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selection.kind === "step" && selectedStep && (
+              <div className="flex flex-col gap-4 p-4">
+                {!readOnly && (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={selection.index === 0}
+                      onClick={() => {
+                        setSteps(moveStep(steps, selection.index, -1));
+                        setSelection({
+                          kind: "step",
+                          index: selection.index - 1,
+                        });
+                      }}
+                      aria-label="Move step up"
+                    >
+                      <ArrowUp aria-hidden="true" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={selection.index === steps.length - 1}
+                      onClick={() => {
+                        setSteps(moveStep(steps, selection.index, 1));
+                        setSelection({
+                          kind: "step",
+                          index: selection.index + 1,
+                        });
+                      }}
+                      aria-label="Move step down"
+                    >
+                      <ArrowDown aria-hidden="true" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => {
+                        setSteps(removeStep(steps, selection.index));
+                        setSelection({ kind: "trigger" });
+                      }}
+                      aria-label="Remove step"
+                      className="ml-auto text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 aria-hidden="true" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-muted-foreground">Type</Label>
+                  <Select
+                    value={
+                      selectedStep.type.trim().length > 0
+                        ? selectedStep.type
+                        : null
+                    }
+                    onValueChange={(value) => {
+                      if (value) {
+                        setSteps(
+                          updateStep(steps, selection.index, { type: value }),
+                        );
+                      }
+                    }}
+                    disabled={readOnly}
+                    items={stepTypeOptions(
+                      selectedStep.kind,
+                      selectedStep.type,
+                    )}
+                  >
+                    <SelectTrigger
+                      className="w-full"
+                      aria-label={`${selectedStep.kind} type`}
+                    >
+                      <SelectValue
+                        placeholder={
+                          selectedStep.kind === "condition"
+                            ? "Choose a condition"
+                            : "Choose an action"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stepTypeOptions(
+                        selectedStep.kind,
+                        selectedStep.type,
+                      ).map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-muted-foreground">Config (JSON)</Label>
+                  <Textarea
+                    placeholder="{}"
+                    value={selectedStep.configText}
+                    onChange={(event) =>
+                      setSteps(
+                        updateStep(steps, selection.index, {
+                          configText: event.target.value,
+                        }),
+                      )
+                    }
+                    disabled={readOnly}
+                    className="min-h-28 font-mono text-xs"
+                  />
+                </div>
+              </div>
+            )}
+
+            {selection.kind === "people" && (
+              <div className="flex flex-col gap-5 p-4">
+                {creators.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Created by{" "}
+                    {creators
+                      .map((assignment) => assignment.person.name)
+                      .join(", ")}
+                  </p>
+                )}
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-muted-foreground">Owner</Label>
+                  <PeoplePicker
+                    label="Owner"
+                    people={people}
+                    selectedIds={ownerIds}
+                    onChange={setOwnerIds}
+                    readOnly={readOnly}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-muted-foreground">Workers</Label>
+                  <PeoplePicker
+                    label="Workers"
+                    people={people}
+                    selectedIds={workerIds}
+                    onChange={setWorkerIds}
+                    readOnly={readOnly}
+                  />
+                </div>
+              </div>
+            )}
+
+            {selection.kind === "details" && (
+              <div className="flex flex-col gap-4 p-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor="workflow-description"
+                    className="text-muted-foreground"
+                  >
+                    Description
+                  </Label>
+                  <Textarea
+                    id="workflow-description"
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="What is this workflow for?"
+                    disabled={readOnly}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-muted-foreground">Status</Label>
+                  <Select
+                    value={status}
+                    onValueChange={(value) => {
+                      if (value) setStatus(value as WorkflowStatus);
+                    }}
+                    disabled={readOnly}
+                    items={STATUS_OPTIONS}
+                  >
+                    <SelectTrigger
+                      id="workflow-status"
+                      className="w-full max-w-48"
+                      aria-label="Status"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
       </div>
     </form>
   );

@@ -53,8 +53,19 @@ export async function PATCH(request: NextRequest) {
   const emptyPatchError = requireNonEmptyPatch(parsed.data);
   if (emptyPatchError) return emptyPatchError;
 
-  const values: { name?: string; slug?: string } = {};
+  const values: {
+    name?: string;
+    slug?: string;
+    description?: string | null;
+    logoUrl?: string | null;
+  } = {};
   if (parsed.data.name) values.name = parsed.data.name;
+  if (parsed.data.description !== undefined) {
+    values.description = parsed.data.description || null;
+  }
+  if (parsed.data.logoUrl !== undefined) {
+    values.logoUrl = parsed.data.logoUrl || null;
+  }
   if (parsed.data.slug) {
     const slug = slugify(parsed.data.slug);
     if (!slug) {
