@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { MultiSelectPicker } from "@/components/catalog/multi-select-picker";
 
@@ -161,7 +161,7 @@ export function ServiceForm({
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="service-system">System</Label>
-              <Select
+              <NativeSelect
                 id="service-system"
                 value={systemId}
                 onChange={(event) => setSystemId(event.target.value)}
@@ -173,11 +173,11 @@ export function ServiceForm({
                     {system.name}
                   </option>
                 ))}
-              </Select>
+              </NativeSelect>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="service-repository">Repository</Label>
-              <Select
+              <NativeSelect
                 id="service-repository"
                 value={repositoryId}
                 onChange={(event) => setRepositoryId(event.target.value)}
@@ -189,11 +189,11 @@ export function ServiceForm({
                     {repository.name}
                   </option>
                 ))}
-              </Select>
+              </NativeSelect>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="service-owner-team">Owner team</Label>
-              <Select
+              <NativeSelect
                 id="service-owner-team"
                 value={ownerTeamId}
                 onChange={(event) => setOwnerTeamId(event.target.value)}
@@ -205,7 +205,7 @@ export function ServiceForm({
                     {team.name}
                   </option>
                 ))}
-              </Select>
+              </NativeSelect>
             </div>
           </div>
         </CardContent>

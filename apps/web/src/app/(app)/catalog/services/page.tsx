@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { SearchBar } from "@/components/shared/search-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 import { getDb } from "@/db";
 import { services, systems, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
@@ -74,7 +74,7 @@ export default async function ServicesPage({ searchParams }: PageProps) {
       />
 
       <SearchBar defaultValue={q} placeholder="Search services">
-        <Select
+        <NativeSelect
           name="systemId"
           defaultValue={systemId ?? ""}
           className="max-w-48"
@@ -85,15 +85,15 @@ export default async function ServicesPage({ searchParams }: PageProps) {
               {system.name}
             </option>
           ))}
-        </Select>
-        <Select name="teamId" defaultValue={teamId ?? ""} className="max-w-48">
+        </NativeSelect>
+        <NativeSelect name="teamId" defaultValue={teamId ?? ""} className="max-w-48">
           <option value="">All teams</option>
           {teamOptions.map((team) => (
             <option key={team.id} value={team.id}>
               {team.name}
             </option>
           ))}
-        </Select>
+        </NativeSelect>
       </SearchBar>
 
       {rows.length === 0 ? (

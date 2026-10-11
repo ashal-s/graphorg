@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   PeoplePicker,
@@ -805,7 +805,7 @@ export function WorkflowBuilder({
                   >
                     Trigger
                   </Label>
-                  <Select
+                  <NativeSelect
                     id="workflow-trigger"
                     value={triggerType}
                     onChange={(event) =>
@@ -819,7 +819,7 @@ export function WorkflowBuilder({
                         {label}
                       </option>
                     ))}
-                  </Select>
+                  </NativeSelect>
                 </div>
                 {(triggerType === "entity_created" ||
                   triggerType === "entity_updated") && (
@@ -830,7 +830,7 @@ export function WorkflowBuilder({
                     >
                       Entity type
                     </Label>
-                    <Select
+                    <NativeSelect
                       id="workflow-entity-type"
                       value={entityType}
                       onChange={(event) => setEntityType(event.target.value)}
@@ -842,7 +842,7 @@ export function WorkflowBuilder({
                           {entity.label}
                         </option>
                       ))}
-                    </Select>
+                    </NativeSelect>
                   </div>
                 )}
                 {triggerType === "scheduled" && (
@@ -1069,7 +1069,7 @@ export function WorkflowBuilder({
                   <Label htmlFor="workflow-status" className="text-[#c7d1db]">
                     Status
                   </Label>
-                  <Select
+                  <NativeSelect
                     id="workflow-status"
                     value={status}
                     onChange={(event) =>
@@ -1081,7 +1081,7 @@ export function WorkflowBuilder({
                     <option value="draft">Draft</option>
                     <option value="active">Active</option>
                     <option value="archived">Archived</option>
-                  </Select>
+                  </NativeSelect>
                 </div>
               </div>
             )}
