@@ -61,6 +61,19 @@ const LEVEL_RANK: Record<TeamRole, number> = {
   trainee: 2,
 };
 
+/** The coloured line along the top of a card; also used by the legend. */
+const LEVEL_ACCENT: Record<TeamRole, string> = {
+  lead: "border-t-amber-500",
+  member: "border-t-primary",
+  trainee: "border-t-emerald-500",
+};
+
+const LEVEL_DOT: Record<TeamRole, string> = {
+  lead: "bg-amber-500",
+  member: "bg-primary",
+  trainee: "bg-emerald-500",
+};
+
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   const letters =
@@ -158,7 +171,6 @@ export function TeamMembers({
     [members],
   );
   const leads = sorted.filter((member) => member.teamRole === "lead");
-  const others = sorted.filter((member) => member.teamRole !== "lead");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -233,7 +245,7 @@ export function TeamMembers({
     return (
       <li
         key={member.id}
-        className="group relative flex items-start gap-3 rounded-xl border border-border p-4 transition-colors hover:bg-muted/40"
+        className={`group relative flex items-start gap-3 rounded-xl border border-t-4 border-x-border border-b-border p-4 transition-colors hover:bg-muted/40 ${LEVEL_ACCENT[member.teamRole]}`}
       >
         <Avatar size="lg" className="size-12">
           <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
@@ -349,29 +361,26 @@ export function TeamMembers({
               {error}
             </p>
           )}
-          {leads.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Leadership
-              </h3>
-              <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {leads.map(card)}
-              </ul>
-            </div>
+          {members.length > 0 && (
+            <ul
+              aria-label="Levels"
+              className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"
+            >
+              {(Object.keys(LEVEL_LABELS) as TeamRole[]).map((level) => (
+                <li key={level} className="flex items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className={`h-1 w-4 rounded-full ${LEVEL_DOT[level]}`}
+                  />
+                  {LEVEL_LABELS[level]}
+                </li>
+              ))}
+            </ul>
           )}
-          {(others.length > 0 || !readOnly) && (
-            <div className="flex flex-col gap-2">
-              {leads.length > 0 && (
-                <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  Team
-                </h3>
-              )}
-              <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {others.map(card)}
-                {addTile}
-              </ul>
-            </div>
-          )}
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {sorted.map(card)}
+            {addTile}
+          </ul>
         </CardContent>
       )}
 
