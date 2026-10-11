@@ -25,7 +25,6 @@ export interface ServiceDetail {
   name: string;
   description: string | null;
   parentId: string | null;
-  repositoryId: string | null;
   ownerTeamId: string | null;
   tools: { id: string; name: string }[];
   dependencies: { id: string; name: string }[];
@@ -36,7 +35,6 @@ export function ServiceForm({
   service,
   terminology,
   parents,
-  repositories,
   teams,
   tools,
   services,
@@ -49,7 +47,6 @@ export function ServiceForm({
   terminology: Terminology;
   /** Services this one may sit under (never itself or anything beneath it). */
   parents: { id: string; name: string }[];
-  repositories: { id: string; name: string }[];
   teams: { id: string; name: string }[];
   tools: { id: string; name: string; category: string }[];
   /** Every other service in the org, for the "depends on" picker (never
@@ -66,7 +63,6 @@ export function ServiceForm({
   const [name, setName] = useState(service?.name ?? "");
   const [description, setDescription] = useState(service?.description ?? "");
   const [parentId, setParentId] = useState(service?.parentId ?? "");
-  const [repositoryId, setRepositoryId] = useState(service?.repositoryId ?? "");
   const [ownerTeamId, setOwnerTeamId] = useState(
     service?.ownerTeamId ?? defaultOwnerTeamId ?? "",
   );
@@ -92,7 +88,6 @@ export function ServiceForm({
       name: name.trim(),
       description: description.trim().length > 0 ? description.trim() : null,
       parentId: parentId.length > 0 ? parentId : null,
-      repositoryId: repositoryId.length > 0 ? repositoryId : null,
       ownerTeamId: ownerTeamId.length > 0 ? ownerTeamId : null,
       toolIds,
       dependsOnServiceIds,
@@ -169,7 +164,7 @@ export function ServiceForm({
               disabled={readOnly}
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="service-parent">Part of</Label>
               <NativeSelect
@@ -182,22 +177,6 @@ export function ServiceForm({
                 {parents.map((parent) => (
                   <option key={parent.id} value={parent.id}>
                     {parent.name}
-                  </option>
-                ))}
-              </NativeSelect>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="service-repository">Repository</Label>
-              <NativeSelect
-                id="service-repository"
-                value={repositoryId}
-                onChange={(event) => setRepositoryId(event.target.value)}
-                disabled={readOnly}
-              >
-                <option value="">No repository</option>
-                {repositories.map((repository) => (
-                  <option key={repository.id} value={repository.id}>
-                    {repository.name}
                   </option>
                 ))}
               </NativeSelect>

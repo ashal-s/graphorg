@@ -12,7 +12,7 @@ describe("requireUuidParam", () => {
     "returns a 400 response for a malformed id (%s)",
     (id) => {
       // Every `[id]` route (people, teams, tools,
-      // repositories, documents, services) compares this route param
+      // documents, services) compares this route param
       // directly against a Postgres `uuid` column; without this check, a
       // value like this would reach the database as an invalid cast and
       // surface as an unhandled 500 instead of a clean 400.

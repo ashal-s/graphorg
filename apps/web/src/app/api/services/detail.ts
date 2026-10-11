@@ -2,11 +2,11 @@ import { and, eq } from "drizzle-orm";
 import type { NextResponse } from "next/server";
 
 import { getDb } from "@/db";
-import { repositories, services, teams, tools } from "@/db/schema";
+import { services, teams, tools } from "@/db/schema";
 import { jsonError } from "@/lib/api/http";
 import { findMissingInOrg } from "@/lib/api/org-refs";
 
-/** A service with its owner, parent, children, repository, tools and direct dependencies resolved. */
+/** A service with its owner, parent, children, tools and direct dependencies resolved. */
 export async function fetchServiceDetail(organizationId: string, id: string) {
   const row = await getDb().query.services.findFirst({
     where: and(
@@ -16,7 +16,6 @@ export async function fetchServiceDetail(organizationId: string, id: string) {
     with: {
       parent: { columns: { id: true, name: true } },
       children: { columns: { id: true, name: true } },
-      repository: { columns: { id: true, name: true, url: true } },
       ownerTeam: { columns: { id: true, name: true } },
       tools: {
         with: {
@@ -40,7 +39,6 @@ export async function fetchServiceDetail(organizationId: string, id: string) {
 
 interface ServiceRefs {
   parentId?: string | null;
-  repositoryId?: string | null;
   ownerTeamId?: string | null;
   toolIds: string[];
   dependsOnServiceIds: string[];
@@ -66,21 +64,6 @@ export async function validateServiceRefs(
       return jsonError(
         400,
         "parentId does not reference a service in this organization",
-      );
-    }
-  }
-
-  if (refs.repositoryId) {
-    const missing = await findMissingInOrg(
-      repositories.id,
-      repositories.organizationId,
-      organizationId,
-      [refs.repositoryId],
-    );
-    if (missing.length > 0) {
-      return jsonError(
-        400,
-        "repositoryId does not reference a repository in this organization",
       );
     }
   }

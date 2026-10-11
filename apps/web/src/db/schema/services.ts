@@ -10,7 +10,6 @@ import {
 
 import { id, organizationId, timestamps } from "./_columns";
 import { organizations } from "./organizations";
-import { repositories } from "./repositories";
 import { serviceDependencies } from "./service-dependencies";
 import { serviceTools } from "./service-tools";
 import { teams } from "./teams";
@@ -27,9 +26,6 @@ export const services = pgTable(
     parentId: uuid("parent_id").references((): AnyPgColumn => services.id, {
       onDelete: "set null",
     }),
-    repositoryId: uuid("repository_id").references(() => repositories.id, {
-      onDelete: "set null",
-    }),
     ownerTeamId: uuid("owner_team_id").references(() => teams.id, {
       onDelete: "set null",
     }),
@@ -41,7 +37,6 @@ export const services = pgTable(
     unique().on(table.organizationId, table.name),
     index("services_organization_id_idx").on(table.organizationId),
     index("services_parent_id_idx").on(table.parentId),
-    index("services_repository_id_idx").on(table.repositoryId),
     index("services_owner_team_id_idx").on(table.ownerTeamId),
   ],
 );
@@ -57,10 +52,6 @@ export const servicesRelations = relations(services, ({ one, many }) => ({
     relationName: "parent",
   }),
   children: many(services, { relationName: "parent" }),
-  repository: one(repositories, {
-    fields: [services.repositoryId],
-    references: [repositories.id],
-  }),
   ownerTeam: one(teams, {
     fields: [services.ownerTeamId],
     references: [teams.id],

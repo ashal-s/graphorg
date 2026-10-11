@@ -16,7 +16,6 @@ const profile: AssembledPersonProfile = {
   ],
   services: [{ id: "svc-1", name: "checkout-api", description: null }],
   tools: [{ id: "tool-1", name: "GitHub", category: "source" }],
-  repositories: [{ id: "repo-1", name: "checkout-api", url: null }],
   documents: [{ id: "doc-1", title: "ADR", type: "adr", url: null }],
 };
 

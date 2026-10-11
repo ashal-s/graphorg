@@ -30,10 +30,6 @@ export interface ProfileTool extends ProfileRecord {
   category: string;
 }
 
-export interface ProfileRepository extends ProfileRecord {
-  url: string | null;
-}
-
 export interface ProfileDocument {
   id: string;
   title: string;
@@ -48,7 +44,6 @@ export interface AssembledPersonProfile {
   workflows: ProfileWorkflow[];
   services: ProfileService[];
   tools: ProfileTool[];
-  repositories: ProfileRepository[];
   documents: ProfileDocument[];
 }
 
@@ -70,10 +65,8 @@ export interface AssemblePersonProfileInput {
     id: string;
     name: string;
     description: string | null;
-    repository?: ProfileRepository | null;
     tools: Array<{ tool: ProfileTool | null }>;
   }>;
-  repositories: ProfileRepository[];
   documents: ProfileDocument[];
 }
 
@@ -88,8 +81,8 @@ function sortRoles(roles: WorkflowRole[]) {
 }
 
 /**
- * Pure shaping of a person's profile relationships. Ownership of services,
- * repositories and documents is team-level in the schema, so those lists
+ * Pure shaping of a person's profile relationships. Ownership of services
+ * and documents is team-level in the schema, so those lists
  * come from the person's team. Workflows come from `workflow_people`.
  * Tools are the unique set used across the team's services.
  */
@@ -120,18 +113,11 @@ export function assemblePersonProfile(
   }
 
   const toolsById = new Map<string, ProfileTool>();
-  const repositoriesById = new Map<string, ProfileRepository>();
-  for (const repository of input.repositories) {
-    repositoriesById.set(repository.id, repository);
-  }
 
   const services: ProfileService[] = input.services
     .map((service) => {
       for (const link of service.tools) {
         if (link.tool) toolsById.set(link.tool.id, link.tool);
-      }
-      if (service.repository) {
-        repositoriesById.set(service.repository.id, service.repository);
       }
       return {
         id: service.id,
@@ -153,7 +139,6 @@ export function assemblePersonProfile(
       .sort(byName),
     services,
     tools: [...toolsById.values()].sort(byName),
-    repositories: [...repositoriesById.values()].sort(byName),
     documents: [...input.documents].sort((a, b) =>
       a.title.localeCompare(b.title),
     ),

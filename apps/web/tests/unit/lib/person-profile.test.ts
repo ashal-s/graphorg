@@ -41,11 +41,6 @@ function paymentsProfileInput(
         id: "svc-checkout-api",
         name: "checkout-api",
         description: "Core checkout API.",
-        repository: {
-          id: "repo-checkout-api",
-          name: "checkout-api",
-          url: "https://github.com/acme/checkout-api",
-        },
         tools: [
           { tool: { id: "tool-github", name: "GitHub", category: "source" } },
           { tool: { id: "tool-jira", name: "Jira", category: "tracking" } },
@@ -55,11 +50,6 @@ function paymentsProfileInput(
         id: "svc-checkout-web",
         name: "checkout-web",
         description: "Checkout UI.",
-        repository: {
-          id: "repo-checkout-web",
-          name: "checkout-web",
-          url: "https://github.com/acme/checkout-web",
-        },
         tools: [
           { tool: { id: "tool-jira", name: "Jira", category: "tracking" } },
         ],
@@ -68,20 +58,7 @@ function paymentsProfileInput(
         id: "svc-payments-worker",
         name: "payments-worker",
         description: "Async payments.",
-        repository: null,
         tools: [],
-      },
-    ],
-    repositories: [
-      {
-        id: "repo-checkout-api",
-        name: "checkout-api",
-        url: "https://github.com/acme/checkout-api",
-      },
-      {
-        id: "repo-checkout-web",
-        name: "checkout-web",
-        url: "https://github.com/acme/checkout-web",
       },
     ],
     documents: [
@@ -190,38 +167,6 @@ describe("assemblePersonProfile", () => {
     ]);
   });
 
-  it("unions team-owned repositories with repositories on services", () => {
-    const profile = assemblePersonProfile(
-      paymentsProfileInput({
-        repositories: [
-          {
-            id: "repo-owned",
-            name: "owned-repo",
-            url: null,
-          },
-        ],
-        services: [
-          {
-            id: "svc-a",
-            name: "a",
-            description: null,
-            repository: {
-              id: "repo-linked",
-              name: "linked-repo",
-              url: "https://github.com/acme/linked",
-            },
-            tools: [],
-          },
-        ],
-      }),
-    );
-
-    expect(profile.repositories.map((repo) => repo.name)).toEqual([
-      "linked-repo",
-      "owned-repo",
-    ]);
-  });
-
   it("sorts services, tools, and documents by name/title", () => {
     const profile = assemblePersonProfile(paymentsProfileInput());
 
@@ -241,7 +186,6 @@ describe("assemblePersonProfile", () => {
       paymentsProfileInput({
         teams: [],
         services: [],
-        repositories: [],
         documents: [],
         workflowLinks: [],
       }),
@@ -249,7 +193,6 @@ describe("assemblePersonProfile", () => {
 
     expect(profile.teams).toEqual([]);
     expect(profile.services).toEqual([]);
-    expect(profile.repositories).toEqual([]);
     expect(profile.documents).toEqual([]);
     expect(profile.workflows).toEqual([]);
     expect(profile.tools).toEqual([]);

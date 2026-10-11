@@ -1,6 +1,6 @@
 # Database
 
-The relational context model: organisations, users, teams, people, tools, services, repositories, documents and workflows, in PostgreSQL via [Drizzle ORM](https://orm.drizzle.team).
+The relational context model: organisations, users, teams, people, tools, services, documents and workflows, in PostgreSQL via [Drizzle ORM](https://orm.drizzle.team).
 
 ## Layout
 
@@ -17,8 +17,7 @@ src/db/
     ├── people.ts                directory entries; optionally linked to a user; self-referential manager
     ├── team-members.ts          join table: which teams a person is on, and their level on each
     ├── tools.ts                 what the org uses to do its work: software, platforms, equipment (free-text category)
-    ├── repositories.ts
-    ├── services.ts               what the org delivers or runs: optional parent service, repository, owner team
+    ├── services.ts               what the org delivers or runs: optional parent service, owner team
     ├── service-tools.ts          join table: the tools a service uses
     ├── service-dependencies.ts   join table: direct service-to-service dependencies
     ├── documents.ts
@@ -32,7 +31,7 @@ scripts/seed.ts                 populates the "Acme Corp" demo organisation
 ## Design
 
 - **Tenant boundary**: every table except `organizations` has a required `organization_id` column (`references organizations.id, onDelete: cascade`), via the shared `organizationId()` helper. Deleting an organization removes every row that belongs to it.
-- **Ownership**: modeled as direct `owner_team_id` foreign keys (nullable, `onDelete: set null`) on `services`, `repositories` and `documents` — not a generic polymorphic ownership table. `team_members` (a person can be on any number of teams, with a level of lead, member or trainee on each) and `people.manager_id` (self-referential) round out the org chart.
+- **Ownership**: modeled as direct `owner_team_id` foreign keys (nullable, `onDelete: set null`) on `services` and `documents` — not a generic polymorphic ownership table. `team_members` (a person can be on any number of teams, with a level of lead, member or trainee on each) and `people.manager_id` (self-referential) round out the org chart.
 - **Dependencies**: `service_dependencies` is a self-referential many-to-many join on `services`, with a `CHECK` constraint that a service can't depend on itself.
 - **Hierarchy**: `services.parent_id` is a self-reference (`onDelete: set null`), so a service can sit under another one; a "system" is just a service with children. The API rejects a parent that would create a loop.
 - **Tools**: `service_tools` is a many-to-many join between `services` and `tools`. `tools.category` is free text so each organization groups its tools its own way.
@@ -61,7 +60,7 @@ To add a hand-authored migration (e.g. a trigger, like `0001_set_updated_at_trig
 
 - 5 teams, 9 people with a manager hierarchy, 4 of them linked to product accounts (`users`, one of each role)
 - 14 tools (languages, databases, infrastructure and work tools; one flat catalog)
-- 3 platform services, 5 repositories and 5 services — each service has an owner team, a parent platform, an optional repository, the tools it uses (`service_tools`) and dependencies on other services (`service_dependencies`)
+- 3 platform services and 5 services — each service has an owner team, a parent platform, the tools it uses (`service_tools`) and dependencies on other services (`service_dependencies`)
 - 3 documents (an ADR, a runbook, an onboarding doc)
 - 2 workflows, each with one condition step, one action step, one or more owners, one or more creators and two workers (one workflow has two owners; the other has the same person as both an owner and a creator)
 

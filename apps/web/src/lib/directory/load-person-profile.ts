@@ -4,7 +4,6 @@ import { getDb } from "@/db";
 import {
   documents,
   people,
-  repositories,
   services,
   teams,
   workflowPeople,
@@ -37,7 +36,6 @@ export async function loadPersonProfile(orgId: string, personId: string) {
     directReports,
     workflowLinks,
     teamServices,
-    teamRepositories,
     teamDocuments,
   ] = await Promise.all([
     db.query.teams.findMany({
@@ -85,18 +83,7 @@ export async function loadPersonProfile(orgId: string, personId: string) {
                 tool: { columns: { id: true, name: true, category: true } },
               },
             },
-            repository: { columns: { id: true, name: true, url: true } },
           },
-          orderBy: (row, { asc }) => asc(row.name),
-        })
-      : Promise.resolve([]),
-    teamIds.length > 0
-      ? db.query.repositories.findMany({
-          where: and(
-            inArray(repositories.ownerTeamId, teamIds),
-            eq(repositories.organizationId, orgId),
-          ),
-          columns: { id: true, name: true, url: true },
           orderBy: (row, { asc }) => asc(row.name),
         })
       : Promise.resolve([]),
@@ -126,7 +113,6 @@ export async function loadPersonProfile(orgId: string, personId: string) {
       workflowLinks,
       organizationId: orgId,
       services: teamServices,
-      repositories: teamRepositories,
       documents: teamDocuments,
     }),
   };

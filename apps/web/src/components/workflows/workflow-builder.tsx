@@ -130,9 +130,7 @@ const TRIGGER_LABELS: Record<TriggerType, string> = {
 };
 
 const ENTITY_TYPES = [
-  { value: "system", label: "System" },
   { value: "service", label: "Service" },
-  { value: "repository", label: "Repository" },
   { value: "team", label: "Team" },
   { value: "person", label: "Person" },
   { value: "document", label: "Document" },
@@ -315,7 +313,7 @@ export function WorkflowBuilder({
   const [entityType, setEntityType] = useState(
     typeof workflow?.triggerConfig.entityType === "string"
       ? workflow.triggerConfig.entityType
-      : "system",
+      : "service",
   );
   const [cron, setCron] = useState(
     typeof workflow?.triggerConfig.cron === "string"

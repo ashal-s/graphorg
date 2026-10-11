@@ -13,7 +13,6 @@ import { getDb } from "@/db";
 import {
   documents,
   people,
-  repositories,
   services,
   teamMembers,
   teams,
@@ -40,7 +39,6 @@ export default async function TeamDetailPage({ params }: PageProps) {
     team,
     teamPeople,
     teamServices,
-    teamRepositories,
     teamDocuments,
     otherPeople,
   ] = await Promise.all([
@@ -62,13 +60,6 @@ export default async function TeamDetailPage({ params }: PageProps) {
           with: { tool: { columns: { id: true, name: true } } },
         },
       },
-      orderBy: (row, { asc }) => asc(row.name),
-    }),
-    getDb().query.repositories.findMany({
-      where: and(
-        eq(repositories.ownerTeamId, id),
-        eq(repositories.organizationId, orgId),
-      ),
       orderBy: (row, { asc }) => asc(row.name),
     }),
     getDb().query.documents.findMany({
@@ -232,17 +223,6 @@ export default async function TeamDetailPage({ params }: PageProps) {
         name: document.title,
         href: `/catalog/documents/${document.id}`,
         badges: [document.type],
-      })),
-    },
-    {
-      key: "repositories",
-      label: "Repositories",
-      singular: "repository",
-      emptyText: "This team doesn't own any repositories.",
-      items: teamRepositories.map((repository) => ({
-        id: repository.id,
-        name: repository.name,
-        href: `/catalog/repositories/${repository.id}`,
       })),
     },
   ];

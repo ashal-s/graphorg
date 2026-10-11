@@ -18,13 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getDb } from "@/db";
-import {
-  repositories,
-  serviceDependencies,
-  services,
-  teams,
-  tools,
-} from "@/db/schema";
+import { serviceDependencies, services, teams, tools } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 import { lowerLabel } from "@/lib/terminology";
@@ -44,7 +38,6 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const [
     service,
     terminology,
-    repositoryOptions,
     teamOptions,
     toolOptions,
     serviceOptions,
@@ -52,11 +45,6 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   ] = await Promise.all([
     fetchServiceDetail(orgId, id),
     getTerminology(orgId),
-    getDb().query.repositories.findMany({
-      where: eq(repositories.organizationId, orgId),
-      columns: { id: true, name: true },
-      orderBy: (row, { asc }) => asc(row.name),
-    }),
     getDb().query.teams.findMany({
       where: eq(teams.organizationId, orgId),
       columns: { id: true, name: true },
@@ -128,7 +116,6 @@ export default async function ServiceDetailPage({ params }: PageProps) {
         service={service as unknown as ServiceDetail}
         terminology={terminology}
         parents={parentOptions}
-        repositories={repositoryOptions}
         teams={teamOptions}
         tools={toolOptions}
         services={serviceOptions}
@@ -139,13 +126,13 @@ export default async function ServiceDetailPage({ params }: PageProps) {
         <CardHeader>
           <CardTitle>Where this fits</CardTitle>
           <CardDescription>
-            What it sits under, its repository, and owner team.
+            What it sits under, and its owner team.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {!service.parent && !service.repository && !service.ownerTeam ? (
+          {!service.parent && !service.ownerTeam ? (
             <p className="text-sm text-muted-foreground">
-              Not linked to a parent, repository, or team yet.
+              Not linked to a parent or team yet.
             </p>
           ) : (
             <EntityChipList
@@ -156,16 +143,6 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                         key: "parent",
                         href: `/catalog/services/${service.parent.id}`,
                         label: `Part of: ${service.parent.name}`,
-                      },
-                    ]
-                  : []),
-                ...(service.repository
-                  ? [
-                      {
-                        key: "repository",
-                        href: service.repository.url ?? undefined,
-                        external: Boolean(service.repository.url),
-                        label: `Repository: ${service.repository.name}`,
                       },
                     ]
                   : []),

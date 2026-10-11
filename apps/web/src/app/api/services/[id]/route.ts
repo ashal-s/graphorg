@@ -72,7 +72,6 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   const refError = await validateServiceRefs(session.organizationId, {
     parentId: values.parentId,
-    repositoryId: values.repositoryId,
     ownerTeamId: values.ownerTeamId,
     toolIds: toolIds ?? [],
     dependsOnServiceIds: dependsOnServiceIds ?? [],

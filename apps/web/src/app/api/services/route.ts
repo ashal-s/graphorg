@@ -35,7 +35,6 @@ export async function POST(request: NextRequest) {
 
   const refError = await validateServiceRefs(session.organizationId, {
     parentId: values.parentId,
-    repositoryId: values.repositoryId,
     ownerTeamId: values.ownerTeamId,
     toolIds,
     dependsOnServiceIds,

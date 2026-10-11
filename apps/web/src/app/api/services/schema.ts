@@ -5,7 +5,6 @@ export const createServiceSchema = z.object({
   description: z.string().trim().min(1).max(2000).nullable().optional(),
   /** The service this one sits under (a "system" is a service with children). */
   parentId: z.string().uuid().nullable().optional(),
-  repositoryId: z.string().uuid().nullable().optional(),
   ownerTeamId: z.string().uuid().nullable().optional(),
   /** Full replacement set for the tools the service uses (service_tools). */
   toolIds: z.array(z.string().uuid()).optional(),

@@ -65,7 +65,7 @@ export function EntityRow({
 }
 
 interface EntityChipProps {
-  /** Omit for a non-interactive chip, e.g. a repository with no URL on file. */
+  /** Omit for a non-interactive chip, e.g. an item with no link on file. */
   href?: string;
   label: ReactNode;
   external?: boolean;
@@ -97,7 +97,7 @@ function EntityChip({ href, label, external, className }: EntityChipProps) {
 
 /**
  * Wrapping chip cloud used for short related-item lists on detail pages
- * (e.g. a team's people, tools, repositories). Shares EntityRow's
+ * (e.g. a team's people, tools, documents). Shares EntityRow's
  * rounded/hover treatment so the two idioms read as one visual language.
  */
 export function EntityChipList({

@@ -78,6 +78,13 @@
       "when": 1791737667779,
       "tag": "0010_add_person_photo_url",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791738603777,
+      "tag": "0011_drop_repositories",
+      "breakpoints": true
     }
   ]
 }

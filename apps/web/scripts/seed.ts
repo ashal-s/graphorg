@@ -2,7 +2,7 @@
  * Seeds a representative demo organisation ("Acme Corp") exercising every
  * table and relationship in the relational context model: teams, a manager
  * hierarchy, product accounts, a tool catalog, parent and child services
- * with tech stacks and dependencies, repositories, documents, and workflows
+ * with tools and dependencies, documents, and workflows
  * with steps and role-based people (owners, creators, workers).
  *
  * Re-runnable: deletes the demo org (organizations.slug = "acme") first, if
@@ -19,7 +19,6 @@ import {
   documents,
   organizations,
   people,
-  repositories,
   serviceDependencies,
   services,
   serviceTools,
@@ -276,47 +275,6 @@ async function main() {
     .returning();
   console.log(`Created ${toolRows.length} tools`);
 
-  // --- Repositories -------------------------------------------------------
-
-  const repositoryRows = await db
-    .insert(repositories)
-    .values(
-      [
-        {
-          name: "checkout-api",
-          url: "https://github.com/acme/checkout-api",
-          ownerTeam: "Payments",
-        },
-        {
-          name: "checkout-web",
-          url: "https://github.com/acme/checkout-web",
-          ownerTeam: "Payments",
-        },
-        {
-          name: "growth-experiments",
-          url: "https://github.com/acme/growth-experiments",
-          ownerTeam: "Growth",
-        },
-        {
-          name: "data-pipeline",
-          url: "https://github.com/acme/data-pipeline",
-          ownerTeam: "Data & Analytics",
-        },
-        {
-          name: "sre-infra",
-          url: "https://github.com/acme/sre-infra",
-          ownerTeam: "Site Reliability",
-        },
-      ].map(({ ownerTeam, ...r }) => ({
-        ...r,
-        organizationId: org.id,
-        ownerTeamId: teamByName.get(ownerTeam)!.id,
-      })),
-    )
-    .returning();
-  const repositoryByName = new Map(repositoryRows.map((r) => [r.name, r]));
-  console.log(`Created ${repositoryRows.length} repositories`);
-
   // --- Services (platforms with services under them), tools and dependencies
 
   const platformRows = await db
@@ -353,7 +311,6 @@ async function main() {
       name: "checkout-api",
       description: "Core checkout and order orchestration API.",
       parent: "Checkout Platform",
-      repository: "checkout-api",
       ownerTeam: "Payments",
       stack: ["Go", "PostgreSQL"],
       dependsOn: [] as string[],
@@ -362,7 +319,6 @@ async function main() {
       name: "checkout-web",
       description: "Customer-facing checkout UI.",
       parent: "Checkout Platform",
-      repository: "checkout-web",
       ownerTeam: "Payments",
       stack: ["TypeScript", "React"],
       dependsOn: ["checkout-api"],
@@ -371,7 +327,6 @@ async function main() {
       name: "payments-worker",
       description: "Async payment capture, refunds and webhook processing.",
       parent: "Checkout Platform",
-      repository: null as string | null,
       ownerTeam: "Payments",
       stack: ["Python"],
       dependsOn: ["checkout-api"],
@@ -380,7 +335,6 @@ async function main() {
       name: "experiment-service",
       description: "Serves and records A/B experiment assignments.",
       parent: "Growth Platform",
-      repository: "growth-experiments",
       ownerTeam: "Growth",
       stack: ["TypeScript", "Redis"],
       dependsOn: ["checkout-api"],
@@ -389,7 +343,6 @@ async function main() {
       name: "analytics-ingest",
       description: "Streams product and payment events into the data platform.",
       parent: "Data Platform",
-      repository: "data-pipeline",
       ownerTeam: "Data & Analytics",
       stack: ["Python", "Kafka"],
       dependsOn: ["checkout-api", "payments-worker"],
@@ -403,9 +356,6 @@ async function main() {
       .values({
         organizationId: org.id,
         parentId: platformByName.get(spec.parent)!.id,
-        repositoryId: spec.repository
-          ? repositoryByName.get(spec.repository)!.id
-          : null,
         ownerTeamId: teamByName.get(spec.ownerTeam)!.id,
         name: spec.name,
         description: spec.description,
