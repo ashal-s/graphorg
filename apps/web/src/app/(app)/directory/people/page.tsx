@@ -14,9 +14,6 @@ import { people, teamMembers, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 
-/** Deeper levels stop indenting so long chains stay on screen. */
-const MAX_INDENT = 6;
-
 interface PageProps {
   searchParams: Promise<{ q?: string; teamId?: string }>;
 }
@@ -69,9 +66,9 @@ export default async function PeoplePage({ searchParams }: PageProps) {
 
   const hasFilters = Boolean(q || teamId);
 
-  // Arranged like the org chart: each person followed by their reports,
-  // indented by level. When a search or team filter hides someone's
-  // manager, they simply start a new top-level branch.
+  // Ranked by position in the org: the top of the org chart first, then
+  // each level down. When a search or team filter hides someone's manager,
+  // they are ranked as if they were top level.
   const byId = new Map(rows.map((row) => [row.id, row]));
   const hierarchy = flattenOrgChart(
     buildOrgChart(
@@ -140,14 +137,8 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         />
       ) : (
         <div className="flex flex-col gap-2">
-          {hierarchy.map(({ person, depth }) => (
-            <div
-              key={person.id}
-              style={{ marginLeft: `${Math.min(depth, MAX_INDENT) * 1.5}rem` }}
-              className={
-                depth > 0 ? "border-l-2 border-border pl-3" : undefined
-              }
-            >
+          {hierarchy.map(({ person }) => (
+            <div key={person.id}>
               <EntityRow
                 href={`/directory/people/${person.id}`}
                 title={person.name}

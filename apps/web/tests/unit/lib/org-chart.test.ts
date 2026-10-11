@@ -49,12 +49,13 @@ describe("buildOrgChart", () => {
 });
 
 describe("flattenOrgChart", () => {
-  it("lists each person before their reports, with their depth", () => {
+  it("ranks people level by level, grouped under their manager", () => {
     const roots = buildOrgChart([
       person("ceo", null),
-      person("zed", "vp"),
-      person("amy", "vp"),
-      person("vp", "ceo"),
+      person("vp-b", "ceo"),
+      person("vp-a", "ceo"),
+      person("zed", "vp-a"),
+      person("amy", "vp-b"),
       person("solo", null),
     ]);
 
@@ -62,10 +63,11 @@ describe("flattenOrgChart", () => {
       flattenOrgChart(roots).map(({ node, depth }) => [node.id, depth]),
     ).toEqual([
       ["ceo", 0],
-      ["vp", 1],
-      ["amy", 2],
-      ["zed", 2],
       ["solo", 0],
+      ["vp-a", 1],
+      ["vp-b", 1],
+      ["zed", 2],
+      ["amy", 2],
     ]);
   });
 });
