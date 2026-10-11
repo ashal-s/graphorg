@@ -1,6 +1,10 @@
+import { and, eq } from "drizzle-orm";
 import { forbidden, unauthorized } from "next/navigation";
+import { cache } from "react";
 
 import { auth } from "@/auth";
+import { getDb } from "@/db";
+import { users } from "@/db/schema";
 import { hasRole, type Role } from "@/lib/auth/roles";
 
 export interface Session {
@@ -13,20 +17,38 @@ export interface Session {
   email: string;
 }
 
-/** Current session, or null if signed out. Never throws; safe for optional UI. */
-export async function getSession(): Promise<Session | null> {
+/**
+ * Current session, or null if signed out. Never throws; safe for optional UI.
+ *
+ * The JWT only proves who signed in and when; the user's role, name, email
+ * and continued existence are read from the database on every request, so a
+ * role change or removal made in Settings takes effect immediately instead
+ * of lingering until the token expires. `cache` dedupes the lookup across
+ * the components rendered for one request.
+ */
+export const getSession = cache(async (): Promise<Session | null> => {
   const raw = await auth();
   if (!raw?.user?.id) return null;
+
+  const user = await getDb().query.users.findFirst({
+    where: and(
+      eq(users.id, raw.user.id),
+      eq(users.organizationId, raw.organizationId),
+    ),
+    columns: { name: true, email: true, role: true },
+  });
+  if (!user) return null;
+
   return {
     userId: raw.user.id,
     organizationId: raw.organizationId,
     organizationName: raw.organizationName,
     organizationSlug: raw.organizationSlug,
-    role: raw.role,
-    name: raw.user.name ?? "",
-    email: raw.user.email ?? "",
+    role: user.role,
+    name: user.name,
+    email: user.email,
   };
-}
+});
 
 /**
  * Current session, for use in Server Components/Actions rendering protected
