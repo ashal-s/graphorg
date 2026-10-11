@@ -5,9 +5,9 @@ import { z } from "zod";
 import { TeamDetails } from "@/components/directory/team-details";
 import { TeamMembers } from "@/components/directory/team-members";
 import {
-  TeamResources,
-  type TeamResource,
-} from "@/components/directory/team-resources";
+  ResourceStats,
+  type Resource,
+} from "@/components/shared/resource-stats";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { getDb } from "@/db";
 import {
@@ -115,6 +115,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
       name: membership.person.name,
       title: membership.person.title,
       email: membership.person.email,
+      photoUrl: membership.person.photoUrl,
       teamRole: membership.teamRole,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -179,7 +180,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
   const toolTerms = terminology.tools;
 
   const canCreate = !readOnly;
-  const resources: TeamResource[] = [
+  const resources: Resource[] = [
     {
       key: "services",
       label: serviceTerms.plural,
@@ -270,7 +271,7 @@ export default async function TeamDetailPage({ params }: PageProps) {
         readOnly={readOnly}
       />
 
-      <TeamResources resources={resources} />
+      <ResourceStats resources={resources} />
     </div>
   );
 }

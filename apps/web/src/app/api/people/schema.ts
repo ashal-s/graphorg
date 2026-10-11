@@ -4,6 +4,22 @@ export const createPersonSchema = z.object({
   name: z.string().trim().min(1).max(200),
   email: z.string().trim().toLowerCase().email().max(320),
   title: z.string().trim().min(1).max(200).nullable().optional(),
+  /** Link to a profile picture (http or https). Null or an empty string clears it. */
+  photoUrl: z
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .trim()
+        .max(2000)
+        .url()
+        .refine(
+          (value) => /^https?:\/\//i.test(value),
+          "Must be an http(s) URL",
+        ),
+    ])
+    .nullable()
+    .optional(),
   /** Full replacement set of the teams this person is on. Levels on teams they stay on are kept. */
   teamIds: z.array(z.string().uuid()).max(100).optional(),
   managerId: z.string().uuid().nullable().optional(),

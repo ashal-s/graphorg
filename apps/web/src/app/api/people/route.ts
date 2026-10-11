@@ -126,6 +126,7 @@ export async function POST(request: NextRequest) {
         .insert(people)
         .values({
           ...values,
+          photoUrl: values.photoUrl || null,
           managerId,
           userId,
           organizationId: session.organizationId,

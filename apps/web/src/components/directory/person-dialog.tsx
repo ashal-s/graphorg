@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -19,37 +19,58 @@ import {
   SearchableSelect,
 } from "@/components/ui/searchable-select";
 
+export interface PersonDialogPerson {
+  id: string;
+  name: string;
+  email: string;
+  title: string | null;
+  photoUrl: string | null;
+  teamIds: string[];
+  managerId: string | null;
+}
+
 /**
- * "New person" as a popup: fill in the details, press Save, and the list
- * refreshes with them in it.
+ * Create or edit a person in a popup: fill in the details, press Save, and
+ * the page refreshes. With `person` it edits that person ("Edit details");
+ * without, it adds a new one ("New person").
  */
-export function AddPersonDialog({
+export function PersonDialog({
+  person,
   teams,
   managers,
   size,
   withIcon = true,
+  variant,
 }: {
+  /** Omit to create a new person. */
+  person?: PersonDialogPerson;
   teams: { id: string; name: string }[];
+  /** Everyone who could be the manager (never includes `person` itself). */
   managers: { id: string; name: string }[];
   size?: "sm";
   withIcon?: boolean;
+  variant?: "default" | "outline";
 }) {
+  const editing = Boolean(person);
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [title, setTitle] = useState("");
-  const [teamIds, setTeamIds] = useState<string[]>([]);
-  const [managerId, setManagerId] = useState("");
+  const [name, setName] = useState(person?.name ?? "");
+  const [email, setEmail] = useState(person?.email ?? "");
+  const [title, setTitle] = useState(person?.title ?? "");
+  const [photoUrl, setPhotoUrl] = useState(person?.photoUrl ?? "");
+  const [teamIds, setTeamIds] = useState<string[]>(person?.teamIds ?? []);
+  const [managerId, setManagerId] = useState(person?.managerId ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /** Back to the saved values (or blank, when creating). */
   function reset() {
-    setName("");
-    setEmail("");
-    setTitle("");
-    setTeamIds([]);
-    setManagerId("");
+    setName(person?.name ?? "");
+    setEmail(person?.email ?? "");
+    setTitle(person?.title ?? "");
+    setPhotoUrl(person?.photoUrl ?? "");
+    setTeamIds(person?.teamIds ?? []);
+    setManagerId(person?.managerId ?? "");
     setError(null);
   }
 
@@ -67,17 +88,21 @@ export function AddPersonDialog({
     }
 
     setSaving(true);
-    const response = await fetch("/api/people", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: name.trim(),
-        email: email.trim(),
-        title: title.trim().length > 0 ? title.trim() : null,
-        teamIds,
-        managerId: managerId.length > 0 ? managerId : null,
-      }),
-    });
+    const response = await fetch(
+      editing ? `/api/people/${person?.id}` : "/api/people",
+      {
+        method: editing ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          title: title.trim().length > 0 ? title.trim() : null,
+          photoUrl: photoUrl.trim(),
+          teamIds,
+          managerId: managerId.length > 0 ? managerId : null,
+        }),
+      },
+    );
     setSaving(false);
 
     if (!response.ok) {
@@ -97,15 +122,20 @@ export function AddPersonDialog({
     }
 
     setOpen(false);
-    reset();
+    if (!editing) reset();
     router.refresh();
   }
 
   return (
     <>
-      <Button size={size} onClick={() => setOpen(true)}>
-        {withIcon && <Plus aria-hidden="true" />}
-        New person
+      <Button size={size} variant={variant} onClick={() => setOpen(true)}>
+        {withIcon &&
+          (editing ? (
+            <Pencil aria-hidden="true" />
+          ) : (
+            <Plus aria-hidden="true" />
+          ))}
+        {editing ? "Edit details" : "New person"}
       </Button>
 
       <Dialog
@@ -117,9 +147,11 @@ export function AddPersonDialog({
       >
         <DialogContent>
           <div>
-            <DialogTitle>New person</DialogTitle>
+            <DialogTitle>{editing ? "Edit details" : "New person"}</DialogTitle>
             <DialogDescription>
-              Who they are and where they fit in the org.
+              {editing
+                ? `Update ${person?.name}'s details.`
+                : "Who they are and where they fit in the org."}
             </DialogDescription>
           </div>
 
@@ -131,9 +163,9 @@ export function AddPersonDialog({
             )}
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="new-person-name">Name</Label>
+              <Label htmlFor="person-dialog-name">Name</Label>
               <Input
-                id="new-person-name"
+                id="person-dialog-name"
                 autoFocus
                 value={name}
                 onChange={(event) => setName(event.target.value)}
@@ -142,9 +174,9 @@ export function AddPersonDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="new-person-email">Email</Label>
+              <Label htmlFor="person-dialog-email">Email</Label>
               <Input
-                id="new-person-email"
+                id="person-dialog-email"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -153,9 +185,9 @@ export function AddPersonDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="new-person-title">Title</Label>
+              <Label htmlFor="person-dialog-title">Title</Label>
               <Input
-                id="new-person-title"
+                id="person-dialog-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="e.g. Senior Platform Engineer"
@@ -163,9 +195,24 @@ export function AddPersonDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="new-person-teams">Teams</Label>
+              <Label htmlFor="person-dialog-photo">Profile photo</Label>
+              <Input
+                id="person-dialog-photo"
+                type="url"
+                inputMode="url"
+                value={photoUrl}
+                onChange={(event) => setPhotoUrl(event.target.value)}
+                placeholder="https://example.com/photo.jpg"
+              />
+              <p className="text-xs text-muted-foreground">
+                A link to an image. Leave blank to show their initials.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="person-dialog-teams">Teams</Label>
               <SearchableMultiSelect
-                id="new-person-teams"
+                id="person-dialog-teams"
                 options={teams.map((team) => ({
                   id: team.id,
                   label: team.name,
@@ -178,9 +225,9 @@ export function AddPersonDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="new-person-manager">Manager</Label>
+              <Label htmlFor="person-dialog-manager">Manager</Label>
               <SearchableSelect
-                id="new-person-manager"
+                id="person-dialog-manager"
                 options={managers.map((manager) => ({
                   id: manager.id,
                   label: manager.name,

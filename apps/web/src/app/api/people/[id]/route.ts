@@ -67,7 +67,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const session = await getSession();
   if (!session) return jsonError(401, "Unauthorized");
-  if (!hasRole(session.role, "editor")) return jsonError(403, "Forbidden");
+  // Editing someone's profile details is an owner/admin action; editors can
+  // still manage team membership via the team endpoints.
+  if (!hasRole(session.role, "admin")) return jsonError(403, "Forbidden");
 
   const { id } = await params;
   const idError = requireUuidParam(id);
@@ -140,6 +142,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     managerId,
     userId,
   };
+  if (values.photoUrl !== undefined) patch.photoUrl = values.photoUrl || null;
   // `set()` rejects an empty object, so drop keys the request didn't send.
   for (const key of Object.keys(patch) as Array<keyof typeof patch>) {
     if (patch[key] === undefined) delete patch[key];

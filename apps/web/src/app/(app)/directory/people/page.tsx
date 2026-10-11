@@ -3,7 +3,7 @@ import { Users } from "lucide-react";
 
 import { EmptyState } from "@/components/states/empty-state";
 import { EntityRow } from "@/components/shared/entity-row";
-import { AddPersonDialog } from "@/components/directory/add-person-dialog";
+import { PersonDialog } from "@/components/directory/person-dialog";
 import { PageHeader } from "@/components/shared/page-header";
 import { SearchBar } from "@/components/shared/search-bar";
 import { Badge } from "@/components/ui/badge";
@@ -72,7 +72,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         description="Everyone in your organisation's directory."
         actions={
           canEdit && (
-            <AddPersonDialog teams={teamOptions} managers={managerOptions} />
+            <PersonDialog teams={teamOptions} managers={managerOptions} />
           )
         }
       />
@@ -109,7 +109,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
           action={
             canEdit &&
             !hasFilters && (
-              <AddPersonDialog
+              <PersonDialog
                 teams={teamOptions}
                 managers={managerOptions}
                 size="sm"

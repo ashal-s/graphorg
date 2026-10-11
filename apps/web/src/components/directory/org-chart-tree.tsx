@@ -1,16 +1,7 @@
 import Link from "next/link";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PersonAvatar } from "@/components/shared/person-avatar";
 import type { OrgChartNode } from "@/lib/directory/org-chart";
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const letters =
-    parts.length > 1
-      ? `${parts[0]![0]}${parts[parts.length - 1]![0]}`
-      : (parts[0]?.slice(0, 2) ?? "?");
-  return letters.toUpperCase();
-}
 
 function Node({ node }: { node: OrgChartNode }) {
   return (
@@ -19,11 +10,11 @@ function Node({ node }: { node: OrgChartNode }) {
         href={`/directory/people/${node.id}`}
         className="flex w-52 items-center gap-3 rounded-xl border border-border bg-background p-3 text-left transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
-        <Avatar>
-          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-            {initials(node.name)}
-          </AvatarFallback>
-        </Avatar>
+        <PersonAvatar
+          name={node.name}
+          photoUrl={node.photoUrl}
+          textClassName="text-xs"
+        />
         <span className="min-w-0">
           <span className="block truncate text-sm font-medium">
             {node.name}

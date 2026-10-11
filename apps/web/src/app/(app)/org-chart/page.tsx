@@ -14,7 +14,13 @@ export default async function OrgChartPage() {
 
   const rows = await getDb().query.people.findMany({
     where: eq(people.organizationId, session.organizationId),
-    columns: { id: true, name: true, title: true, managerId: true },
+    columns: {
+      id: true,
+      name: true,
+      title: true,
+      photoUrl: true,
+      managerId: true,
+    },
     with: {
       memberships: {
         columns: {},
@@ -28,6 +34,7 @@ export default async function OrgChartPage() {
       id: row.id,
       name: row.name,
       title: row.title,
+      photoUrl: row.photoUrl,
       managerId: row.managerId,
       teamName:
         row.memberships

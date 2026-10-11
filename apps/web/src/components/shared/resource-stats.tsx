@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-export interface TeamResourceItem {
+export interface ResourceItem {
   id: string;
   name: string;
   /** Where "view" goes. */
@@ -24,11 +24,11 @@ export interface TeamResourceItem {
   editHref?: string;
 }
 
-export interface TeamResource {
+export interface Resource {
   key: string;
   label: string;
   singular: string;
-  items: TeamResourceItem[];
+  items: ResourceItem[];
   /** Where "add" goes; omitted when there's no create screen or the user can't create. */
   addHref?: string;
   /** Shown when there are no items. */
@@ -36,11 +36,11 @@ export interface TeamResource {
 }
 
 /**
- * What a team owns, as a row of stats. Selecting one lists its items below,
- * each with view and (where it exists) edit, plus an add action when the
- * user can create that kind of thing.
+ * A row of clickable stats (a team's resources, a person's relationships).
+ * Selecting one lists its items below, each with view and (where it exists)
+ * edit, plus an add action when the user can create that kind of thing.
  */
-export function TeamResources({ resources }: { resources: TeamResource[] }) {
+export function ResourceStats({ resources }: { resources: Resource[] }) {
   const firstWithItems = resources.find(
     (resource) => resource.items.length > 0,
   );
@@ -51,7 +51,14 @@ export function TeamResources({ resources }: { resources: TeamResource[] }) {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3 lg:grid-cols-5">
+      <div
+        style={
+          {
+            "--stat-cols": `repeat(${resources.length}, minmax(0, 1fr))`,
+          } as React.CSSProperties
+        }
+        className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3 lg:grid-cols-(--stat-cols)"
+      >
         {resources.map((resource) => {
           const selected = resource.key === activeKey;
           return (

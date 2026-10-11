@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Pencil, UserMinus, UserPlus } from "lucide-react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PersonAvatar } from "@/components/shared/person-avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -36,6 +36,7 @@ export interface TeamMember {
   name: string;
   title: string | null;
   email: string;
+  photoUrl?: string | null;
   teamRole: TeamRole;
 }
 
@@ -72,15 +73,6 @@ const LEVEL_DOT: Record<TeamRole, string> = {
   member: "bg-primary",
   trainee: "bg-emerald-500",
 };
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const letters =
-    parts.length > 1
-      ? `${parts[0]![0]}${parts[parts.length - 1]![0]}`
-      : (parts[0]?.slice(0, 2) ?? "?");
-  return letters.toUpperCase();
-}
 
 function joinNames(names: string[]): string {
   if (names.length <= 1) return names[0] ?? "";
@@ -260,11 +252,11 @@ export function TeamMembers({
         key={member.id}
         className={`group relative flex items-start gap-3 rounded-xl border border-t-4 border-x-border border-b-border p-4 transition-colors hover:bg-muted/40 ${LEVEL_ACCENT[member.teamRole]}`}
       >
-        <Avatar size="lg" className="size-12">
-          <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">
-            {initials(member.name)}
-          </AvatarFallback>
-        </Avatar>
+        <PersonAvatar
+          name={member.name}
+          photoUrl={member.photoUrl}
+          className="size-12"
+        />
         <div className="min-w-0 flex-1">
           <Link
             href={`/directory/people/${member.id}`}

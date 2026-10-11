@@ -71,6 +71,13 @@
       "when": 1791736530056,
       "tag": "0009_add_team_members",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791737667779,
+      "tag": "0010_add_person_photo_url",
+      "breakpoints": true
     }
   ]
 }

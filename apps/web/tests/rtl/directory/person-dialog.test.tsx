@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { AddPersonDialog } from "@/components/directory/add-person-dialog";
+import { PersonDialog } from "@/components/directory/person-dialog";
 
 const refreshMock = jest.fn();
 jest.mock("next/navigation", () => ({
@@ -15,10 +15,10 @@ const teams = [
 const managers = [{ id: "person-1", name: "Priya Shah" }];
 
 function renderDialog() {
-  return render(<AddPersonDialog teams={teams} managers={managers} />);
+  return render(<PersonDialog teams={teams} managers={managers} />);
 }
 
-describe("AddPersonDialog", () => {
+describe("PersonDialog", () => {
   beforeEach(() => {
     refreshMock.mockClear();
     global.fetch = jest.fn().mockResolvedValue({
@@ -75,6 +75,7 @@ describe("AddPersonDialog", () => {
       name: "Jordan Lee",
       email: "jordan@example.com",
       title: "Engineer",
+      photoUrl: "",
       teamIds: ["team-a", "team-b"],
       managerId: "person-1",
     });
@@ -99,5 +100,56 @@ describe("AddPersonDialog", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toHaveValue("Jordan Lee");
     expect(refreshMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("PersonDialog (edit)", () => {
+  const person = {
+    id: "p-9",
+    name: "Jordan Lee",
+    email: "jordan@example.com",
+    title: "Engineer",
+    photoUrl: null,
+    teamIds: ["team-a"],
+    managerId: "person-1",
+  };
+
+  beforeEach(() => {
+    refreshMock.mockClear();
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ person: { id: "p-9" } }),
+    });
+  });
+
+  it("opens pre-filled from Edit details and saves with PATCH", async () => {
+    const user = userEvent.setup();
+    render(<PersonDialog person={person} teams={teams} managers={managers} />);
+
+    await user.click(screen.getByRole("button", { name: /edit details/i }));
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Jordan Lee");
+    expect(screen.getByLabelText("Email")).toHaveValue("jordan@example.com");
+    expect(screen.getByLabelText("Title")).toHaveValue("Engineer");
+    expect(screen.getByText("Alpha")).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("Title"));
+    await user.type(screen.getByLabelText("Title"), "Staff Engineer");
+    await user.type(
+      screen.getByLabelText("Profile photo"),
+      "https://example.com/j.png",
+    );
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("/api/people/p-9");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body)).toMatchObject({
+      title: "Staff Engineer",
+      photoUrl: "https://example.com/j.png",
+      teamIds: ["team-a"],
+      managerId: "person-1",
+    });
+    expect(refreshMock).toHaveBeenCalled();
   });
 });

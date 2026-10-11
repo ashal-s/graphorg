@@ -31,6 +31,8 @@ export const people = pgTable(
     name: text("name").notNull(),
     email: text("email").notNull(),
     title: text("title"),
+    /** Link to a profile picture. Without one the UI shows their initials. */
+    photoUrl: text("photo_url"),
     ...timestamps(),
   },
   (table) => [

@@ -2,6 +2,7 @@ export interface OrgChartPerson {
   id: string;
   name: string;
   title: string | null;
+  photoUrl?: string | null;
   managerId: string | null;
   teamName: string | null;
 }
