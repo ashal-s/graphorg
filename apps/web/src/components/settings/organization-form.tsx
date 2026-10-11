@@ -6,13 +6,6 @@ import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { OrganizationLogo } from "@/components/shared/organization-logo";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -123,68 +116,60 @@ export function OrganizationForm({
         </Alert>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Organization profile</CardTitle>
-          <CardDescription>
-            Shown on the overview page and in the workspace switcher.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex items-center gap-4">
-            <OrganizationLogo name={name} logoUrl={logoUrl} />
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <Label htmlFor="org-logo">Logo URL</Label>
-              <Input
-                id="org-logo"
-                type="url"
-                inputMode="url"
-                value={logoUrl}
-                onChange={(event) => setLogoUrl(event.target.value)}
-                placeholder="https://example.com/logo.png"
-                disabled={readOnly}
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="org-name">Name</Label>
+      <div className="flex flex-col gap-5">
+        <div className="flex items-center gap-4">
+          <OrganizationLogo name={name} logoUrl={logoUrl} />
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <Label htmlFor="org-logo">Logo URL</Label>
             <Input
-              id="org-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="e.g. Acme Inc."
-              required
+              id="org-logo"
+              type="url"
+              inputMode="url"
+              value={logoUrl}
+              onChange={(event) => setLogoUrl(event.target.value)}
+              placeholder="https://example.com/logo.png"
               disabled={readOnly}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="org-description">Description</Label>
-            <Textarea
-              id="org-description"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="What does this organization do?"
-              maxLength={500}
-              disabled={readOnly}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="org-slug">Workspace slug</Label>
-            <Input
-              id="org-slug"
-              value={slug}
-              onChange={(event) => setSlug(event.target.value)}
-              required
-              disabled={readOnly}
-            />
-            <p className="text-xs text-muted-foreground">
-              The workspace identifier members sign in with.
-              {slugChanged &&
-                " Changing it means everyone must use the new value the next time they sign in."}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-name">Name</Label>
+          <Input
+            id="org-name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="e.g. Acme Inc."
+            required
+            disabled={readOnly}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-description">Description</Label>
+          <Textarea
+            id="org-description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="What does this organization do?"
+            maxLength={500}
+            disabled={readOnly}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="org-slug">Workspace slug</Label>
+          <Input
+            id="org-slug"
+            value={slug}
+            onChange={(event) => setSlug(event.target.value)}
+            required
+            disabled={readOnly}
+          />
+          <p className="text-xs text-muted-foreground">
+            The workspace identifier members sign in with.
+            {slugChanged &&
+              " Changing it means everyone must use the new value the next time they sign in."}
+          </p>
+        </div>
+      </div>
 
       {!readOnly && (
         <div className="flex gap-2">

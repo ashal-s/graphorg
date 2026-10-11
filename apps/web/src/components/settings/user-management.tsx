@@ -6,13 +6,6 @@ import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -86,6 +79,7 @@ export function UserManagement({
     grantable.includes("viewer") ? "viewer" : (grantable[0] ?? "viewer"),
   );
   const [adding, setAdding] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -114,6 +108,7 @@ export function UserManagement({
     setNewName("");
     setNewEmail("");
     setNewPassword("");
+    setShowAdd(false);
     router.refresh();
   }
 
@@ -179,215 +174,216 @@ export function UserManagement({
         </Alert>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Members</CardTitle>
-          <CardDescription>
-            {members.length} {members.length === 1 ? "member" : "members"} can
-            sign in to this workspace.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col divide-y divide-border">
-          {members.map((member) => {
-            const isSelf = member.id === currentUserId;
-            const manageable = canManageRole(actorRole, member.role);
-            const canEdit = manageable || isSelf;
-            const busy = busyId === member.id;
-            const roleChoices: Role[] = grantable.includes(member.role)
-              ? grantable
-              : [member.role, ...grantable];
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm text-muted-foreground">
+          {members.length} {members.length === 1 ? "member" : "members"} can
+          sign in to this workspace.
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          variant={showAdd ? "outline" : "default"}
+          onClick={() => setShowAdd((open) => !open)}
+        >
+          {showAdd ? "Cancel" : "Add member"}
+        </Button>
+      </div>
 
-            if (editingId === member.id) {
-              return (
-                <form
-                  key={member.id}
-                  onSubmit={(event) => saveEdit(event, member)}
-                  className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0"
-                >
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor={`edit-name-${member.id}`}>Name</Label>
-                      <Input
-                        id={`edit-name-${member.id}`}
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <Label htmlFor={`edit-email-${member.id}`}>Email</Label>
-                      <Input
-                        id={`edit-email-${member.id}`}
-                        type="email"
-                        value={editEmail}
-                        onChange={(e) => setEditEmail(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
+      {showAdd && (
+        <form
+          onSubmit={addMember}
+          className="flex flex-col gap-4 border-b border-border pb-6"
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="new-name">Name</Label>
+              <Input
+                id="new-name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="new-email">Email</Label>
+              <Input
+                id="new-email"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="new-password">Initial password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                At least 8 characters, with a letter and a number. Share it with
+                them; they can sign in straight away.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="new-role">Role</Label>
+              <NativeSelect
+                id="new-role"
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value as Role)}
+              >
+                <RoleOptions roles={grantable} />
+              </NativeSelect>
+              <p className="text-xs text-muted-foreground">
+                {ROLE_HINTS[newRole]}
+              </p>
+            </div>
+          </div>
+          <div>
+            <Button type="submit" disabled={adding}>
+              {adding ? "Adding…" : "Add member"}
+            </Button>
+          </div>
+        </form>
+      )}
+
+      <div className="flex flex-col divide-y divide-border border-y border-border">
+        {members.map((member) => {
+          const isSelf = member.id === currentUserId;
+          const manageable = canManageRole(actorRole, member.role);
+          const canEdit = manageable || isSelf;
+          const busy = busyId === member.id;
+          const roleChoices: Role[] = grantable.includes(member.role)
+            ? grantable
+            : [member.role, ...grantable];
+
+          if (editingId === member.id) {
+            return (
+              <form
+                key={member.id}
+                onSubmit={(event) => saveEdit(event, member)}
+                className="flex flex-col gap-3 py-3"
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor={`edit-password-${member.id}`}>
-                      New password
-                    </Label>
+                    <Label htmlFor={`edit-name-${member.id}`}>Name</Label>
                     <Input
-                      id={`edit-password-${member.id}`}
-                      type="password"
-                      autoComplete="new-password"
-                      value={editPassword}
-                      onChange={(e) => setEditPassword(e.target.value)}
-                      placeholder="Leave blank to keep the current password"
+                      id={`edit-name-${member.id}`}
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      required
                     />
                   </div>
-                  <div className="flex gap-2">
-                    <Button type="submit" size="sm" disabled={busy}>
-                      {busy ? "Saving…" : "Save"}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setEditingId(null)}
-                    >
-                      Cancel
-                    </Button>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor={`edit-email-${member.id}`}>Email</Label>
+                    <Input
+                      id={`edit-email-${member.id}`}
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      required
+                    />
                   </div>
-                </form>
-              );
-            }
-
-            return (
-              <div
-                key={member.id}
-                className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 first:pt-0 last:pb-0"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 truncate text-sm font-medium">
-                    {member.name}
-                    {isSelf && <Badge variant="secondary">You</Badge>}
-                  </p>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {member.email}
-                  </p>
                 </div>
-
-                {manageable && !isSelf ? (
-                  <div className="w-32">
-                    <NativeSelect
-                      aria-label={`Role for ${member.name}`}
-                      value={member.role}
-                      disabled={busy}
-                      onChange={(e) =>
-                        patchMember(member.id, { role: e.target.value })
-                      }
-                    >
-                      <RoleOptions roles={roleChoices} />
-                    </NativeSelect>
-                  </div>
-                ) : (
-                  <Badge variant="outline">{ROLE_LABELS[member.role]}</Badge>
-                )}
-
-                <div className="flex gap-1">
-                  {canEdit && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setError(null);
-                        setEditingId(member.id);
-                        setEditName(member.name);
-                        setEditEmail(member.email);
-                        setEditPassword("");
-                      }}
-                    >
-                      Edit
-                    </Button>
-                  )}
-                  {manageable && !isSelf && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="destructive"
-                      disabled={busy}
-                      onClick={() => removeMember(member)}
-                    >
-                      Remove
-                    </Button>
-                  )}
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor={`edit-password-${member.id}`}>
+                    New password
+                  </Label>
+                  <Input
+                    id={`edit-password-${member.id}`}
+                    type="password"
+                    autoComplete="new-password"
+                    value={editPassword}
+                    onChange={(e) => setEditPassword(e.target.value)}
+                    placeholder="Leave blank to keep the current password"
+                  />
                 </div>
-              </div>
+                <div className="flex gap-2">
+                  <Button type="submit" size="sm" disabled={busy}>
+                    {busy ? "Saving…" : "Save"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingId(null)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
             );
-          })}
-        </CardContent>
-      </Card>
+          }
 
-      <form onSubmit={addMember}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Add a member</CardTitle>
-            <CardDescription>
-              Set an initial password and share it with them; they can sign in
-              straight away.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="new-name">Name</Label>
-                <Input
-                  id="new-name"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="new-email">Email</Label>
-                <Input
-                  id="new-email"
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="new-password">Initial password</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  At least 8 characters, with a letter and a number.
+          return (
+            <div
+              key={member.id}
+              className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-2 truncate text-sm font-medium">
+                  {member.name}
+                  {isSelf && <Badge variant="secondary">You</Badge>}
+                </p>
+                <p className="truncate text-sm text-muted-foreground">
+                  {member.email}
                 </p>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="new-role">Role</Label>
-                <NativeSelect
-                  id="new-role"
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as Role)}
-                >
-                  <RoleOptions roles={grantable} />
-                </NativeSelect>
-                <p className="text-xs text-muted-foreground">
-                  {ROLE_HINTS[newRole]}
-                </p>
+
+              {manageable && !isSelf ? (
+                <div className="w-32">
+                  <NativeSelect
+                    aria-label={`Role for ${member.name}`}
+                    value={member.role}
+                    disabled={busy}
+                    onChange={(e) =>
+                      patchMember(member.id, { role: e.target.value })
+                    }
+                  >
+                    <RoleOptions roles={roleChoices} />
+                  </NativeSelect>
+                </div>
+              ) : (
+                <Badge variant="outline">{ROLE_LABELS[member.role]}</Badge>
+              )}
+
+              <div className="flex gap-1">
+                {canEdit && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setError(null);
+                      setEditingId(member.id);
+                      setEditName(member.name);
+                      setEditEmail(member.email);
+                      setEditPassword("");
+                    }}
+                  >
+                    Edit
+                  </Button>
+                )}
+                {manageable && !isSelf && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    disabled={busy}
+                    onClick={() => removeMember(member)}
+                  >
+                    Remove
+                  </Button>
+                )}
               </div>
             </div>
-            <div>
-              <Button type="submit" disabled={adding}>
-                {adding ? "Adding…" : "Add member"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </form>
+          );
+        })}
+      </div>
     </div>
   );
 }
