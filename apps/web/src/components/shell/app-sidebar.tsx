@@ -1,11 +1,18 @@
 import { SidebarNav } from "@/components/shell/sidebar-nav";
 
-/** Navigation only; the app and workspace live in the top bar. */
+/**
+ * Navigation only; the app and workspace live in the top bar. It sits
+ * collapsed to icons and opens over the page the instant it is hovered or
+ * focused, so the content never shifts. The outer box reserves the
+ * collapsed width; the sticky inner panel is what grows, over the page.
+ */
 export function AppSidebar() {
   return (
-    <aside className="hidden md:flex md:w-56 md:shrink-0 md:flex-col md:border-r md:border-sidebar-border md:bg-sidebar md:text-sidebar-foreground">
-      <div className="sticky top-14 flex-1 overflow-y-auto px-3 py-4">
-        <SidebarNav />
+    <aside className="hidden w-14 shrink-0 md:block">
+      <div className="group/sidebar sticky top-14 z-20 h-[calc(100svh-3.5rem)] w-14 overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground focus-within:w-56 hover:w-56">
+        <div className="w-56 px-2 py-4">
+          <SidebarNav collapsible />
+        </div>
       </div>
     </aside>
   );
