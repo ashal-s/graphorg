@@ -24,20 +24,22 @@ export function AvatarStack({
 
   return (
     <div className={cn("flex items-center", className)}>
-      <div className="flex -space-x-1.5">
-        {shown.map((person) => (
-          // An opaque backing, so overlapping avatars don't show through
-          // each other.
+      <div className="flex -space-x-1">
+        {shown.map((person, index) => (
+          // Each avatar sits on a solid disc with a card-coloured ring, and
+          // earlier ones are stacked above later ones, so one reads as lying
+          // cleanly on top of the next rather than outlines crossing.
           <span
             key={person.id}
-            className="rounded-full bg-card ring-2 ring-card"
+            className="relative rounded-full bg-card ring-2 ring-card"
+            style={{ zIndex: shown.length - index }}
           >
             <PersonAvatar
               name={person.name}
               photoUrl={person.photoSrc}
               colorKey={person.id}
               tone={person.tone}
-              className="size-8"
+              className="size-8 after:hidden"
               textClassName="text-[11px]"
             />
           </span>
