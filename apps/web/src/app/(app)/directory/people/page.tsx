@@ -4,6 +4,7 @@ import { Users } from "lucide-react";
 import { EmptyState } from "@/components/states/empty-state";
 import { EntityRow } from "@/components/shared/entity-row";
 import { PersonDialog } from "@/components/directory/person-dialog";
+import { buildOrgChart, flattenOrgChart } from "@/lib/directory/org-chart";
 import { PageHeader } from "@/components/shared/page-header";
 import { SearchBar } from "@/components/shared/search-bar";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,9 @@ import { getDb } from "@/db";
 import { people, teamMembers, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+
+/** Deeper levels stop indenting so long chains stay on screen. */
+const MAX_INDENT = 6;
 
 interface PageProps {
   searchParams: Promise<{ q?: string; teamId?: string }>;
@@ -64,6 +68,22 @@ export default async function PeoplePage({ searchParams }: PageProps) {
   ]);
 
   const hasFilters = Boolean(q || teamId);
+
+  // Arranged like the org chart: each person followed by their reports,
+  // indented by level. When a search or team filter hides someone's
+  // manager, they simply start a new top-level branch.
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const hierarchy = flattenOrgChart(
+    buildOrgChart(
+      rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        title: row.title,
+        managerId: row.managerId,
+        teamName: null,
+      })),
+    ),
+  ).map(({ node, depth }) => ({ person: byId.get(node.id)!, depth }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -120,27 +140,34 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         />
       ) : (
         <div className="flex flex-col gap-2">
-          {rows.map((person) => (
-            <EntityRow
+          {hierarchy.map(({ person, depth }) => (
+            <div
               key={person.id}
-              href={`/directory/people/${person.id}`}
-              title={person.name}
-              meta={person.title ?? undefined}
-              trailing={
-                person.memberships.length > 0 && (
-                  <div className="flex flex-wrap justify-end gap-1.5">
-                    {person.memberships
-                      .map((m) => m.team)
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map((team) => (
-                        <Badge key={team.id} variant="outline">
-                          {team.name}
-                        </Badge>
-                      ))}
-                  </div>
-                )
+              style={{ marginLeft: `${Math.min(depth, MAX_INDENT) * 1.5}rem` }}
+              className={
+                depth > 0 ? "border-l-2 border-border pl-3" : undefined
               }
-            />
+            >
+              <EntityRow
+                href={`/directory/people/${person.id}`}
+                title={person.name}
+                meta={person.title ?? undefined}
+                trailing={
+                  person.memberships.length > 0 && (
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      {person.memberships
+                        .map((m) => m.team)
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map((team) => (
+                          <Badge key={team.id} variant="outline">
+                            {team.name}
+                          </Badge>
+                        ))}
+                    </div>
+                  )
+                }
+              />
+            </div>
           ))}
         </div>
       )}

@@ -60,3 +60,22 @@ export function buildOrgChart(people: OrgChartPerson[]): OrgChartNode[] {
 export function countOrgChart(roots: OrgChartNode[]): number {
   return roots.reduce((sum, node) => sum + 1 + countOrgChart(node.reports), 0);
 }
+
+/**
+ * The tree as a flat list in reading order: each person, then everyone
+ * beneath them, with how many levels down they sit. Used to show the
+ * hierarchy in a plain list.
+ */
+export function flattenOrgChart(
+  roots: OrgChartNode[],
+): Array<{ node: OrgChartNode; depth: number }> {
+  const flat: Array<{ node: OrgChartNode; depth: number }> = [];
+  const walk = (nodes: OrgChartNode[], depth: number) => {
+    for (const node of nodes) {
+      flat.push({ node, depth });
+      walk(node.reports, depth + 1);
+    }
+  };
+  walk(roots, 0);
+  return flat;
+}
