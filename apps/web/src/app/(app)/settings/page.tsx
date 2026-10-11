@@ -37,7 +37,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
       />
       <div className="flex flex-col gap-6 md:flex-row md:gap-10">
         {tabs.length > 1 && <SettingsTabs tabs={tabs} activeId={activeId} />}
-        <div className="min-w-0 max-w-3xl flex-1">
+        <div className="min-w-0 flex-1 [&_input]:bg-transparent [&_select]:bg-transparent [&_textarea]:bg-transparent dark:[&_input]:bg-transparent dark:[&_select]:bg-transparent dark:[&_textarea]:bg-transparent">
           {activeId === "members" ? (
             <MembersTab session={session} />
           ) : (

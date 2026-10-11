@@ -17,7 +17,7 @@ export function SettingRow({
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-2 py-5 md:grid-cols-[14rem_1fr] md:gap-8">
+    <div className="grid gap-2 py-5 md:grid-cols-[16rem_1fr] md:gap-8">
       <div>
         <label htmlFor={htmlFor} className="text-sm font-medium">
           {label}

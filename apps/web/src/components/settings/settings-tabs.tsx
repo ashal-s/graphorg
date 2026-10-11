@@ -23,7 +23,7 @@ export function SettingsTabs({
   return (
     <nav
       aria-label="Settings sections"
-      className="flex shrink-0 gap-1 md:w-44 md:flex-col"
+      className="flex shrink-0 gap-5 md:w-44 md:flex-col md:gap-2 md:border-l md:border-border"
     >
       {tabs.map((tab) => {
         const active = tab.id === activeId;
@@ -33,10 +33,10 @@ export function SettingsTabs({
             href={tab.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              "py-1.5 text-sm font-medium transition-colors md:-ml-px md:border-l-2 md:py-1 md:pl-3",
               active
-                ? "bg-muted text-foreground"
-                : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                ? "text-foreground md:border-primary"
+                : "text-muted-foreground hover:text-foreground md:border-transparent",
             )}
           >
             {tab.label}
