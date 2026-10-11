@@ -66,7 +66,11 @@ export default async function PeoplePage({ searchParams }: PageProps) {
       />
 
       <SearchBar defaultValue={q} placeholder="Search by name or email">
-        <NativeSelect name="teamId" defaultValue={teamId ?? ""} className="max-w-52">
+        <NativeSelect
+          name="teamId"
+          defaultValue={teamId ?? ""}
+          className="max-w-52"
+        >
           <option value="">All teams</option>
           {teamOptions.map((team) => (
             <option key={team.id} value={team.id}>

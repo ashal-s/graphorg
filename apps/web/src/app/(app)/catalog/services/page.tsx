@@ -86,7 +86,11 @@ export default async function ServicesPage({ searchParams }: PageProps) {
             </option>
           ))}
         </NativeSelect>
-        <NativeSelect name="teamId" defaultValue={teamId ?? ""} className="max-w-48">
+        <NativeSelect
+          name="teamId"
+          defaultValue={teamId ?? ""}
+          className="max-w-48"
+        >
           <option value="">All teams</option>
           {teamOptions.map((team) => (
             <option key={team.id} value={team.id}>

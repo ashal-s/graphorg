@@ -168,7 +168,10 @@ function stepTypeOptions(
     label: TYPE_LABELS[kind][value] ?? value,
   }));
   const trimmed = currentType.trim();
-  if (trimmed.length > 0 && !suggestions.some((option) => option.value === trimmed)) {
+  if (
+    trimmed.length > 0 &&
+    !suggestions.some((option) => option.value === trimmed)
+  ) {
     return [{ value: trimmed, label: trimmed }, ...suggestions];
   }
   return suggestions;
@@ -495,7 +498,9 @@ export function WorkflowBuilder({
     const next = addStep(steps, kind, insertAt);
     setSteps(next);
     const newIndex =
-      insertAt === undefined ? next.length - 1 : Math.min(insertAt, next.length - 1);
+      insertAt === undefined
+        ? next.length - 1
+        : Math.min(insertAt, next.length - 1);
     setSelection({ kind: "step", index: newIndex });
   }
 
@@ -656,12 +661,12 @@ export function WorkflowBuilder({
             <FlowNode
               selected={selection.kind === "trigger"}
               onClick={() => setSelection({ kind: "trigger" })}
-              icon={<Play className="size-3.5 fill-current" aria-hidden="true" />}
+              icon={
+                <Play className="size-3.5 fill-current" aria-hidden="true" />
+              }
               iconClassName="bg-emerald-600 text-white"
               title={
-                triggerChosen
-                  ? TRIGGER_LABELS[triggerType]
-                  : "Add a trigger"
+                triggerChosen ? TRIGGER_LABELS[triggerType] : "Add a trigger"
               }
               subtitle={
                 triggerChosen
@@ -762,7 +767,9 @@ export function WorkflowBuilder({
         {/* Right sidebar */}
         <aside className="flex w-[360px] shrink-0 flex-col border-l border-border bg-background">
           <div className="flex h-12 shrink-0 items-center border-b border-border px-4">
-            <h2 className="text-sm font-semibold text-foreground">{panelTitle}</h2>
+            <h2 className="text-sm font-semibold text-foreground">
+              {panelTitle}
+            </h2>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
@@ -849,9 +856,7 @@ export function WorkflowBuilder({
                     </SelectTrigger>
                     <SelectContent>
                       {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
-                        <SelectItem
-                          key={value}
-                          value={value}>
+                        <SelectItem key={value} value={value}>
                           {label}
                         </SelectItem>
                       ))}
@@ -879,9 +884,7 @@ export function WorkflowBuilder({
                       </SelectTrigger>
                       <SelectContent>
                         {ENTITY_TYPES.map((entity) => (
-                          <SelectItem
-                            key={entity.value}
-                            value={entity.value}>
+                          <SelectItem key={entity.value} value={entity.value}>
                             {entity.label}
                           </SelectItem>
                         ))}
@@ -891,7 +894,10 @@ export function WorkflowBuilder({
                 )}
                 {triggerType === "scheduled" && (
                   <div className="flex flex-col gap-1.5">
-                    <Label htmlFor="workflow-cron" className="text-muted-foreground">
+                    <Label
+                      htmlFor="workflow-cron"
+                      className="text-muted-foreground"
+                    >
                       Schedule (cron expression)
                     </Label>
                     <Input
@@ -1046,9 +1052,7 @@ export function WorkflowBuilder({
                         selectedStep.kind,
                         selectedStep.type,
                       ).map((option) => (
-                        <SelectItem
-                          key={option.value}
-                          value={option.value}>
+                        <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}
@@ -1110,7 +1114,10 @@ export function WorkflowBuilder({
             {selection.kind === "details" && (
               <div className="flex flex-col gap-4 p-4">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="workflow-description" className="text-muted-foreground">
+                  <Label
+                    htmlFor="workflow-description"
+                    className="text-muted-foreground"
+                  >
                     Description
                   </Label>
                   <Textarea
@@ -1119,7 +1126,6 @@ export function WorkflowBuilder({
                     onChange={(event) => setDescription(event.target.value)}
                     placeholder="What is this workflow for?"
                     disabled={readOnly}
-                    
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -1141,9 +1147,7 @@ export function WorkflowBuilder({
                     </SelectTrigger>
                     <SelectContent>
                       {STATUS_OPTIONS.map((option) => (
-                        <SelectItem
-                          key={option.value}
-                          value={option.value}>
+                        <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}
