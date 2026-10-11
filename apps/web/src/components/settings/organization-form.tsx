@@ -129,7 +129,7 @@ export function OrganizationForm({
 
   function display(field: Field, value: React.ReactNode) {
     return (
-      <div className="flex items-start gap-1">
+      <div className="flex items-start justify-between gap-3 pr-2">
         <div className="min-w-0 py-1 text-sm">{value}</div>
         {!readOnly && (
           <Tooltip>
@@ -158,7 +158,7 @@ export function OrganizationForm({
   const empty = <span className="text-muted-foreground">Not set</span>;
 
   return (
-    <div>
+    <div className="max-w-3xl">
       <SettingsSectionHeader
         title="Organization"
         description={
