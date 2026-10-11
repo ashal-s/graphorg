@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { getDb } from "@/db";
-import { people, teams, users } from "@/db/schema";
+import { people, teamFunctions, teams, users } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation, pgConstraintName } from "@/lib/api/db-errors";
@@ -65,8 +65,22 @@ export async function POST(request: NextRequest) {
 
   const parsed = createPersonSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
-  const { teamId, managerId, userId, ...values } = parsed.data;
+  const { teamId, managerId, userId, functionId, ...values } = parsed.data;
 
+  if (functionId) {
+    const missing = await findMissingInOrg(
+      teamFunctions.id,
+      teamFunctions.organizationId,
+      session.organizationId,
+      [functionId],
+    );
+    if (missing.length > 0) {
+      return jsonError(
+        400,
+        "functionId does not reference a function in this organization",
+      );
+    }
+  }
   if (teamId) {
     const missing = await findMissingInOrg(
       teams.id,
@@ -119,6 +133,7 @@ export async function POST(request: NextRequest) {
         teamId,
         managerId,
         userId,
+        functionId,
         organizationId: session.organizationId,
       })
       .returning();
