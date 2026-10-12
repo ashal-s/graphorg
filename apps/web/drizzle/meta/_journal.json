@@ -113,6 +113,13 @@
       "when": 1791744604368,
       "tag": "0015_add_profile_slugs",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791788156534,
+      "tag": "0016_add_departments",
+      "breakpoints": true
     }
   ]
 }
