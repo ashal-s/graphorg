@@ -30,9 +30,7 @@ export interface DepartmentDialogValues {
   name: string;
   description: string | null;
   parentId: string | null;
-  headPersonIds: string[];
   teamIds: string[];
-  personIds: string[];
 }
 
 interface Option {
@@ -44,12 +42,12 @@ interface Option {
  * Create or edit a department in a popup. With `department` it edits that
  * one ("Edit details"); without, it adds a new one ("New department") and
  * opens its page. A team or person can be in other departments too; which
- * one is their primary is chosen on their own page.
+ * one is their primary is chosen on their own page. People are added from
+ * the department's own page, with a level, as on a team.
  */
 export function DepartmentDialog({
   department,
   parents,
-  people,
   teams,
   size,
   withIcon = true,
@@ -62,7 +60,6 @@ export function DepartmentDialog({
   department?: DepartmentDialogValues;
   /** Departments it could sit under (never itself or anything beneath it). */
   parents: Option[];
-  people: Option[];
   teams: Option[];
   size?: "sm";
   withIcon?: boolean;
@@ -82,11 +79,7 @@ export function DepartmentDialog({
   const [parentId, setParentId] = useState(
     department?.parentId ?? initialParentId ?? "",
   );
-  const [headPersonIds, setHeadPersonIds] = useState(
-    department?.headPersonIds ?? [],
-  );
   const [teamIds, setTeamIds] = useState(department?.teamIds ?? []);
-  const [personIds, setPersonIds] = useState(department?.personIds ?? []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,9 +88,7 @@ export function DepartmentDialog({
     setName(department?.name ?? "");
     setDescription(department?.description ?? "");
     setParentId(department?.parentId ?? initialParentId ?? "");
-    setHeadPersonIds(department?.headPersonIds ?? []);
     setTeamIds(department?.teamIds ?? []);
-    setPersonIds(department?.personIds ?? []);
     setError(null);
   }
 
@@ -120,9 +111,7 @@ export function DepartmentDialog({
           description:
             description.trim().length > 0 ? description.trim() : null,
           parentId: parentId || null,
-          headPersonIds,
           teamIds,
-          personIds,
         }),
       },
     );
@@ -195,7 +184,7 @@ export function DepartmentDialog({
             <DialogDescription>
               {editing
                 ? `Update ${department?.name}.`
-                : "Group teams and people, optionally under a parent department."}
+                : "Group teams, optionally under a parent department."}
             </DialogDescription>
           </div>
 
@@ -240,27 +229,6 @@ export function DepartmentDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="department-dialog-heads">Department heads</Label>
-              <SearchableMultiSelect
-                id="department-dialog-heads"
-                options={people.map((p) => ({ id: p.id, label: p.name }))}
-                values={headPersonIds}
-                onValuesChange={(next) => {
-                  setHeadPersonIds(next);
-                  // Heads are always among the department's people.
-                  setPersonIds((current) => [
-                    ...current,
-                    ...next.filter((id) => !current.includes(id)),
-                  ]);
-                }}
-                placeholder="Search people"
-                emptyLabel="No people match."
-              />
-              <p className="text-xs text-muted-foreground">
-                Heads are added to the department&apos;s people automatically.
-              </p>
-            </div>
-            <div className="flex flex-col gap-1.5">
               <Label htmlFor="department-dialog-teams">Teams</Label>
               <SearchableMultiSelect
                 id="department-dialog-teams"
@@ -271,22 +239,6 @@ export function DepartmentDialog({
                 emptyLabel="No teams match."
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="department-dialog-people">People</Label>
-              <SearchableMultiSelect
-                id="department-dialog-people"
-                options={people.map((p) => ({ id: p.id, label: p.name }))}
-                values={personIds}
-                onValuesChange={setPersonIds}
-                placeholder="Search people"
-                emptyLabel="No people match."
-              />
-              <p className="text-xs text-muted-foreground">
-                People here belong to the department directly, apart from the
-                teams they are on.
-              </p>
-            </div>
-
             <div className="flex justify-end gap-2">
               <Button
                 type="button"

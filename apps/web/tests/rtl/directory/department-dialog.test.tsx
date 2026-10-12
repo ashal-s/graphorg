@@ -10,7 +10,6 @@ jest.mock("next/navigation", () => ({
 }));
 
 const parents = [{ id: "d-1", name: "Engineering" }];
-const people = [{ id: "p-1", name: "Priya Shah" }];
 const teams = [{ id: "t-1", name: "Platform" }];
 
 describe("DepartmentDialog", () => {
@@ -25,27 +24,26 @@ describe("DepartmentDialog", () => {
 
   it("opens a popup when New department is clicked", async () => {
     const user = userEvent.setup();
-    render(
-      <DepartmentDialog parents={parents} people={people} teams={teams} />,
-    );
+    render(<DepartmentDialog parents={parents} teams={teams} />);
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /new department/i }));
 
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Department heads")).toBeInTheDocument();
+    expect(screen.getByLabelText("Teams")).toBeInTheDocument();
+    // People are added from the department page, with a level, as on teams.
+    expect(screen.queryByLabelText("Department heads")).toBeNull();
+    expect(screen.queryByLabelText("People")).toBeNull();
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
   });
 
   it("creates the department and opens its page", async () => {
     const user = userEvent.setup();
-    render(
-      <DepartmentDialog parents={parents} people={people} teams={teams} />,
-    );
+    render(<DepartmentDialog parents={parents} teams={teams} />);
     await user.click(screen.getByRole("button", { name: /new department/i }));
     await user.type(screen.getByLabelText("Name"), "Operations");
-    await user.type(screen.getByLabelText("Department heads"), "pri");
-    await user.click(await screen.findByRole("option", { name: "Priya Shah" }));
+    await user.type(screen.getByLabelText("Teams"), "plat");
+    await user.click(await screen.findByRole("option", { name: "Platform" }));
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
@@ -53,26 +51,10 @@ describe("DepartmentDialog", () => {
     expect(init.method).toBe("POST");
     expect(JSON.parse(init.body)).toMatchObject({
       name: "Operations",
-      headPersonIds: ["p-1"],
+      teamIds: ["t-1"],
       parentId: null,
     });
     expect(pushMock).toHaveBeenCalledWith("/directory/departments/new-id");
-  });
-
-  it("adds a chosen head to the department's people automatically", async () => {
-    const user = userEvent.setup();
-    render(
-      <DepartmentDialog parents={parents} people={people} teams={teams} />,
-    );
-    await user.click(screen.getByRole("button", { name: /new department/i }));
-    await user.type(screen.getByLabelText("Name"), "Operations");
-    await user.type(screen.getByLabelText("Department heads"), "pri");
-    await user.click(await screen.findByRole("option", { name: "Priya Shah" }));
-    await user.click(screen.getByRole("button", { name: "Save" }));
-
-    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
-    expect(body.headPersonIds).toEqual(["p-1"]);
-    expect(body.personIds).toEqual(["p-1"]);
   });
 
   it("edits an existing department in place from Edit details", async () => {
@@ -84,12 +66,10 @@ describe("DepartmentDialog", () => {
           name: "Operations",
           description: null,
           parentId: null,
-          headPersonIds: [],
           teamIds: [],
-          personIds: [],
         }}
         parents={parents}
-        people={people}
+
         teams={teams}
         iconOnly
       />,

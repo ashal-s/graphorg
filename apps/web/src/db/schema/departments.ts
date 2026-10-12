@@ -9,7 +9,6 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { id, organizationId, timestamps } from "./_columns";
-import { departmentHeads } from "./department-heads";
 import { departmentPeople } from "./department-people";
 import { departmentTeams } from "./department-teams";
 import { organizations } from "./organizations";
@@ -51,8 +50,6 @@ export const departmentsRelations = relations(departments, ({ one, many }) => ({
     relationName: "parent",
   }),
   children: many(departments, { relationName: "parent" }),
-  /** Who heads it: any number of people, none required. */
-  heads: many(departmentHeads),
   teams: many(departmentTeams),
   people: many(departmentPeople),
 }));

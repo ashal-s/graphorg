@@ -45,9 +45,25 @@ export interface TeamCandidate {
   id: string;
   name: string;
   title: string | null;
-  /** Other teams this person is already on (adding them here keeps those). */
-  otherTeamNames: string[];
+  /** Other teams (or departments) they're already in; adding them here keeps those. */
+  otherNames: string[];
 }
+
+/** What the people are members of: a team, or a department (same screen). */
+export type MemberGroupKind = "team" | "department";
+
+const GROUP_COPY: Record<
+  MemberGroupKind,
+  { noun: string; plural: string; api: string; roleKey: "teamRole" | "role" }
+> = {
+  team: { noun: "team", plural: "teams", api: "teams", roleKey: "teamRole" },
+  department: {
+    noun: "department",
+    plural: "departments",
+    api: "departments",
+    roleKey: "role",
+  },
+};
 
 const LEVEL_LABELS: Record<TeamRole, string> = {
   lead: "Lead",
@@ -80,26 +96,36 @@ function joinNames(names: string[]): string {
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-/** Adds the person to the team, or changes their level if already on it. */
-function putMember(teamId: string, personId: string, teamRole: TeamRole) {
-  return memberRequest(teamId, personId, {
+/** Adds the person, or changes their level if they're already in. */
+function putMember(
+  kind: MemberGroupKind,
+  groupId: string,
+  personId: string,
+  level: TeamRole,
+) {
+  return memberRequest(kind, groupId, personId, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ teamRole }),
+    body: JSON.stringify({ [GROUP_COPY[kind].roleKey]: level }),
   });
 }
 
-function removeMember(teamId: string, personId: string) {
-  return memberRequest(teamId, personId, { method: "DELETE" });
+function removeMember(
+  kind: MemberGroupKind,
+  groupId: string,
+  personId: string,
+) {
+  return memberRequest(kind, groupId, personId, { method: "DELETE" });
 }
 
 async function memberRequest(
-  teamId: string,
+  kind: MemberGroupKind,
+  groupId: string,
   personId: string,
   init: RequestInit,
 ) {
   const response = await fetch(
-    `/api/teams/${teamId}/members/${personId}`,
+    `/api/${GROUP_COPY[kind].api}/${groupId}/members/${personId}`,
     init,
   );
   if (!response.ok) {
@@ -116,10 +142,12 @@ function LevelField({
   id,
   level,
   onLevel,
+  noun,
 }: {
   id: string;
   level: TeamRole;
   onLevel: (level: TeamRole) => void;
+  noun: string;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -136,7 +164,7 @@ function LevelField({
         ))}
       </NativeSelect>
       <p className="text-xs text-muted-foreground">
-        A team can have any number of leads.
+        A {noun} can have any number of leads.
       </p>
     </div>
   );
@@ -144,16 +172,20 @@ function LevelField({
 
 export function TeamMembers({
   teamId,
+  kind = "team",
   members,
   candidates,
   readOnly,
 }: {
+  /** The id of the team (or department, with `kind="department"`). */
   teamId: string;
+  kind?: MemberGroupKind;
   members: TeamMember[];
   candidates: TeamCandidate[];
   readOnly: boolean;
 }) {
   const router = useRouter();
+  const { noun, plural } = GROUP_COPY[kind];
   const [error, setError] = useState<string | null>(null);
 
   // Add dialog
@@ -209,7 +241,7 @@ export function TeamMembers({
     setError(null);
     try {
       await Promise.all(
-        [...selected].map((id) => putMember(teamId, id, addLevel)),
+        [...selected].map((id) => putMember(kind, teamId, id, addLevel)),
       );
       setAddOpen(false);
     } catch (caught) {
@@ -226,7 +258,7 @@ export function TeamMembers({
     setBusy(true);
     setError(null);
     try {
-      await putMember(teamId, editing.id, editLevel);
+      await putMember(kind, teamId, editing.id, editLevel);
       setEditing(null);
       router.refresh();
     } catch (caught) {
@@ -237,10 +269,10 @@ export function TeamMembers({
   }
 
   async function remove(member: TeamMember) {
-    if (!window.confirm(`Remove ${member.name} from this team?`)) return;
+    if (!window.confirm(`Remove ${member.name} from this ${noun}?`)) return;
     setError(null);
     try {
-      await removeMember(teamId, member.id);
+      await removeMember(kind, teamId, member.id);
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to remove.");
@@ -305,7 +337,7 @@ export function TeamMembers({
                     variant="ghost"
                     size="icon-sm"
                     className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    aria-label={`Remove ${member.name} from this team`}
+                    aria-label={`Remove ${member.name} from this ${noun}`}
                     onClick={() => remove(member)}
                   />
                 }
@@ -336,8 +368,8 @@ export function TeamMembers({
   const leadNames = leads.map((lead) => lead.name);
   const summary =
     members.length === 0
-      ? "Nobody is on this team yet."
-      : `${members.length} ${members.length === 1 ? "person" : "people"} on this team.`;
+      ? `Nobody is in this ${noun} yet.`
+      : `${members.length} ${members.length === 1 ? "person" : "people"} in this ${noun}.`;
 
   return (
     <Card>
@@ -384,15 +416,15 @@ export function TeamMembers({
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <div>
-            <DialogTitle>Add people to this team</DialogTitle>
+            <DialogTitle>Add people to this {noun}</DialogTitle>
             <DialogDescription>
-              A person can be on several teams, so anyone you add keeps their
-              other teams.
+              A person can be in several {plural}, so anyone you add keeps their
+              other {plural}.
             </DialogDescription>
           </div>
           {candidates.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              Everyone in the directory is already on this team.
+              Everyone in the directory is already in this {noun}.
             </p>
           ) : (
             <>
@@ -414,9 +446,9 @@ export function TeamMembers({
                       />
                       <span className="min-w-0 flex-1 text-sm">
                         <span className="font-medium">{person.name}</span>
-                        {person.otherTeamNames.length > 0 && (
+                        {person.otherNames.length > 0 && (
                           <span className="ml-2 text-muted-foreground">
-                            also in {joinNames(person.otherTeamNames)}
+                            also in {joinNames(person.otherNames)}
                           </span>
                         )}
                       </span>
@@ -433,6 +465,7 @@ export function TeamMembers({
                 id="add-level"
                 level={addLevel}
                 onLevel={setAddLevel}
+                noun={noun}
               />
             </>
           )}
@@ -474,7 +507,7 @@ export function TeamMembers({
           <div>
             <DialogTitle>Edit level</DialogTitle>
             <DialogDescription>
-              Set {editing?.name}&rsquo;s level on this team.
+              Set {editing?.name}&rsquo;s level in this {noun}.
             </DialogDescription>
           </div>
           <form onSubmit={saveRole} className="flex flex-col gap-4">
@@ -482,6 +515,7 @@ export function TeamMembers({
               id="edit-level"
               level={editLevel}
               onLevel={setEditLevel}
+              noun={noun}
             />
             {error && (
               <p role="alert" className="text-sm text-destructive">

@@ -6,7 +6,7 @@ import { DepartmentTree } from "@/components/directory/department-tree";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/states/empty-state";
 import { getDb } from "@/db";
-import { departments, people, teams } from "@/db/schema";
+import { departments, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 import { buildDepartmentTree } from "@/lib/directory/departments";
@@ -17,23 +17,17 @@ export default async function DepartmentsPage() {
 
   const orgId = session.organizationId;
   const db = getDb();
-  const [rows, peopleOptions, teamOptions] = await Promise.all([
+  const [rows, teamOptions] = await Promise.all([
     db.query.departments.findMany({
       where: eq(departments.organizationId, orgId),
       with: {
-        heads: { with: { person: { columns: { name: true } } } },
         teams: { columns: { teamId: true } },
-        people: { columns: { personId: true } },
+        people: {
+          columns: { role: true },
+          with: { person: { columns: { name: true } } },
+        },
       },
     }),
-    // The new-department popup's pickers; only editors can open it.
-    canEdit
-      ? db.query.people.findMany({
-          where: eq(people.organizationId, orgId),
-          columns: { id: true, name: true },
-          orderBy: (row, { asc }) => asc(row.name),
-        })
-      : Promise.resolve([]),
     canEdit
       ? db.query.teams.findMany({
           where: eq(teams.organizationId, orgId),
@@ -49,7 +43,10 @@ export default async function DepartmentsPage() {
       name: row.name,
       parentId: row.parentId,
       description: row.description,
-      headNames: row.heads.map((h) => h.person.name).sort(),
+      leadNames: row.people
+        .filter((link) => link.role === "lead")
+        .map((link) => link.person.name)
+        .sort(),
       teamCount: row.teams.length,
       peopleCount: row.people.length,
     })),
@@ -59,11 +56,7 @@ export default async function DepartmentsPage() {
     .map((row) => ({ id: row.id, name: row.name }))
     .sort((a, b) => a.name.localeCompare(b.name));
   const newButton = canEdit && (
-    <DepartmentDialog
-      parents={parentOptions}
-      people={peopleOptions}
-      teams={teamOptions}
-    />
+    <DepartmentDialog parents={parentOptions} teams={teamOptions} />
   );
 
   return (

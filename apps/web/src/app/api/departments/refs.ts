@@ -9,7 +9,6 @@ import { wouldCreateParentCycle } from "@/lib/api/service-hierarchy";
 
 interface DepartmentRefs {
   parentId?: string | null;
-  headPersonIds?: string[];
   teamIds?: string[];
   personIds?: string[];
 }
@@ -25,7 +24,7 @@ export async function validateDepartmentRefs(
   refs: DepartmentRefs,
   selfId?: string,
 ): Promise<NextResponse | null> {
-  const { parentId, headPersonIds, teamIds, personIds } = refs;
+  const { parentId, teamIds, personIds } = refs;
 
   if (parentId) {
     if (parentId === selfId) {
@@ -62,13 +61,6 @@ export async function validateDepartmentRefs(
 
   const checks: Array<[string, string[], Parameters<typeof findMissingInOrg>]> =
     [];
-  if (headPersonIds?.length) {
-    checks.push([
-      "headPersonIds contains an id that does not reference a person in this organization",
-      headPersonIds,
-      [people.id, people.organizationId, organizationId, headPersonIds],
-    ]);
-  }
   if (personIds?.length) {
     checks.push([
       "personIds contains an id that does not reference a person in this organization",

@@ -21,9 +21,8 @@ export interface StructureDepartmentBase {
   id: string;
   name: string;
   parentId: string | null;
-  heads: { id: string; slug: string; name: string }[];
   teams: StructureTeam[];
-  /** People directly in the department who aren't on one of its teams. */
+  /** People in the department who aren't on one of its teams, at their department level. */
   people: StructurePerson[];
 }
 
@@ -43,9 +42,12 @@ export interface OrgStructureInput {
   people: Omit<StructurePerson, "teamRole">[];
   /** Which teams are in which departments. */
   departmentTeams: { departmentId: string; teamId: string }[];
-  /** Who is directly in which department. */
-  departmentPeople: { departmentId: string; personId: string }[];
-  departmentHeads: { departmentId: string; personId: string }[];
+  /** Who is directly in which department, and at what level. */
+  departmentPeople: {
+    departmentId: string;
+    personId: string;
+    role: "lead" | "member" | "trainee";
+  }[];
   teamMembers: {
     teamId: string;
     personId: string;
@@ -95,17 +97,14 @@ export function buildOrgStructure(input: OrgStructureInput): OrgStructure {
     list.push(link.teamId);
     teamsOf.set(link.departmentId, list);
   }
-  const peopleOf = new Map<string, string[]>();
+  const peopleOf = new Map<
+    string,
+    { personId: string; role: "lead" | "member" | "trainee" }[]
+  >();
   for (const link of input.departmentPeople) {
     const list = peopleOf.get(link.departmentId) ?? [];
-    list.push(link.personId);
+    list.push({ personId: link.personId, role: link.role });
     peopleOf.set(link.departmentId, list);
-  }
-  const headsOf = new Map<string, string[]>();
-  for (const link of input.departmentHeads) {
-    const list = headsOf.get(link.departmentId) ?? [];
-    list.push(link.personId);
-    headsOf.set(link.departmentId, list);
   }
 
   const flat: StructureDepartmentBase[] = input.departments.map(
@@ -118,16 +117,13 @@ export function buildOrgStructure(input: OrgStructureInput): OrgStructure {
         teams.flatMap((team) => team.members.map((m) => m.id)),
       );
       const people = (peopleOf.get(department.id) ?? [])
-        .filter((personId) => !onATeam.has(personId))
-        .map((personId) => personById.get(personId))
-        .filter((p): p is Omit<StructurePerson, "teamRole"> => Boolean(p))
+        .filter((link) => !onATeam.has(link.personId))
+        .flatMap((link) => {
+          const person = personById.get(link.personId);
+          return person ? [{ ...person, teamRole: link.role }] : [];
+        })
         .sort(byName);
-      const heads = (headsOf.get(department.id) ?? [])
-        .map((personId) => personById.get(personId))
-        .filter((p): p is Omit<StructurePerson, "teamRole"> => Boolean(p))
-        .map((p) => ({ id: p.id, slug: p.slug, name: p.name }))
-        .sort(byName);
-      return { ...department, heads, teams, people };
+      return { ...department, teams, people };
     },
   );
 

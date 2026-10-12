@@ -15,8 +15,7 @@ export async function loadOrgStructure(orgId: string): Promise<OrgStructure> {
       columns: { id: true, name: true, parentId: true },
       with: {
         teams: { columns: { teamId: true } },
-        people: { columns: { personId: true } },
-        heads: { columns: { personId: true } },
+        people: { columns: { personId: true, role: true } },
       },
     }),
     db.query.teams.findMany({
@@ -55,10 +54,11 @@ export async function loadOrgStructure(orgId: string): Promise<OrgStructure> {
       d.teams.map((l) => ({ departmentId: d.id, teamId: l.teamId })),
     ),
     departmentPeople: deptRows.flatMap((d) =>
-      d.people.map((l) => ({ departmentId: d.id, personId: l.personId })),
-    ),
-    departmentHeads: deptRows.flatMap((d) =>
-      d.heads.map((l) => ({ departmentId: d.id, personId: l.personId })),
+      d.people.map((l) => ({
+        departmentId: d.id,
+        personId: l.personId,
+        role: l.role,
+      })),
     ),
     teamMembers: teamRows.flatMap((t) =>
       t.memberships.map((m) => ({

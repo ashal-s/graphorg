@@ -65,14 +65,14 @@ describe("DepartmentAddDialog", () => {
     const user = userEvent.setup();
     render(
       <DepartmentAddDialog
-        kind="people"
+        kind="teams"
         departmentId="d-1"
         departmentName="Engineering"
         existingIds={[]}
         options={[]}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Add people" }));
+    await user.click(screen.getByRole("button", { name: "Add teams" }));
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
   });
 });

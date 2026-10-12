@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { DepartmentAddDialog } from "@/components/directory/department-add-dialog";
 import { DepartmentDialog } from "@/components/directory/department-dialog";
+import { TeamMembers } from "@/components/directory/team-members";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import { getDb } from "@/db";
 import { departments, people, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { personPhotoSrc } from "@/lib/person-photo";
 import {
   departmentAncestorIds,
   departmentSubtreeIds,
@@ -78,25 +80,14 @@ export default async function DepartmentPage({ params }: PageProps) {
       where: and(eq(departments.id, id), eq(departments.organizationId, orgId)),
       with: {
         parent: { columns: { id: true, name: true } },
-        heads: {
-          with: {
-            person: {
-              columns: { id: true, name: true, slug: true, title: true },
-            },
-          },
-        },
         children: { columns: { id: true, name: true } },
         teams: {
           columns: { isPrimary: true },
           with: { team: { columns: { id: true, name: true, slug: true } } },
         },
         people: {
-          columns: { isPrimary: true },
-          with: {
-            person: {
-              columns: { id: true, name: true, slug: true, title: true },
-            },
-          },
+          columns: { isPrimary: true, role: true },
+          with: { person: true },
         },
       },
     }),
@@ -105,14 +96,22 @@ export default async function DepartmentPage({ params }: PageProps) {
       columns: { id: true, name: true, parentId: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
-    // The edit popup's pickers; only editors can open it.
+    // Everyone, with their other departments, for the "Add person" picker.
+    // Skipped for viewers, who can't add anyone.
     canEdit
       ? db.query.people.findMany({
           where: eq(people.organizationId, orgId),
-          columns: { id: true, name: true },
+          columns: { id: true, name: true, title: true },
+          with: {
+            departmentLinks: {
+              columns: { departmentId: true },
+              with: { department: { columns: { name: true } } },
+            },
+          },
           orderBy: (row, { asc }) => asc(row.name),
         })
       : Promise.resolve([]),
+    // The edit popup's team picker; only editors can open it.
     canEdit
       ? db.query.teams.findMany({
           where: eq(teams.organizationId, orgId),
@@ -137,13 +136,33 @@ export default async function DepartmentPage({ params }: PageProps) {
 
   const byName = <T extends { name: string }>(a: T, b: T) =>
     a.name.localeCompare(b.name);
-  const heads = department.heads.map((link) => link.person).sort(byName);
   const memberTeams = department.teams
     .map((link) => ({ ...link.team, isPrimary: link.isPrimary }))
     .sort(byName);
-  const memberPeople = department.people
-    .map((link) => ({ ...link.person, isPrimary: link.isPrimary }))
+  const members = department.people
+    .filter((link) => link.person.organizationId === orgId)
+    .map((link) => ({
+      id: link.person.id,
+      slug: link.person.slug,
+      name: link.person.name,
+      title: link.person.title,
+      email: link.person.email,
+      photoUrl: personPhotoSrc(link.person),
+      teamRole: link.role,
+    }))
     .sort(byName);
+  const memberIds = new Set(members.map((member) => member.id));
+  // Everyone not already in it, noting the other departments they're in.
+  const candidates = peopleRows
+    .filter((person) => !memberIds.has(person.id))
+    .map((person) => ({
+      id: person.id,
+      name: person.name,
+      title: person.title,
+      otherNames: person.departmentLinks
+        .map((link) => link.department.name)
+        .sort((a, b) => a.localeCompare(b)),
+    }));
   const subDepartments = [...department.children].sort(byName);
 
   return (
@@ -167,12 +186,9 @@ export default async function DepartmentPage({ params }: PageProps) {
                   name: department.name,
                   description: department.description,
                   parentId: department.parentId,
-                  headPersonIds: heads.map((h) => h.id),
                   teamIds: memberTeams.map((t) => t.id),
-                  personIds: memberPeople.map((p) => p.id),
                 }}
                 parents={parents}
-                people={peopleRows}
                 teams={teamRows}
               />
               <DeleteEntityButton
@@ -209,29 +225,6 @@ export default async function DepartmentPage({ params }: PageProps) {
             <span className="text-muted-foreground">Top level</span>
           )}
         </Field>
-        <Field label={heads.length === 1 ? "Head" : "Heads"}>
-          {heads.length === 0 ? (
-            <span className="text-muted-foreground">Not assigned</span>
-          ) : (
-            <ul className="flex flex-col gap-1">
-              {heads.map((head) => (
-                <li key={head.id}>
-                  <Link
-                    href={`/${head.slug}`}
-                    className="font-medium hover:underline"
-                  >
-                    {head.name}
-                  </Link>
-                  {head.title && (
-                    <span className="ml-2 text-muted-foreground">
-                      {head.title}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Field>
       </dl>
 
       <Section
@@ -253,7 +246,6 @@ export default async function DepartmentPage({ params }: PageProps) {
                 label="New sub-department"
                 initialParentId={id}
                 parents={allDepartments}
-                people={peopleRows}
                 teams={teamRows}
               />
             </>
@@ -318,50 +310,13 @@ export default async function DepartmentPage({ params }: PageProps) {
         )}
       </Section>
 
-      <Section
-        title="People"
-        count={memberPeople.length}
-        actions={
-          canEdit && (
-            <DepartmentAddDialog
-              kind="people"
-              departmentId={id}
-              departmentName={department.name}
-              existingIds={memberPeople.map((p) => p.id)}
-              options={peopleRows.filter(
-                (p) => !memberPeople.some((m) => m.id === p.id),
-              )}
-            />
-          )
-        }
-      >
-        {memberPeople.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Nobody is assigned directly.
-          </p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border text-sm">
-            {memberPeople.map((person) => (
-              <li key={person.id} className="flex items-center gap-2 py-2">
-                <Link
-                  href={`/${person.slug}`}
-                  className="font-medium hover:underline"
-                >
-                  {person.name}
-                </Link>
-                {person.title && (
-                  <span className="truncate text-muted-foreground">
-                    {person.title}
-                  </span>
-                )}
-                {person.isPrimary && (
-                  <Badge variant="secondary">Primary department</Badge>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+      <TeamMembers
+        kind="department"
+        teamId={id}
+        members={members}
+        candidates={candidates}
+        readOnly={!canEdit}
+      />
     </div>
   );
 }

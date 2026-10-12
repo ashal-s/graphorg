@@ -72,13 +72,11 @@ describe("POST /api/departments", () => {
     expect((await POST(post({ description: "x" }))).status).toBe(400);
   });
 
-  it("rejects heads that are not people in this organization", async () => {
+  it("rejects people that are not in this organization", async () => {
     getSessionMock.mockResolvedValue(session("editor"));
-    const response = await POST(
-      post({ name: "Eng", headPersonIds: [ID, OTHER] }),
-    );
+    const response = await POST(post({ name: "Eng", personIds: [ID, OTHER] }));
     expect(response.status).toBe(400);
-    expect((await response.json()).error).toMatch(/headPersonIds/);
+    expect((await response.json()).error).toMatch(/personIds/);
   });
 
   it("rejects a malformed parent id", async () => {

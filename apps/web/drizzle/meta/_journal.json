@@ -134,6 +134,13 @@
       "when": 1791791233128,
       "tag": "0018_department_heads_are_people",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791791574457,
+      "tag": "0019_department_member_roles",
+      "breakpoints": true
     }
   ]
 }

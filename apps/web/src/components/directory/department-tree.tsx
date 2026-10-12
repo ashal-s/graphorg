@@ -12,14 +12,14 @@ export interface DepartmentListItem {
   name: string;
   parentId: string | null;
   description: string | null;
-  headNames: string[];
+  leadNames: string[];
   teamCount: number;
   peopleCount: number;
 }
 
 /**
  * Departments as an indented hierarchy: each one under its parent, with its
- * heads and how many teams and people it has.
+ * leads and how many teams and people it has.
  */
 export function DepartmentTree({
   roots,
@@ -43,12 +43,10 @@ export function DepartmentTree({
               <span className="block truncate text-sm font-medium">
                 {node.name}
               </span>
-              {(node.headNames.length > 0 || node.description) && (
+              {(node.leadNames.length > 0 || node.description) && (
                 <span className="block truncate text-xs text-muted-foreground">
-                  {node.headNames.length > 0
-                    ? `Headed by ${node.headNames.join(", ")}`
-                    : null}
-                  {node.headNames.length > 0 && node.description ? " · " : null}
+                  {node.leadNames.join(", ")}
+                  {node.leadNames.length > 0 && node.description ? " · " : null}
                   {node.description}
                 </span>
               )}

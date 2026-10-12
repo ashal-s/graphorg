@@ -18,7 +18,6 @@ function input(overrides: Partial<OrgStructureInput> = {}): OrgStructureInput {
     people: [],
     departmentTeams: [],
     departmentPeople: [],
-    departmentHeads: [],
     teamMembers: [],
     ...overrides,
   };
@@ -78,8 +77,8 @@ describe("buildOrgStructure", () => {
         people: [person("on-team"), person("direct")],
         departmentTeams: [{ departmentId: "d", teamId: "t" }],
         departmentPeople: [
-          { departmentId: "d", personId: "on-team" },
-          { departmentId: "d", personId: "direct" },
+          { departmentId: "d", personId: "on-team", role: "member" },
+          { departmentId: "d", personId: "direct", role: "member" },
         ],
         teamMembers: [{ teamId: "t", personId: "on-team", teamRole: "member" }],
       }),
@@ -101,20 +100,22 @@ describe("buildOrgStructure", () => {
     expect(result.peopleWithoutPlace.map((p) => p.name)).toEqual(["Xena"]);
   });
 
-  it("lists department heads by name", () => {
+  it("shows direct department people at their department level", () => {
     const result = buildOrgStructure(
       input({
         departments: [{ id: "d", name: "D", parentId: null }],
-        people: [person("h2", "Zed"), person("h1", "Amy")],
-        departmentHeads: [
-          { departmentId: "d", personId: "h2" },
-          { departmentId: "d", personId: "h1" },
+        people: [person("l", "Lena"), person("m", "Max")],
+        departmentPeople: [
+          { departmentId: "d", personId: "m", role: "member" },
+          { departmentId: "d", personId: "l", role: "lead" },
         ],
       }),
     );
-    expect(result.departments[0]!.heads.map((h) => h.name)).toEqual([
-      "Amy",
-      "Zed",
+    expect(
+      result.departments[0]!.people.map((p) => [p.name, p.teamRole]),
+    ).toEqual([
+      ["Lena", "lead"],
+      ["Max", "member"],
     ]);
   });
 });

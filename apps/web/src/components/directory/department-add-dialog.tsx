@@ -15,7 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { SearchableMultiSelect } from "@/components/ui/searchable-select";
 
-type Kind = "teams" | "people" | "sub-departments";
+type Kind = "teams" | "sub-departments";
 
 const COPY: Record<
   Kind,
@@ -27,13 +27,6 @@ const COPY: Record<
     description: "Teams can be in several departments, or none.",
     placeholder: "Search teams",
   },
-  people: {
-    button: "Add people",
-    title: "Add people",
-    description:
-      "They join this department directly, apart from the teams they are on.",
-    placeholder: "Search people",
-  },
   "sub-departments": {
     button: "Add existing",
     title: "Add sub-departments",
@@ -43,7 +36,7 @@ const COPY: Record<
 };
 
 /**
- * "Add" for a department's page: pick existing teams, people or departments
+ * "Add" for a department's page: pick existing teams or departments
  * and put them in this department, without opening the full edit popup.
  */
 export function DepartmentAddDialog({
@@ -56,7 +49,7 @@ export function DepartmentAddDialog({
   kind: Kind;
   departmentId: string;
   departmentName: string;
-  /** Teams or people already in the department (kept when adding more). */
+  /** Teams already in the department (kept when adding more). */
   existingIds: string[];
   /** What can be picked: not already in it, and valid for it. */
   options: { id: string; name: string }[];
@@ -101,8 +94,7 @@ export function DepartmentAddDialog({
           picked.map((childId) => patch(childId, { parentId: departmentId })),
         );
       } else {
-        const key = kind === "teams" ? "teamIds" : "personIds";
-        await patch(departmentId, { [key]: [...existingIds, ...picked] });
+        await patch(departmentId, { teamIds: [...existingIds, ...picked] });
       }
       close();
       router.refresh();
@@ -148,11 +140,7 @@ export function DepartmentAddDialog({
             )}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`department-add-${kind}`}>
-                {kind === "sub-departments"
-                  ? "Departments"
-                  : kind === "teams"
-                    ? "Teams"
-                    : "People"}
+                {kind === "sub-departments" ? "Departments" : "Teams"}
               </Label>
               <SearchableMultiSelect
                 id={`department-add-${kind}`}

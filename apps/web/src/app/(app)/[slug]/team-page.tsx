@@ -106,7 +106,7 @@ export async function TeamPage({ id }: { id: string }) {
       id: person.id,
       name: person.name,
       title: person.title,
-      otherTeamNames: person.memberships
+      otherNames: person.memberships
         .map((m) => m.team.name)
         .sort((a, b) => a.localeCompare(b)),
     }));

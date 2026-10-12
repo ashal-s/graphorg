@@ -206,10 +206,6 @@ async function buildOrgStructureContext(orgId: string): Promise<PageContext> {
   const department = (d: StructureDepartment): unknown => ({
     name: d.name,
     path: contextPaths.department(d.id),
-    heads: d.heads.map((h) => ({
-      name: h.name,
-      path: contextPaths.person(h.slug),
-    })),
     subDepartments: d.children.map(department),
     teams: d.teams.map(team),
     peopleInDepartmentOnly: d.people.map(person),
@@ -408,14 +404,16 @@ export async function buildTeam(
   };
 }
 
-/** Departments as a hierarchy: heads and counts only, sub-departments nested. */
+/** Departments as a hierarchy: leads and counts only, sub-departments nested. */
 export async function buildDepartments(orgId: string): Promise<PageContext> {
   const rows = await getDb().query.departments.findMany({
     where: eq(departments.organizationId, orgId),
     with: {
-      heads: { with: { person: { columns: { name: true, slug: true } } } },
       teams: { columns: { teamId: true } },
-      people: { columns: { personId: true } },
+      people: {
+        columns: { role: true },
+        with: { person: { columns: { name: true, slug: true } } },
+      },
     },
   });
 
@@ -424,7 +422,7 @@ export async function buildDepartments(orgId: string): Promise<PageContext> {
     name: string;
     parentId: string | null;
     description: string | null;
-    heads: Array<{ name: string; path: string }>;
+    leads: Array<{ name: string; path: string }>;
     teamCount: number;
     peopleCount: number;
   };
@@ -434,10 +432,11 @@ export async function buildDepartments(orgId: string): Promise<PageContext> {
       name: row.name,
       parentId: row.parentId,
       description: row.description,
-      heads: row.heads
-        .map((h) => ({
-          name: h.person.name,
-          path: contextPaths.person(h.person.slug),
+      leads: row.people
+        .filter((l) => l.role === "lead")
+        .map((l) => ({
+          name: l.person.name,
+          path: contextPaths.person(l.person.slug),
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
       teamCount: row.teams.length,
@@ -448,7 +447,7 @@ export async function buildDepartments(orgId: string): Promise<PageContext> {
     name: node.name,
     description: node.description,
     path: contextPaths.department(node.id),
-    heads: node.heads,
+    leads: node.leads,
     teamCount: node.teamCount,
     peopleCount: node.peopleCount,
     subDepartments: node.children.map(shape),
@@ -461,7 +460,7 @@ export async function buildDepartments(orgId: string): Promise<PageContext> {
   };
 }
 
-/** One department: where it sits, who heads it, and its teams and people. */
+/** One department: where it sits, its teams, and its people with their level. */
 export async function buildDepartment(
   orgId: string,
   id: string,
@@ -470,16 +469,13 @@ export async function buildDepartment(
     where: and(eq(departments.id, id), eq(departments.organizationId, orgId)),
     with: {
       parent: { columns: { id: true, name: true } },
-      heads: {
-        with: { person: { columns: { name: true, slug: true, title: true } } },
-      },
       children: { columns: { id: true, name: true } },
       teams: {
         columns: { isPrimary: true },
         with: { team: { columns: { name: true, slug: true } } },
       },
       people: {
-        columns: { isPrimary: true },
+        columns: { isPrimary: true, role: true },
         with: { person: { columns: { name: true, slug: true, title: true } } },
       },
     },
@@ -499,13 +495,6 @@ export async function buildDepartment(
         name: department.parent.name,
         path: contextPaths.department(department.parent.id),
       },
-      heads: department.heads
-        .map((h) => ({
-          name: h.person.name,
-          title: h.person.title,
-          path: contextPaths.person(h.person.slug),
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
       subDepartments: department.children
         .map((c) => ({
           name: c.name,
@@ -523,7 +512,8 @@ export async function buildDepartment(
         .map((l) => ({
           name: l.person.name,
           title: l.person.title,
-          primary: l.isPrimary,
+          role: l.role,
+          primaryDepartment: l.isPrimary,
           path: contextPaths.person(l.person.slug),
         }))
         .sort(byName),

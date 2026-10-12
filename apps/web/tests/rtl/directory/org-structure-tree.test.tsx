@@ -19,7 +19,6 @@ const structure: OrgStructure = {
       id: "eng",
       name: "Engineering",
       parentId: null,
-      heads: [{ id: "h", slug: "hana", name: "Hana Ito" }],
       teams: [],
       people: [],
       children: [
@@ -27,7 +26,6 @@ const structure: OrgStructure = {
           id: "plat",
           name: "Platform",
           parentId: "eng",
-          heads: [],
           teams: [
             {
               id: "t1",
