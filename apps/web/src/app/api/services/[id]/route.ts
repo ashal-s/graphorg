@@ -13,12 +13,14 @@ import {
   requireNonEmptyPatch,
   requireUuidParam,
 } from "@/lib/api/http";
+import { lockOrganization } from "@/lib/api/locks";
 import {
   findCyclicDependencies,
   loadDependencyGraph,
 } from "@/lib/api/service-dependency-graph";
 import {
   loadParentMap,
+  ParentCycleError,
   wouldCreateParentCycle,
 } from "@/lib/api/service-hierarchy";
 
@@ -26,6 +28,13 @@ import { fetchServiceDetail, validateServiceRefs } from "../detail";
 import { createServiceSchema } from "../schema";
 
 const updateServiceSchema = createServiceSchema.partial();
+
+/** Thrown inside the update transaction when new dependencies would loop. */
+class DependencyCycleError extends Error {
+  constructor(readonly cyclic: string[]) {
+    super("dependsOnServiceIds would create a circular dependency");
+  }
+}
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -82,31 +91,37 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (values.parentId === id) {
       return jsonError(400, "a service cannot be its own parent");
     }
-    const parents = await loadParentMap(session.organizationId);
-    if (wouldCreateParentCycle(parents, id, values.parentId)) {
-      return jsonError(
-        400,
-        "parentId would create a loop (the chosen parent already sits under this service)",
-      );
-    }
   }
 
   if (dependsOnServiceIds) {
     if (dependsOnServiceIds.includes(id)) {
       return jsonError(400, "a service cannot depend on itself");
     }
-    const graph = await loadDependencyGraph(session.organizationId, id);
-    const cyclic = findCyclicDependencies(graph, id, dependsOnServiceIds);
-    if (cyclic.length > 0) {
-      return jsonError(
-        400,
-        `dependsOnServiceIds would create a circular dependency (already depends on this service, directly or transitively): ${cyclic.join(", ")}`,
-      );
-    }
   }
 
   try {
     await db.transaction(async (tx) => {
+      // The loop checks read the whole hierarchy, so they run here, under a
+      // lock, not before the transaction: otherwise two requests that each
+      // pass against the old state could together create a loop.
+      if (values.parentId) {
+        await lockOrganization(tx, session.organizationId, "service-parents");
+        const parents = await loadParentMap(session.organizationId, tx);
+        if (wouldCreateParentCycle(parents, id, values.parentId)) {
+          throw new ParentCycleError();
+        }
+      }
+      if (dependsOnServiceIds) {
+        await lockOrganization(
+          tx,
+          session.organizationId,
+          "service-dependencies",
+        );
+        const graph = await loadDependencyGraph(session.organizationId, id, tx);
+        const cyclic = findCyclicDependencies(graph, id, dependsOnServiceIds);
+        if (cyclic.length > 0) throw new DependencyCycleError(cyclic);
+      }
+
       if (Object.keys(values).length > 0) {
         await tx.update(services).set(values).where(eq(services.id, id));
       }
@@ -135,6 +150,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
     });
   } catch (error) {
+    if (error instanceof ParentCycleError) {
+      return jsonError(
+        400,
+        "parentId would create a loop (the chosen parent already sits under this service)",
+      );
+    }
+    if (error instanceof DependencyCycleError) {
+      return jsonError(
+        400,
+        `dependsOnServiceIds would create a circular dependency (already depends on this service, directly or transitively): ${error.cyclic.join(", ")}`,
+      );
+    }
     if (isUniqueViolation(error)) {
       return jsonError(409, "A service with this name already exists");
     }

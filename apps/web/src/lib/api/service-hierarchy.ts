@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 
-import { getDb } from "@/db";
+import { getDb, type Database } from "@/db";
 import { services } from "@/db/schema";
 
 /** `serviceId -> parentId` for services that have a parent. */
@@ -24,10 +24,22 @@ export function wouldCreateParentCycle(
   return false;
 }
 
+/** Thrown inside a transaction when a parent change would form a loop. */
+export class ParentCycleError extends Error {
+  constructor(message = "parentId would create a loop") {
+    super(message);
+  }
+}
+
+/**
+ * Pass a transaction as `db` to read the map inside it, after taking
+ * `lockOrganization`, so the check and the write can't race another request.
+ */
 export async function loadParentMap(
   organizationId: string,
+  db: Pick<Database, "select"> = getDb(),
 ): Promise<ParentMap> {
-  const rows = await getDb()
+  const rows = await db
     .select({ id: services.id, parentId: services.parentId })
     .from(services)
     .where(eq(services.organizationId, organizationId));

@@ -1,11 +1,10 @@
 import { eq } from "drizzle-orm";
 import type { NextResponse } from "next/server";
 
-import { getDb } from "@/db";
+import type { Database } from "@/db";
 import { departments, people, teams } from "@/db/schema";
 import { jsonError } from "@/lib/api/http";
 import { findMissingInOrg } from "@/lib/api/org-refs";
-import { wouldCreateParentCycle } from "@/lib/api/service-hierarchy";
 
 interface DepartmentRefs {
   parentId?: string | null;
@@ -14,10 +13,28 @@ interface DepartmentRefs {
 }
 
 /**
+ * `departmentId -> parentId` for every department that has a parent, read in
+ * `db` (pass the transaction, after `lockOrganization`, to check for loops).
+ */
+export async function loadDepartmentParents(
+  db: Pick<Database, "select">,
+  organizationId: string,
+): Promise<Map<string, string>> {
+  const rows = await db
+    .select({ id: departments.id, parentId: departments.parentId })
+    .from(departments)
+    .where(eq(departments.organizationId, organizationId));
+  const parents = new Map<string, string>();
+  for (const row of rows) if (row.parentId) parents.set(row.id, row.parentId);
+  return parents;
+}
+
+/**
  * Checks every id a department create/update body points at belongs to the
- * caller's organization, and that a new parent wouldn't put the department
- * under itself or one of its own sub-departments. `selfId` is the department
- * being edited; omit it when creating. Returns a 400 or null when all is well.
+ * caller's organization, and that a department isn't made its own parent.
+ * Longer loops are checked by the route inside its transaction, under a lock
+ * (see `loadDepartmentParents`). `selfId` is the department being edited;
+ * omit it when creating. Returns a 400 or null when all is well.
  */
 export async function validateDepartmentRefs(
   organizationId: string,
@@ -41,21 +58,6 @@ export async function validateDepartmentRefs(
         400,
         "parentId does not reference a department in this organization",
       );
-    }
-    if (selfId) {
-      const rows = await getDb()
-        .select({ id: departments.id, parentId: departments.parentId })
-        .from(departments)
-        .where(eq(departments.organizationId, organizationId));
-      const parents = new Map<string, string>();
-      for (const row of rows)
-        if (row.parentId) parents.set(row.id, row.parentId);
-      if (wouldCreateParentCycle(parents, selfId, parentId)) {
-        return jsonError(
-          400,
-          "parentId would put the department inside one of its own sub-departments",
-        );
-      }
     }
   }
 

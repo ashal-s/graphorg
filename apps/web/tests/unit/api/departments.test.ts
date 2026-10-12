@@ -8,13 +8,43 @@ import { PATCH } from "@/app/api/departments/[id]/route";
 
 // jest.mock specifiers are plain strings, so they must be relative.
 const findFirstMock = jest.fn();
-jest.mock("../../../src/db", () => ({
-  getDb: () => ({
-    query: { departments: { findFirst: findFirstMock } },
-    // Reads for parent/head/team/person checks: nothing in this tenant.
-    select: () => ({ from: () => ({ where: async () => [] }) }),
-  }),
-}));
+const selectRowsMock = jest.fn();
+const updateMock = jest.fn();
+// Call order inside the transaction, to prove the lock comes first.
+const order: string[] = [];
+jest.mock("../../../src/db", () => {
+  const tx = {
+    execute: async () => {
+      order.push("lock");
+      return [];
+    },
+    select: () => ({
+      from: () => ({
+        where: async () => {
+          order.push("read");
+          return selectRowsMock();
+        },
+      }),
+    }),
+    update: () => ({
+      set: (values: unknown) => {
+        order.push("write");
+        updateMock(values);
+        return { where: () => ({ returning: async () => [{ id: "d" }] }) };
+      },
+    }),
+  };
+  return {
+    getDb: () => ({
+      query: { departments: { findFirst: findFirstMock } },
+      // Reads for parent/team/person checks: nothing in this tenant.
+      select: () => ({
+        from: () => ({ where: async () => selectRowsMock() }),
+      }),
+      transaction: async (fn: (t: typeof tx) => unknown) => fn(tx),
+    }),
+  };
+});
 
 const getSessionMock = jest.fn();
 jest.mock("../../../src/lib/auth/session", () => ({
@@ -55,6 +85,7 @@ describe("POST /api/departments", () => {
   beforeEach(() => {
     getSessionMock.mockReset();
     findFirstMock.mockReset();
+    selectRowsMock.mockReset().mockReturnValue([]);
   });
 
   it("rejects the signed-out", async () => {
@@ -90,6 +121,9 @@ describe("PATCH /api/departments/[id]", () => {
   beforeEach(() => {
     getSessionMock.mockReset().mockResolvedValue(session("editor"));
     findFirstMock.mockReset();
+    selectRowsMock.mockReset().mockReturnValue([]);
+    updateMock.mockReset();
+    order.length = 0;
   });
 
   it("404s a department outside the caller's organization", async () => {
@@ -114,5 +148,26 @@ describe("PATCH /api/departments/[id]", () => {
   it("rejects an empty patch", async () => {
     findFirstMock.mockResolvedValue({ id: ID, teams: [], people: [] });
     expect((await patch({})).status).toBe(400);
+  });
+
+  it("rejects a parent that already sits beneath this department", async () => {
+    findFirstMock.mockResolvedValue({ id: ID, teams: [], people: [] });
+    // OTHER exists in this organization and is a child of ID: ID can't go under it.
+    selectRowsMock.mockReturnValue([{ id: OTHER, parentId: ID }]);
+    const response = await patch({ parentId: OTHER });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toMatch(/sub-departments/);
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it("checks for a loop under a lock, right before the write", async () => {
+    findFirstMock.mockResolvedValue({ id: ID, teams: [], people: [] });
+    selectRowsMock.mockReturnValue([{ id: OTHER, parentId: null }]);
+    const response = await patch({ parentId: OTHER });
+
+    expect(response.status).toBe(200);
+    // Without the lock, two concurrent moves could each pass against the old tree.
+    expect(order).toEqual(["lock", "read", "write"]);
   });
 });

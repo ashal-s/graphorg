@@ -15,7 +15,13 @@ import { replaceDepartmentMembers } from "@/lib/api/primary-links";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 
-import { validateDepartmentRefs } from "../refs";
+import { lockOrganization } from "@/lib/api/locks";
+import {
+  ParentCycleError,
+  wouldCreateParentCycle,
+} from "@/lib/api/service-hierarchy";
+
+import { loadDepartmentParents, validateDepartmentRefs } from "../refs";
 import { createDepartmentSchema } from "../schema";
 
 const updateDepartmentSchema = createDepartmentSchema.partial();
@@ -85,6 +91,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
   try {
     const row = await getDb().transaction(async (tx) => {
+      if (values.parentId) {
+        // The loop check reads every department, so it runs here, under a
+        // lock with the write: two moves that each look fine against the old
+        // tree could otherwise commit a loop between them.
+        await lockOrganization(
+          tx,
+          session.organizationId,
+          "department-parents",
+        );
+        const parents = await loadDepartmentParents(tx, session.organizationId);
+        if (wouldCreateParentCycle(parents, id, values.parentId)) {
+          throw new ParentCycleError();
+        }
+      }
       const [updated] =
         Object.keys(values).length > 0
           ? await tx
@@ -103,6 +123,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     });
     return NextResponse.json({ department: row });
   } catch (error) {
+    if (error instanceof ParentCycleError) {
+      return jsonError(
+        400,
+        "parentId would put the department inside one of its own sub-departments",
+      );
+    }
     if (isUniqueViolation(error)) {
       return jsonError(409, "A department with this name already exists");
     }
