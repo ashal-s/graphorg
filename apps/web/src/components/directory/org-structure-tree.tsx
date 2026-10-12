@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, Crown, Users2 } from "lucide-react";
+import { Building2, Users2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { PersonAvatar } from "@/components/shared/person-avatar";
@@ -30,14 +30,17 @@ function Node({
   );
 }
 
-/** A small crown beside a team lead's name: a hint, not a label. */
-function LeadMark() {
+/**
+ * A person's name. Team leads are set in a heavier weight than everyone else,
+ * with a screen-reader note, rather than given a label or icon.
+ */
+function PersonName({ person }: { person: StructurePerson }) {
+  const lead = person.teamRole === "lead";
   return (
-    <Crown
-      role="img"
-      aria-label="Team lead"
-      className="size-3 shrink-0 text-amber-500"
-    />
+    <span className={`truncate text-sm ${lead ? "font-bold" : "font-normal"}`}>
+      {person.name}
+      {lead && <span className="sr-only"> (team lead)</span>}
+    </span>
   );
 }
 
@@ -51,9 +54,8 @@ function PersonCard({ person }: { person: StructurePerson }) {
         textClassName="text-xs"
       />
       <span className="min-w-0">
-        <span className="flex items-center gap-1">
-          <span className="truncate text-sm font-medium">{person.name}</span>
-          {person.teamRole === "lead" && <LeadMark />}
+        <span className="flex">
+          <PersonName person={person} />
         </span>
         {person.title && (
           <span className="block truncate text-xs text-muted-foreground">
@@ -81,9 +83,8 @@ function MemberRow({ person }: { person: StructurePerson }) {
           textClassName="text-[0.65rem]"
         />
         <span className="min-w-0">
-          <span className="flex items-center gap-1">
-            <span className="truncate text-sm font-medium">{person.name}</span>
-            {person.teamRole === "lead" && <LeadMark />}
+          <span className="flex">
+            <PersonName person={person} />
           </span>
           {person.title && (
             <span className="block truncate text-xs text-muted-foreground">
@@ -112,7 +113,7 @@ function TeamNode({ team }: { team: StructureTeam }) {
           <span className="truncate text-sm font-semibold">{team.name}</span>
         </Link>
         {team.members.length > 0 && (
-          <ul className="mt-1 flex flex-col border-t border-border pt-1">
+          <ul className="mt-1 flex flex-col">
             {team.members.map((member) => (
               <MemberRow key={member.id} person={member} />
             ))}

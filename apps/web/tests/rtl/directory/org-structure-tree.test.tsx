@@ -81,18 +81,19 @@ describe("OrgStructureTree", () => {
     expect(block.closest("li")!.querySelector(":scope > ul")).toBeNull();
   });
 
-  it("shows no head names, headcounts or Lead label, only a subtle lead mark", () => {
+  it("shows no head names, headcounts or Lead label; leads are just bolder", () => {
     render(<OrgStructureTree structure={structure} />);
 
     expect(screen.queryByText("Hana Ito")).not.toBeInTheDocument();
     expect(screen.queryByText("Lead")).not.toBeInTheDocument();
     expect(screen.queryByText(/\d+ people?/)).not.toBeInTheDocument();
-    // Only the lead is marked.
-    expect(screen.getAllByRole("img", { name: "Team lead" })).toHaveLength(1);
-    const ana = screen.getByRole("link", { name: /Ana Cruz/ });
-    expect(
-      within(ana).getByRole("img", { name: "Team lead" }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Team lead" })).toBeNull();
+
+    const lead = screen.getByText("Ana Cruz", { exact: false });
+    expect(lead).toHaveClass("font-bold");
+    // Still announced to assistive tech.
+    expect(within(lead).getByText("(team lead)")).toBeInTheDocument();
+    expect(screen.getByText("Ben Ole")).toHaveClass("font-normal");
   });
 
   it("draws it as a connected chart, like the people chart", () => {
