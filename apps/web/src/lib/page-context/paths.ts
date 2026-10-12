@@ -2,6 +2,7 @@
 export const contextPaths = {
   person: (slug: string) => `/${slug}`,
   team: (slug: string) => `/${slug}`,
+  department: (id: string) => `/directory/departments/${id}`,
   service: (id: string) => `/catalog/services/${id}`,
   tool: (id: string) => `/catalog/tools/${id}`,
   document: (id: string) => `/documents/${id}`,

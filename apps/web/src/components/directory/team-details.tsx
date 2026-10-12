@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Link from "next/link";
 import { Pencil } from "lucide-react";
 
 import { TeamForm, type TeamDetail } from "@/components/directory/team-form";
@@ -18,10 +19,16 @@ import {
  */
 export function TeamDetails({
   team,
+  departments,
+  memberOf = [],
   readOnly,
   actions,
 }: {
   team: TeamDetail;
+  /** Every department the team could be in, for the edit form. */
+  departments?: { id: string; name: string }[];
+  /** The departments it is in, shown under the description. */
+  memberOf?: { id: string; name: string; isPrimary: boolean }[];
   readOnly: boolean;
   actions?: ReactNode;
 }) {
@@ -32,6 +39,7 @@ export function TeamDetails({
       <TeamForm
         mode="edit"
         team={team}
+        departments={departments}
         onCancel={() => setEditing(false)}
         onSaved={() => setEditing(false)}
       />
@@ -48,6 +56,27 @@ export function TeamDetails({
           </p>
         ) : (
           <p className="mt-1 text-sm text-muted-foreground">No description</p>
+        )}
+        {memberOf.length > 0 && (
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+            <span className="text-muted-foreground">
+              {memberOf.length === 1 ? "Department" : "Departments"}
+            </span>
+            {memberOf.map((department) => (
+              <Link
+                key={department.id}
+                href={`/directory/departments/${department.id}`}
+                className="font-medium hover:underline"
+              >
+                {department.name}
+                {department.isPrimary && memberOf.length > 1 && (
+                  <span className="ml-1 font-normal text-muted-foreground">
+                    (primary)
+                  </span>
+                )}
+              </Link>
+            ))}
+          </p>
         )}
       </div>
       <div className="flex shrink-0 items-start gap-2">

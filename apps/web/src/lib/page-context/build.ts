@@ -6,6 +6,8 @@ import {
   buildTools,
 } from "./builders/catalog";
 import {
+  buildDepartment,
+  buildDepartments,
   buildDirectory,
   buildOrgChartContext,
   buildPeople,
@@ -39,6 +41,10 @@ export function buildPageContext(
       return buildPeople(orgId);
     case "teams":
       return buildTeams(orgId);
+    case "departments":
+      return buildDepartments(orgId);
+    case "department":
+      return buildDepartment(orgId, scope.id);
     case "person":
       return buildPerson(orgId, scope.id);
     case "team":

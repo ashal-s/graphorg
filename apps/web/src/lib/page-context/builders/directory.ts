@@ -1,8 +1,12 @@
 import { and, asc, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { people, teams } from "@/db/schema";
+import { departments, people, teams } from "@/db/schema";
 import { loadPersonProfile } from "@/lib/directory/load-person-profile";
+import {
+  buildDepartmentTree,
+  type DepartmentNode,
+} from "@/lib/directory/departments";
 import { buildOrgChart, type OrgChartNode } from "@/lib/directory/org-chart";
 
 import { contextPaths } from "../paths";
@@ -18,8 +22,12 @@ export async function buildPeople(orgId: string): Promise<PageContext> {
     columns: { name: true, slug: true, title: true },
     with: {
       memberships: {
-        columns: { teamRole: true },
+        columns: { teamRole: true, isPrimary: true },
         with: { team: { columns: { name: true, slug: true } } },
+      },
+      departmentLinks: {
+        columns: { isPrimary: true },
+        with: { department: { columns: { id: true, name: true } } },
       },
       manager: { columns: { name: true, slug: true } },
     },
@@ -38,7 +46,13 @@ export async function buildPeople(orgId: string): Promise<PageContext> {
         teams: row.memberships.map((m) => ({
           name: m.team.name,
           role: m.teamRole,
+          primary: m.isPrimary,
           path: contextPaths.team(m.team.slug),
+        })),
+        departments: row.departmentLinks.map((l) => ({
+          name: l.department.name,
+          primary: l.isPrimary,
+          path: contextPaths.department(l.department.id),
         })),
         manager: row.manager
           ? {
@@ -61,6 +75,10 @@ export async function buildTeams(orgId: string): Promise<PageContext> {
         columns: { teamRole: true },
         with: { person: { columns: { name: true, slug: true, title: true } } },
       },
+      departmentLinks: {
+        columns: { isPrimary: true },
+        with: { department: { columns: { id: true, name: true } } },
+      },
     },
     orderBy: asc(teams.name),
   });
@@ -74,6 +92,11 @@ export async function buildTeams(orgId: string): Promise<PageContext> {
         name: row.name,
         description: row.description,
         path: contextPaths.team(row.slug),
+        departments: row.departmentLinks.map((l) => ({
+          name: l.department.name,
+          primary: l.isPrimary,
+          path: contextPaths.department(l.department.id),
+        })),
         memberCount: row.memberships.length,
         members: row.memberships
           .map((m) => ({
@@ -89,7 +112,7 @@ export async function buildTeams(orgId: string): Promise<PageContext> {
 }
 
 export async function buildDirectory(orgId: string): Promise<PageContext> {
-  const [peopleRows, teamRows] = await Promise.all([
+  const [peopleRows, teamRows, departmentRows] = await Promise.all([
     getDb().query.people.findMany({
       where: eq(people.organizationId, orgId),
       columns: { name: true, slug: true, title: true },
@@ -100,6 +123,11 @@ export async function buildDirectory(orgId: string): Promise<PageContext> {
       columns: { name: true, slug: true },
       orderBy: asc(teams.name),
     }),
+    getDb().query.departments.findMany({
+      where: eq(departments.organizationId, orgId),
+      columns: { id: true, name: true },
+      orderBy: asc(departments.name),
+    }),
   ]);
 
   return {
@@ -108,6 +136,11 @@ export async function buildDirectory(orgId: string): Promise<PageContext> {
     data: {
       peopleCount: peopleRows.length,
       teamCount: teamRows.length,
+      departmentCount: departmentRows.length,
+      departments: departmentRows.map((d) => ({
+        name: d.name,
+        path: contextPaths.department(d.id),
+      })),
       teams: teamRows.map((t) => ({
         name: t.name,
         path: contextPaths.team(t.slug),
@@ -155,6 +188,22 @@ export async function buildPerson(
   if (!loaded) return null;
   const { person, profile } = loaded;
 
+  // Which team is their primary one, and the departments they're directly in.
+  const [teamLinks, departmentLinks] = await Promise.all([
+    getDb().query.teamMembers.findMany({
+      where: (row, { eq }) => eq(row.personId, id),
+      columns: { teamId: true, isPrimary: true },
+    }),
+    getDb().query.departmentPeople.findMany({
+      where: (row, { eq }) => eq(row.personId, id),
+      columns: { isPrimary: true },
+      with: { department: { columns: { id: true, name: true } } },
+    }),
+  ]);
+  const primaryTeamIds = new Set(
+    teamLinks.filter((l) => l.isPrimary).map((l) => l.teamId),
+  );
+
   return {
     page: person.name,
     path: contextPaths.person(person.slug),
@@ -172,8 +221,16 @@ export async function buildPerson(
       })),
       teams: profile.teams.map((t) => ({
         name: t.name,
+        primary: primaryTeamIds.has(t.id),
         path: contextPaths.team(t.slug),
       })),
+      departments: departmentLinks
+        .map((l) => ({
+          name: l.department.name,
+          primary: l.isPrimary,
+          path: contextPaths.department(l.department.id),
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
       services: profile.services.map((s) => ({
         name: s.name,
         description: s.description,
@@ -209,12 +266,16 @@ export async function buildTeam(
     where: and(eq(teams.id, id), eq(teams.organizationId, orgId)),
     with: {
       memberships: {
-        columns: { teamRole: true },
+        columns: { teamRole: true, isPrimary: true },
         with: {
           person: {
             columns: { id: true, name: true, slug: true, title: true },
           },
         },
+      },
+      departmentLinks: {
+        columns: { isPrimary: true },
+        with: { department: { columns: { id: true, name: true } } },
       },
     },
   });
@@ -268,11 +329,17 @@ export async function buildTeam(
     data: {
       name: team.name,
       description: team.description,
+      departments: team.departmentLinks.map((l) => ({
+        name: l.department.name,
+        primary: l.isPrimary,
+        path: contextPaths.department(l.department.id),
+      })),
       members: team.memberships
         .map((m) => ({
           name: m.person.name,
           title: m.person.title,
           role: m.teamRole,
+          isTheirPrimaryTeam: m.isPrimary,
           path: contextPaths.person(m.person.slug),
         }))
         .sort((a, b) => LEAD_FIRST(a, b) || a.name.localeCompare(b.name)),
@@ -290,6 +357,123 @@ export async function buildTeam(
         ...w,
         path: contextPaths.workflow(wid),
       })),
+    },
+  };
+}
+
+/** Departments as a hierarchy: head and counts only, sub-departments nested. */
+export async function buildDepartments(orgId: string): Promise<PageContext> {
+  const rows = await getDb().query.departments.findMany({
+    where: eq(departments.organizationId, orgId),
+    with: {
+      head: { columns: { name: true, slug: true } },
+      teams: { columns: { teamId: true } },
+      people: { columns: { personId: true } },
+    },
+  });
+
+  type Row = {
+    id: string;
+    name: string;
+    parentId: string | null;
+    description: string | null;
+    head: { name: string; path: string } | null;
+    teamCount: number;
+    peopleCount: number;
+  };
+  const roots = buildDepartmentTree<Row>(
+    rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      parentId: row.parentId,
+      description: row.description,
+      head: row.head && {
+        name: row.head.name,
+        path: contextPaths.person(row.head.slug),
+      },
+      teamCount: row.teams.length,
+      peopleCount: row.people.length,
+    })),
+  );
+  const shape = (node: DepartmentNode<Row>): unknown => ({
+    name: node.name,
+    description: node.description,
+    path: contextPaths.department(node.id),
+    head: node.head,
+    teamCount: node.teamCount,
+    peopleCount: node.peopleCount,
+    subDepartments: node.children.map(shape),
+  });
+
+  return {
+    page: "Departments",
+    path: "/directory/departments",
+    data: { count: rows.length, hierarchy: roots.map(shape) },
+  };
+}
+
+/** One department: where it sits, who heads it, and its teams and people. */
+export async function buildDepartment(
+  orgId: string,
+  id: string,
+): Promise<PageContext | null> {
+  const department = await getDb().query.departments.findFirst({
+    where: and(eq(departments.id, id), eq(departments.organizationId, orgId)),
+    with: {
+      parent: { columns: { id: true, name: true } },
+      head: { columns: { name: true, slug: true, title: true } },
+      children: { columns: { id: true, name: true } },
+      teams: {
+        columns: { isPrimary: true },
+        with: { team: { columns: { name: true, slug: true } } },
+      },
+      people: {
+        columns: { isPrimary: true },
+        with: { person: { columns: { name: true, slug: true, title: true } } },
+      },
+    },
+  });
+  if (!department) return null;
+
+  const byName = <T extends { name: string }>(a: T, b: T) =>
+    a.name.localeCompare(b.name);
+
+  return {
+    page: department.name,
+    path: contextPaths.department(department.id),
+    data: {
+      name: department.name,
+      description: department.description,
+      parent: department.parent && {
+        name: department.parent.name,
+        path: contextPaths.department(department.parent.id),
+      },
+      head: department.head && {
+        name: department.head.name,
+        title: department.head.title,
+        path: contextPaths.person(department.head.slug),
+      },
+      subDepartments: department.children
+        .map((c) => ({
+          name: c.name,
+          path: contextPaths.department(c.id),
+        }))
+        .sort(byName),
+      teams: department.teams
+        .map((l) => ({
+          name: l.team.name,
+          primary: l.isPrimary,
+          path: contextPaths.team(l.team.slug),
+        }))
+        .sort(byName),
+      people: department.people
+        .map((l) => ({
+          name: l.person.name,
+          title: l.person.title,
+          primary: l.isPrimary,
+          path: contextPaths.person(l.person.slug),
+        }))
+        .sort(byName),
     },
   };
 }

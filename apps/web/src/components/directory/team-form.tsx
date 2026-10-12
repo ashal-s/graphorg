@@ -13,8 +13,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  effectivePrimary,
+  PrimarySelect,
+} from "@/components/directory/primary-select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchableMultiSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 
 export interface TeamDetail {
@@ -22,17 +27,23 @@ export interface TeamDetail {
   slug: string;
   name: string;
   description: string | null;
+  /** The departments it is in, and which one is primary. */
+  departmentIds?: string[];
+  primaryDepartmentId?: string | null;
 }
 
 export function TeamForm({
   mode,
   team,
+  departments = [],
   readOnly = false,
   onCancel,
   onSaved,
 }: {
   mode: "create" | "edit";
   team?: TeamDetail;
+  /** Every department it could be in. */
+  departments?: { id: string; name: string }[];
   readOnly?: boolean;
   /** When set, Cancel calls this instead of navigating away (inline editing). */
   onCancel?: () => void;
@@ -42,6 +53,10 @@ export function TeamForm({
   const router = useRouter();
   const [name, setName] = useState(team?.name ?? "");
   const [description, setDescription] = useState(team?.description ?? "");
+  const [departmentIds, setDepartmentIds] = useState(team?.departmentIds ?? []);
+  const [primaryDepartmentId, setPrimaryDepartmentId] = useState(
+    team?.primaryDepartmentId ?? "",
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +72,17 @@ export function TeamForm({
     const payload = {
       name: name.trim(),
       description: description.trim().length > 0 ? description.trim() : null,
+      // Only sent when there are departments to choose, so teams in a
+      // workspace without any are saved exactly as before.
+      ...(departments.length > 0
+        ? {
+            departmentIds,
+            primaryDepartmentId: effectivePrimary(
+              departmentIds,
+              primaryDepartmentId,
+            ),
+          }
+        : {}),
     };
 
     setSaving(true);
@@ -137,6 +163,34 @@ export function TeamForm({
               disabled={readOnly}
             />
           </div>
+          {departments.length > 0 && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="team-departments">Departments</Label>
+                <SearchableMultiSelect
+                  id="team-departments"
+                  options={departments.map((d) => ({
+                    id: d.id,
+                    label: d.name,
+                  }))}
+                  values={departmentIds}
+                  onValuesChange={setDepartmentIds}
+                  placeholder="Search departments"
+                  emptyLabel="No departments match."
+                  disabled={readOnly}
+                />
+              </div>
+              <PrimarySelect
+                id="team-primary-department"
+                label="Primary department"
+                options={departments}
+                selectedIds={departmentIds}
+                value={primaryDepartmentId}
+                onChange={setPrimaryDepartmentId}
+                disabled={readOnly}
+              />
+            </>
+          )}
         </CardContent>
       </Card>
 

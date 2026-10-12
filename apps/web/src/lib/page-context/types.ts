@@ -13,6 +13,8 @@ export const contextScopeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("directory") }),
   z.object({ kind: z.literal("people") }),
   z.object({ kind: z.literal("teams") }),
+  z.object({ kind: z.literal("departments") }),
+  z.object({ kind: z.literal("department"), id }),
   z.object({ kind: z.literal("person"), id }),
   z.object({ kind: z.literal("team"), id }),
   z.object({ kind: z.literal("org-chart") }),
