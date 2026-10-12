@@ -128,7 +128,7 @@ export default async function DepartmentPage({ params }: PageProps) {
           canEdit && (
             <>
               <DepartmentDialog
-                variant="outline"
+                iconOnly
                 department={{
                   id,
                   name: department.name,

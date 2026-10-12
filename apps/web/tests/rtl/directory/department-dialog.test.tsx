@@ -75,8 +75,11 @@ describe("DepartmentDialog", () => {
         parents={parents}
         people={people}
         teams={teams}
+        iconOnly
       />,
     );
+    // Icon only: no visible label, but still named for assistive tech.
+    expect(screen.queryByText("Edit details")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /edit details/i }));
     expect(screen.getByLabelText("Name")).toHaveValue("Operations");
     await user.clear(screen.getByLabelText("Name"));

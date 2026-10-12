@@ -19,6 +19,11 @@ import {
   SearchableSelect,
 } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface DepartmentDialogValues {
   id: string;
@@ -49,6 +54,7 @@ export function DepartmentDialog({
   size,
   withIcon = true,
   variant,
+  iconOnly = false,
 }: {
   /** Omit to create a new department. */
   department?: DepartmentDialogValues;
@@ -59,6 +65,8 @@ export function DepartmentDialog({
   size?: "sm";
   withIcon?: boolean;
   variant?: "default" | "outline";
+  /** Just the pencil, with "Edit" on hover. Edit mode only. */
+  iconOnly?: boolean;
 }) {
   const editing = Boolean(department);
   const router = useRouter();
@@ -134,15 +142,35 @@ export function DepartmentDialog({
 
   return (
     <>
-      <Button size={size} variant={variant} onClick={() => setOpen(true)}>
-        {withIcon &&
-          (editing ? (
+      {iconOnly && editing ? (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-blue-600 hover:bg-blue-500/10 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-400"
+                aria-label="Edit details"
+                onClick={() => setOpen(true)}
+              />
+            }
+          >
             <Pencil aria-hidden="true" />
-          ) : (
-            <Plus aria-hidden="true" />
-          ))}
-        {editing ? "Edit details" : "New department"}
-      </Button>
+          </TooltipTrigger>
+          <TooltipContent>Edit</TooltipContent>
+        </Tooltip>
+      ) : (
+        <Button size={size} variant={variant} onClick={() => setOpen(true)}>
+          {withIcon &&
+            (editing ? (
+              <Pencil aria-hidden="true" />
+            ) : (
+              <Plus aria-hidden="true" />
+            ))}
+          {editing ? "Edit details" : "New department"}
+        </Button>
+      )}
 
       <Dialog
         open={open}
