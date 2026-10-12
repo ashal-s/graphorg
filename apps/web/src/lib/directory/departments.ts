@@ -92,3 +92,18 @@ export function departmentSubtreeIds<T extends DepartmentBase>(
   }
   return ids;
 }
+
+/** Ids of everything above a department: its parent, that one's parent, and so on. */
+export function departmentAncestorIds<T extends DepartmentBase>(
+  departments: T[],
+  id: string,
+): Set<string> {
+  const parents = new Map(departments.map((d) => [d.id, d.parentId]));
+  const ancestors = new Set<string>();
+  let current = parents.get(id) ?? null;
+  while (current && !ancestors.has(current) && current !== id) {
+    ancestors.add(current);
+    current = parents.get(current) ?? null;
+  }
+  return ancestors;
+}

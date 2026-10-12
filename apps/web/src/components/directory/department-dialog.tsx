@@ -55,6 +55,8 @@ export function DepartmentDialog({
   withIcon = true,
   variant,
   iconOnly = false,
+  initialParentId,
+  label,
 }: {
   /** Omit to create a new department. */
   department?: DepartmentDialogValues;
@@ -67,13 +69,19 @@ export function DepartmentDialog({
   variant?: "default" | "outline";
   /** Just the pencil, with "Edit" on hover. Edit mode only. */
   iconOnly?: boolean;
+  /** Pre-selects the parent when creating, e.g. a new sub-department. */
+  initialParentId?: string;
+  /** Button text when creating (default "New department"). */
+  label?: string;
 }) {
   const editing = Boolean(department);
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(department?.name ?? "");
   const [description, setDescription] = useState(department?.description ?? "");
-  const [parentId, setParentId] = useState(department?.parentId ?? "");
+  const [parentId, setParentId] = useState(
+    department?.parentId ?? initialParentId ?? "",
+  );
   const [headPersonIds, setHeadPersonIds] = useState(
     department?.headPersonIds ?? [],
   );
@@ -86,7 +94,7 @@ export function DepartmentDialog({
   function reset() {
     setName(department?.name ?? "");
     setDescription(department?.description ?? "");
-    setParentId(department?.parentId ?? "");
+    setParentId(department?.parentId ?? initialParentId ?? "");
     setHeadPersonIds(department?.headPersonIds ?? []);
     setTeamIds(department?.teamIds ?? []);
     setPersonIds(department?.personIds ?? []);
@@ -168,7 +176,7 @@ export function DepartmentDialog({
             ) : (
               <Plus aria-hidden="true" />
             ))}
-          {editing ? "Edit details" : "New department"}
+          {editing ? "Edit details" : (label ?? "New department")}
         </Button>
       )}
 
@@ -182,7 +190,7 @@ export function DepartmentDialog({
         <DialogContent>
           <div>
             <DialogTitle>
-              {editing ? "Edit details" : "New department"}
+              {editing ? "Edit details" : (label ?? "New department")}
             </DialogTitle>
             <DialogDescription>
               {editing

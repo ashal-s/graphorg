@@ -1,5 +1,6 @@
 import {
   buildDepartmentTree,
+  departmentAncestorIds,
   departmentSubtreeIds,
   flattenDepartmentTree,
 } from "@/lib/directory/departments";
@@ -62,5 +63,18 @@ describe("departmentSubtreeIds", () => {
       "a1",
       "a1x",
     ]);
+  });
+});
+
+describe("departmentAncestorIds", () => {
+  it("lists every department above, nearest first, and not itself", () => {
+    const all = [dept("a"), dept("a1", "a"), dept("a1x", "a1"), dept("b")];
+    expect([...departmentAncestorIds(all, "a1x")]).toEqual(["a1", "a"]);
+    expect(departmentAncestorIds(all, "a").size).toBe(0);
+  });
+
+  it("stops on a cycle already in the data", () => {
+    const all = [dept("a", "b"), dept("b", "a")];
+    expect([...departmentAncestorIds(all, "a")]).toEqual(["b"]);
   });
 });
