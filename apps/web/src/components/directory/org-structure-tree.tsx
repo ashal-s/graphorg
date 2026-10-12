@@ -67,13 +67,17 @@ function PersonCard({ person }: { person: StructurePerson }) {
   );
 }
 
-/** A person inside their team's block: no box of their own. */
+/**
+ * A person inside their team's block: no box of their own. These are divs,
+ * not `ul`/`li`, because the chart's connector styles (`.org-tree ul`,
+ * `.org-tree li`) would draw lines between them and centre them.
+ */
 function MemberRow({ person }: { person: StructurePerson }) {
   return (
-    <li>
+    <div role="listitem">
       <Link
         href={`/${person.slug}`}
-        className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        className="flex items-center justify-start gap-2 rounded-lg text-left px-2 py-1.5 transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
       >
         <PersonAvatar
           name={person.name}
@@ -93,7 +97,7 @@ function MemberRow({ person }: { person: StructurePerson }) {
           )}
         </span>
       </Link>
-    </li>
+    </div>
   );
 }
 
@@ -113,11 +117,11 @@ function TeamNode({ team }: { team: StructureTeam }) {
           <span className="truncate text-sm font-semibold">{team.name}</span>
         </Link>
         {team.members.length > 0 && (
-          <ul className="mt-1 flex flex-col">
+          <div role="list" className="mt-1 flex flex-col items-stretch">
             {team.members.map((member) => (
               <MemberRow key={member.id} person={member} />
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </Node>

@@ -77,8 +77,10 @@ describe("OrgStructureTree", () => {
     expect(
       within(block).getByRole("link", { name: /Ben Ole/ }),
     ).toBeInTheDocument();
-    // Not a separate branch under the team.
+    // Not a separate branch under the team, and not list items the chart's
+    // connector lines would be drawn on.
     expect(block.closest("li")!.querySelector(":scope > ul")).toBeNull();
+    expect(block.querySelector("ul, li")).toBeNull();
   });
 
   it("shows no head names, headcounts or Lead label; leads are just bolder", () => {
