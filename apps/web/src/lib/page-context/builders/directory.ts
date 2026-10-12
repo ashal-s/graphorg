@@ -134,9 +134,9 @@ export async function buildDirectory(orgId: string): Promise<PageContext> {
     page: "Directory",
     path: "/directory",
     data: {
-      peopleCount: peopleRows.length,
-      teamCount: teamRows.length,
       departmentCount: departmentRows.length,
+      teamCount: teamRows.length,
+      peopleCount: peopleRows.length,
       departments: departmentRows.map((d) => ({
         name: d.name,
         path: contextPaths.department(d.id),

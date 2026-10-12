@@ -96,30 +96,34 @@ export default async function DirectoryPage() {
         context={{ kind: "directory" }}
         title="Directory"
         icon={BookUser}
-        description="People, teams and departments in your organisation."
+        description="Departments, teams and people in your organisation."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <SectionCard
-          href="/directory/people"
-          icon={Users}
-          title="People"
-          stat={String(peopleRows.length)}
-          description="Everyone in your organisation, with their position and teams."
+          href="/directory/departments"
+          icon={Building2}
+          title="Departments"
+          stat={String(departmentRows.length)}
+          description="How teams and people are grouped, and which sit under which."
         >
-          {peopleRows.length > 0 ? (
-            <AvatarStack
-              max={6}
-              people={peopleRows.map((person) => ({
-                id: person.id,
-                name: person.name,
-                photoSrc: personPhotoSrc(person),
-                tone: tones.people[person.id],
-              }))}
-            />
+          {departmentRows.length > 0 ? (
+            <span className="flex flex-wrap gap-1.5">
+              {departmentRows
+                .filter((department) => !department.parentId)
+                .slice(0, 4)
+                .map((department) => (
+                  <span
+                    key={department.id}
+                    className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium"
+                  >
+                    {department.name}
+                  </span>
+                ))}
+            </span>
           ) : (
             <span className="text-xs text-muted-foreground">
-              No one has been added yet.
+              No departments have been created yet.
             </span>
           )}
         </SectionCard>
@@ -153,29 +157,25 @@ export default async function DirectoryPage() {
         </SectionCard>
 
         <SectionCard
-          href="/directory/departments"
-          icon={Building2}
-          title="Departments"
-          stat={String(departmentRows.length)}
-          description="How teams and people are grouped, and which sit under which."
+          href="/directory/people"
+          icon={Users}
+          title="People"
+          stat={String(peopleRows.length)}
+          description="Everyone in your organisation, with their position and teams."
         >
-          {departmentRows.length > 0 ? (
-            <span className="flex flex-wrap gap-1.5">
-              {departmentRows
-                .filter((department) => !department.parentId)
-                .slice(0, 4)
-                .map((department) => (
-                  <span
-                    key={department.id}
-                    className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium"
-                  >
-                    {department.name}
-                  </span>
-                ))}
-            </span>
+          {peopleRows.length > 0 ? (
+            <AvatarStack
+              max={6}
+              people={peopleRows.map((person) => ({
+                id: person.id,
+                name: person.name,
+                photoSrc: personPhotoSrc(person),
+                tone: tones.people[person.id],
+              }))}
+            />
           ) : (
             <span className="text-xs text-muted-foreground">
-              No departments have been created yet.
+              No one has been added yet.
             </span>
           )}
         </SectionCard>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronRight, Users2 } from "lucide-react";
+import { Building2, ChevronRight, UserRound, Users2 } from "lucide-react";
 
 import { AvatarStack } from "@/components/shared/avatar-stack";
 import { LiveSearch } from "@/components/shared/live-search";
@@ -14,6 +14,8 @@ export interface DirectoryTeam {
   slug: string;
   name: string;
   description: string | null;
+  /** The departments it is in, primary first. */
+  departments: { id: string; name: string }[];
   members: {
     id: string;
     name: string;
@@ -43,7 +45,11 @@ export function TeamsDirectory({
   const visible = useMemo(
     () =>
       teams.filter((team) =>
-        matchesSearch(query, [team.name, team.description]),
+        matchesSearch(query, [
+          team.name,
+          team.description,
+          ...team.departments.map((department) => department.name),
+        ]),
       ),
     [teams, query],
   );
@@ -84,6 +90,9 @@ export function TeamsDirectory({
               const leads = team.members
                 .filter((member) => member.teamRole === "lead")
                 .map((member) => member.name);
+              const departmentNames = team.departments.map(
+                (department) => department.name,
+              );
               return (
                 <li key={team.id}>
                   <Link
@@ -126,8 +135,23 @@ export function TeamsDirectory({
                           {team.members.length === 1 ? "person" : "people"}
                         </span>
                         {leads.length > 0 && (
-                          <span className="block truncate">
-                            Led by {joinNames(leads)}
+                          <span className="flex items-center justify-end gap-1">
+                            <UserRound
+                              className="size-3 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span className="truncate">{joinNames(leads)}</span>
+                          </span>
+                        )}
+                        {departmentNames.length > 0 && (
+                          <span className="flex items-center justify-end gap-1">
+                            <Building2
+                              className="size-3 shrink-0"
+                              aria-hidden="true"
+                            />
+                            <span className="truncate">
+                              {joinNames(departmentNames)}
+                            </span>
                           </span>
                         )}
                       </span>

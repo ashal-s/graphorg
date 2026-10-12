@@ -15,6 +15,10 @@ const teams = [
     slug: "t1-slug",
     name: "Payments",
     description: "Checkout and billing",
+    departments: [
+      { id: "d1", name: "Engineering" },
+      { id: "d2", name: "Finance" },
+    ],
     members: [
       member("p1", "Priya Shah", "lead"),
       member("p2", "Alex Kim"),
@@ -26,6 +30,7 @@ const teams = [
     slug: "t2-slug",
     name: "Growth",
     description: "Acquisition",
+    departments: [],
     members: [member("p4", "Riley Chen")],
   },
   {
@@ -33,6 +38,7 @@ const teams = [
     slug: "platform",
     name: "Platform",
     description: null,
+    departments: [],
     members: [],
   },
 ];
@@ -63,12 +69,23 @@ describe("TeamsDirectory", () => {
     expect(names()).toEqual(["Growth"]);
   });
 
+  it("also searches by department name", async () => {
+    const user = userEvent.setup();
+    render(<TeamsDirectory teams={teams} canEdit />);
+
+    await user.type(screen.getByLabelText("Search teams"), "financ");
+    expect(names()).toEqual(["Payments"]);
+  });
+
   it("shows the member count and handles no matches", async () => {
     const user = userEvent.setup();
     render(<TeamsDirectory teams={teams} canEdit />);
     expect(screen.getByText("3 people")).toBeInTheDocument();
     expect(screen.getByText("1 person")).toBeInTheDocument();
-    expect(screen.getByText("Led by Priya Shah")).toBeInTheDocument();
+    // Just the names, no "Led by" / "Department" captions.
+    expect(screen.getByText("Priya Shah")).toBeInTheDocument();
+    expect(screen.getByText("Engineering and Finance")).toBeInTheDocument();
+    expect(screen.queryByText(/led by/i)).not.toBeInTheDocument();
     expect(screen.getByText("No members yet")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Search teams"), "zzz");
