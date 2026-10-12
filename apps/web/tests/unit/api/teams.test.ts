@@ -11,16 +11,24 @@ import { GET, POST } from "@/app/api/teams/route";
 const findManyMock = jest.fn();
 const returningMock = jest.fn();
 const valuesMock = jest.fn(() => ({ returning: returningMock }));
-jest.mock("../../../src/db", () => ({
-  getDb: () => ({
-    query: {
-      teams: { findMany: findManyMock, findFirst: async () => undefined },
-      // Looked up (and found free) when picking the new team's slug.
-      people: { findFirst: async () => undefined },
-    },
-    insert: () => ({ values: valuesMock }),
-  }),
-}));
+jest.mock("../../../src/db", () => {
+  // Built on first use: the mocks below aren't initialised when this runs.
+  const build = () => {
+    const db: Record<string, unknown> = {
+      query: {
+        teams: { findMany: findManyMock, findFirst: async () => undefined },
+        // Looked up (and found free) when picking the new team's slug.
+        people: { findFirst: async () => undefined },
+      },
+      insert: () => ({ values: valuesMock }),
+      // Raw SQL for department links: no rows, nothing to settle.
+      execute: async () => [],
+      transaction: async (run: (tx: unknown) => unknown) => run(db),
+    };
+    return db;
+  };
+  return { getDb: build };
+});
 
 const getSessionMock = jest.fn();
 jest.mock("../../../src/lib/auth/session", () => ({

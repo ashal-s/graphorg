@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
 import { uniqueSlug } from "@/lib/slugs";
-import { teams } from "@/db/schema";
+import { departments, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation, pgConstraintName } from "@/lib/api/db-errors";
@@ -14,6 +14,9 @@ import {
   parsePageParams,
   toPage,
 } from "@/lib/api/pagination";
+
+import { findMissingInOrg } from "@/lib/api/org-refs";
+import { PrimaryNotLinkedError, replaceLinks } from "@/lib/api/primary-links";
 
 import { createTeamSchema } from "./schema";
 
@@ -56,19 +59,51 @@ export async function POST(request: NextRequest) {
   const parsed = createTeamSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
 
+  const { departmentIds = [], primaryDepartmentId, ...values } = parsed.data;
+
+  const missing = await findMissingInOrg(
+    departments.id,
+    departments.organizationId,
+    session.organizationId,
+    departmentIds,
+  );
+  if (missing.length > 0) {
+    return jsonError(
+      400,
+      "departmentIds contains an id that does not reference a department in this organization",
+    );
+  }
+
   const db = getDb();
   for (let attempt = 0; ; attempt++) {
     try {
-      const [row] = await db
-        .insert(teams)
-        .values({
-          ...parsed.data,
-          slug: await uniqueSlug(session.organizationId, parsed.data.name),
-          organizationId: session.organizationId,
-        })
-        .returning();
+      const row = await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(teams)
+          .values({
+            ...values,
+            slug: await uniqueSlug(session.organizationId, values.name, tx),
+            organizationId: session.organizationId,
+          })
+          .returning();
+        if (!created) throw new Error("Failed to insert team");
+        await replaceLinks(
+          tx,
+          "team-departments",
+          created.id,
+          departmentIds,
+          primaryDepartmentId,
+        );
+        return created;
+      });
       return NextResponse.json({ team: row }, { status: 201 });
     } catch (error) {
+      if (error instanceof PrimaryNotLinkedError) {
+        return jsonError(
+          400,
+          "primaryDepartmentId must be one of departmentIds",
+        );
+      }
       if (isUniqueViolation(error)) {
         // Someone took the slug between picking and inserting: pick again.
         if (pgConstraintName(error)?.includes("slug") && attempt < 2) continue;
