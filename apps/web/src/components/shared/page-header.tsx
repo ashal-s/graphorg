@@ -1,6 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { CopyContextButton } from "@/components/shared/copy-context-button";
+import type { ContextScope } from "@/lib/page-context/types";
 import { cn } from "@/lib/utils";
 
 interface PageHeaderProps {
@@ -9,6 +11,12 @@ interface PageHeaderProps {
   /** An icon before the title, to give a section some identity. */
   icon?: LucideIcon;
   actions?: ReactNode;
+  /**
+   * What the copy button puts on the clipboard for this page. Required so a
+   * new page can't forget it; pass `null` where copying makes no sense (a
+   * form for something that doesn't exist yet).
+   */
+  context: ContextScope | null;
   /** "start" suits detail pages where actions sit beside multi-line text. */
   align?: "center" | "start";
 }
@@ -18,6 +26,7 @@ export function PageHeader({
   description,
   icon: Icon,
   actions,
+  context,
   align = "center",
 }: PageHeaderProps) {
   return (
@@ -41,7 +50,12 @@ export function PageHeader({
           )}
         </div>
       </div>
-      {actions}
+      {(actions || context) && (
+        <div className="flex shrink-0 items-center gap-2">
+          {actions}
+          {context && <CopyContextButton scope={context} />}
+        </div>
+      )}
     </div>
   );
 }

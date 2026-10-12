@@ -11,6 +11,11 @@ import { FolderView } from "@/components/documents/folder-view";
 const refreshMock = jest.fn();
 const pushMock = jest.fn();
 let mockPathname = "/documents";
+// The copy button's server action pulls in auth and the database.
+jest.mock("../../../src/lib/page-context/actions", () => ({
+  getPageContext: jest.fn(),
+}));
+
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock, refresh: refreshMock }),
   usePathname: () => mockPathname,

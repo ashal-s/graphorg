@@ -13,6 +13,7 @@ import {
 import { DocumentDialog } from "@/components/documents/document-dialog";
 import { useDocuments } from "@/components/documents/documents-context";
 import { FolderDialog } from "@/components/documents/folder-dialog";
+import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
@@ -92,22 +93,25 @@ export function FolderView({ folderId }: { folderId: string | null }) {
             {folder ? folder.name : "All documents"}
           </h1>
         </div>
-        {canEdit && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDialog("folder")}
-            >
-              <FolderPlus aria-hidden="true" />
-              New folder
-            </Button>
-            <Button size="sm" onClick={() => setDialog("document")}>
-              <FilePlus aria-hidden="true" />
-              New document
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {canEdit && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setDialog("folder")}
+              >
+                <FolderPlus aria-hidden="true" />
+                New folder
+              </Button>
+              <Button size="sm" onClick={() => setDialog("document")}>
+                <FilePlus aria-hidden="true" />
+                New document
+              </Button>
+            </>
+          )}
+          <CopyContextButton scope={{ kind: "folder", id: folderId }} />
+        </div>
       </div>
 
       {subfolders.length === 0 && docs.length === 0 ? (

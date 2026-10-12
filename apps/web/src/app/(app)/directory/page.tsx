@@ -81,6 +81,7 @@ export default async function DirectoryPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={{ kind: "directory" }}
         title="Directory"
         icon={BookUser}
         description="People and teams in your organisation."

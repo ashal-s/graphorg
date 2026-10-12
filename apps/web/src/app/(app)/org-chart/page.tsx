@@ -41,6 +41,7 @@ export default async function OrgChartPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={{ kind: "org-chart" }}
         title="Org chart"
         description={
           total === 0

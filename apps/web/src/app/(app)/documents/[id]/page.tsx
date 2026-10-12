@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { DocumentActions } from "@/components/documents/document-actions";
+import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getDb } from "@/db";
@@ -85,7 +86,10 @@ export default async function DocumentPage({ params }: PageProps) {
             )}
           </div>
         </div>
-        <DocumentActions documentId={document.id} title={document.title} />
+        <div className="flex shrink-0 items-center gap-2">
+          <CopyContextButton scope={{ kind: "document", id: document.id }} />
+          <DocumentActions documentId={document.id} title={document.title} />
+        </div>
       </div>
 
       {document.url ? (

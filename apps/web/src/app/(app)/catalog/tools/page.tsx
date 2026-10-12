@@ -49,6 +49,7 @@ export default async function ToolsPage({ searchParams }: PageProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={{ kind: "tools" }}
         title={terms.plural}
         description={terms.description}
         actions={

@@ -8,6 +8,7 @@ import {
   ResourceStats,
   type Resource,
 } from "@/components/shared/resource-stats";
+import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { getDb } from "@/db";
 import {
@@ -231,15 +232,18 @@ export async function TeamPage({ id }: { id: string }) {
         team={team}
         readOnly={readOnly}
         actions={
-          !readOnly && (
-            <DeleteEntityButton
-              entityLabel="team"
-              entityName={team.name}
-              apiPath={`/api/teams/${team.id}`}
-              redirectTo="/directory/teams"
-              iconOnly
-            />
-          )
+          <>
+            <CopyContextButton scope={{ kind: "team", id: team.id }} />
+            {!readOnly && (
+              <DeleteEntityButton
+                entityLabel="team"
+                entityName={team.name}
+                apiPath={`/api/teams/${team.id}`}
+                redirectTo="/directory/teams"
+                iconOnly
+              />
+            )}
+          </>
         }
       />
 

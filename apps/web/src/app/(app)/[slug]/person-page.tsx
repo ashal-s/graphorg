@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { HighlightSection } from "@/components/shell/highlight-section";
 import { PersonDialog } from "@/components/directory/person-dialog";
+import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { ResourceStats } from "@/components/shared/resource-stats";
@@ -131,36 +132,35 @@ export async function PersonPage({ id }: { id: string }) {
           )}
         </div>
 
-        {(canEdit || canDelete) && (
-          <div className="flex shrink-0 gap-2">
-            {canEdit && (
-              <PersonDialog
-                person={{
-                  id: person.id,
-                  name: person.name,
-                  email: person.email,
-                  title: person.title,
-                  photoSrc,
-                  teamIds: person.teamIds,
-                  managerId: person.managerId,
-                }}
-                teams={teamOptions}
-                managers={managerOptions}
-                variant="outline"
-                iconOnly
-              />
-            )}
-            {canDelete && (
-              <DeleteEntityButton
-                entityLabel="person"
-                entityName={person.name}
-                apiPath={`/api/people/${person.id}`}
-                redirectTo="/directory/people"
-                iconOnly
-              />
-            )}
-          </div>
-        )}
+        <div className="flex shrink-0 gap-2">
+          <CopyContextButton scope={{ kind: "person", id: person.id }} />
+          {canEdit && (
+            <PersonDialog
+              person={{
+                id: person.id,
+                name: person.name,
+                email: person.email,
+                title: person.title,
+                photoSrc,
+                teamIds: person.teamIds,
+                managerId: person.managerId,
+              }}
+              teams={teamOptions}
+              managers={managerOptions}
+              variant="outline"
+              iconOnly
+            />
+          )}
+          {canDelete && (
+            <DeleteEntityButton
+              entityLabel="person"
+              entityName={person.name}
+              apiPath={`/api/people/${person.id}`}
+              redirectTo="/directory/people"
+              iconOnly
+            />
+          )}
+        </div>
       </header>
 
       <ResourceStats resources={resources} />

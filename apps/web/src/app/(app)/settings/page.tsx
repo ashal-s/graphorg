@@ -39,6 +39,9 @@ export default async function SettingsPage({ searchParams }: PageProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={
+          activeId === "organization" ? { kind: "settings-organization" } : null
+        }
         title="Settings"
         description="Manage your organization, who has access to it, and how your catalog is named."
       />

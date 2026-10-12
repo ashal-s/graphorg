@@ -74,6 +74,7 @@ export default async function PeoplePage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={{ kind: "people" }}
         title="People"
         icon={Users}
         description="Everyone in your organisation's directory."

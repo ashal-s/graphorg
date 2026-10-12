@@ -43,6 +43,7 @@ export default async function NewServicePage({ searchParams }: PageProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={null}
         title={`New ${lowerLabel(terminology.services.singular)}`}
         description={terminology.services.description}
       />

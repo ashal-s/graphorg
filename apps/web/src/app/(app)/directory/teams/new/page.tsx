@@ -11,6 +11,7 @@ export default async function NewTeamPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={null}
         title="New team"
         description="Add a team to your directory."
       />

@@ -36,6 +36,7 @@ export default async function TeamsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={{ kind: "teams" }}
         title="Teams"
         icon={Users2}
         description="Who owns what across your organisation."
