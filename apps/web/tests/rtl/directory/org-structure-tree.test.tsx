@@ -53,7 +53,7 @@ describe("OrgStructureTree", () => {
   it("shows departments, their teams, and the people on each team", () => {
     render(<OrgStructureTree structure={structure} />);
 
-    expect(screen.getByRole("link", { name: /Engineering/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Engineering" })).toHaveAttribute(
       "href",
       "/directory/departments/eng",
     );
@@ -63,6 +63,33 @@ describe("OrgStructureTree", () => {
     );
     expect(screen.getByRole("link", { name: /Ana Cruz/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Cy Direct/ })).toBeInTheDocument();
+  });
+
+  it("puts a department's teams and direct people inside its block", () => {
+    const { container } = render(<OrgStructureTree structure={structure} />);
+
+    const blocks = container.querySelectorAll('[data-slot="department-block"]');
+    expect(blocks).toHaveLength(2);
+    const platform = [...blocks].find((b) =>
+      within(b as HTMLElement).queryByRole("link", { name: "Platform" }),
+    ) as HTMLElement;
+    expect(
+      within(platform).getByRole("link", { name: "Payments" }),
+    ).toBeInTheDocument();
+    expect(
+      within(platform).getByRole("link", { name: /Cy Direct/ }),
+    ).toBeInTheDocument();
+    // Sub-departments are further blocks below, not inside the parent block.
+    const engineering = [...blocks].find((b) =>
+      within(b as HTMLElement).queryByRole("link", { name: "Engineering" }),
+    ) as HTMLElement;
+    expect(
+      within(engineering).queryByRole("link", { name: "Platform" }),
+    ).toBeNull();
+    // Nothing inside a block is a list item the chart's lines hang on.
+    for (const block of blocks) {
+      expect(block.querySelector("ul, li")).toBeNull();
+    }
   });
 
   it("puts a team's people inside the team's block", () => {

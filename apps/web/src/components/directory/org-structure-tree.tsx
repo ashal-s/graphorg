@@ -102,62 +102,92 @@ function MemberRow({ person }: { person: StructurePerson }) {
 }
 
 /** A team is one block with its people inside it. */
+function TeamBlock({
+  team,
+  className = "w-56",
+}: {
+  team: StructureTeam;
+  className?: string;
+}) {
+  return (
+    <div
+      data-slot="team-block"
+      className={`rounded-xl border border-border bg-background p-2 ${className}`}
+    >
+      <Link
+        href={`/${team.slug}`}
+        className="flex items-center justify-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        <Users2
+          className="size-4 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <span className="truncate text-sm font-semibold">{team.name}</span>
+      </Link>
+      {team.members.length > 0 && (
+        <div role="list" className="mt-1 flex flex-col items-stretch">
+          {team.members.map((member) => (
+            <MemberRow key={member.id} person={member} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A team on its own in the chart (one that isn't in a department). */
 function TeamNode({ team }: { team: StructureTeam }) {
   return (
     <Node>
-      <div className="w-56 rounded-xl border border-border bg-muted/20 p-2">
-        <Link
-          href={`/${team.slug}`}
-          className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-        >
-          <Users2
-            className="size-4 shrink-0 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <span className="truncate text-sm font-semibold">{team.name}</span>
-        </Link>
-        {team.members.length > 0 && (
-          <div role="list" className="mt-1 flex flex-col items-stretch">
-            {team.members.map((member) => (
-              <MemberRow key={member.id} person={member} />
-            ))}
-          </div>
-        )}
-      </div>
+      <TeamBlock team={team} />
     </Node>
   );
 }
 
+/**
+ * A department is one block with its teams, and anyone placed directly in
+ * it, inside. Its sub-departments hang below it as further blocks.
+ */
 function DepartmentNode({ department }: { department: StructureDepartment }) {
+  const hasContents =
+    department.teams.length > 0 || department.people.length > 0;
   return (
     <Node
-      nested={[
-        ...department.children.map((child) => (
-          <DepartmentNode key={`d-${child.id}`} department={child} />
-        )),
-        ...department.teams.map((team) => (
-          <TeamNode key={`t-${team.id}`} team={team} />
-        )),
-        ...department.people.map((person) => (
-          <Node key={`p-${person.id}`}>
-            <PersonCard person={person} />
-          </Node>
-        )),
-      ]}
+      nested={department.children.map((child) => (
+        <DepartmentNode key={child.id} department={child} />
+      ))}
     >
-      <Link
-        href={`/directory/departments/${department.id}`}
-        className={`${CARD} border-primary/40 bg-primary/5`}
+      <div
+        data-slot="department-block"
+        className="w-64 rounded-xl border border-primary/40 bg-primary/5 p-2"
       >
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-          <Building2 className="size-4" aria-hidden="true" />
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold">
+        <Link
+          href={`/directory/departments/${department.id}`}
+          className="flex items-center justify-start gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <Building2
+            className="size-4 shrink-0 text-primary"
+            aria-hidden="true"
+          />
+          <span className="truncate text-sm font-semibold">
             {department.name}
           </span>
-        </span>
-      </Link>
+        </Link>
+        {hasContents && (
+          <div className="mt-1 flex flex-col gap-2">
+            {department.teams.map((team) => (
+              <TeamBlock key={team.id} team={team} className="w-full" />
+            ))}
+            {department.people.length > 0 && (
+              <div role="list" className="flex flex-col items-stretch">
+                {department.people.map((person) => (
+                  <MemberRow key={person.id} person={person} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </Node>
   );
 }
