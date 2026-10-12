@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
-import { DepartmentForm } from "@/components/directory/department-form";
+import { DepartmentDialog } from "@/components/directory/department-dialog";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -24,9 +24,25 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd>{children}</dd>
+    </>
+  );
+}
+
+/** The profile page for one department. Editing happens in a popup. */
 export default async function DepartmentPage({ params }: PageProps) {
   const session = await requireSession();
-  const readOnly = !hasRole(session.role, "editor");
+  const canEdit = hasRole(session.role, "editor");
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) notFound();
 
@@ -38,7 +54,11 @@ export default async function DepartmentPage({ params }: PageProps) {
       with: {
         parent: { columns: { id: true, name: true } },
         heads: {
-          with: { person: { columns: { id: true, name: true, slug: true } } },
+          with: {
+            person: {
+              columns: { id: true, name: true, slug: true, title: true },
+            },
+          },
         },
         children: { columns: { id: true, name: true } },
         teams: {
@@ -60,16 +80,21 @@ export default async function DepartmentPage({ params }: PageProps) {
       columns: { id: true, name: true, parentId: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
-    db.query.people.findMany({
-      where: eq(people.organizationId, orgId),
-      columns: { id: true, name: true },
-      orderBy: (row, { asc }) => asc(row.name),
-    }),
-    db.query.teams.findMany({
-      where: eq(teams.organizationId, orgId),
-      columns: { id: true, name: true },
-      orderBy: (row, { asc }) => asc(row.name),
-    }),
+    // The edit popup's pickers; only editors can open it.
+    canEdit
+      ? db.query.people.findMany({
+          where: eq(people.organizationId, orgId),
+          columns: { id: true, name: true },
+          orderBy: (row, { asc }) => asc(row.name),
+        })
+      : Promise.resolve([]),
+    canEdit
+      ? db.query.teams.findMany({
+          where: eq(teams.organizationId, orgId),
+          columns: { id: true, name: true },
+          orderBy: (row, { asc }) => asc(row.name),
+        })
+      : Promise.resolve([]),
   ]);
   if (!department) notFound();
 
@@ -79,6 +104,7 @@ export default async function DepartmentPage({ params }: PageProps) {
 
   const byName = <T extends { name: string }>(a: T, b: T) =>
     a.name.localeCompare(b.name);
+  const heads = department.heads.map((link) => link.person).sort(byName);
   const memberTeams = department.teams
     .map((link) => ({ ...link.team, isPrimary: link.isPrimary }))
     .sort(byName);
@@ -99,34 +125,85 @@ export default async function DepartmentPage({ params }: PageProps) {
             : "A top-level department."
         }
         actions={
-          !readOnly && (
-            <DeleteEntityButton
-              entityLabel="department"
-              entityName={department.name}
-              apiPath={`/api/departments/${id}`}
-              redirectTo="/directory/departments"
-              iconOnly
-            />
+          canEdit && (
+            <>
+              <DepartmentDialog
+                variant="outline"
+                department={{
+                  id,
+                  name: department.name,
+                  description: department.description,
+                  parentId: department.parentId,
+                  headPersonIds: heads.map((h) => h.id),
+                  teamIds: memberTeams.map((t) => t.id),
+                  personIds: memberPeople.map((p) => p.id),
+                }}
+                parents={parents}
+                people={peopleRows}
+                teams={teamRows}
+              />
+              <DeleteEntityButton
+                entityLabel="department"
+                entityName={department.name}
+                apiPath={`/api/departments/${id}`}
+                redirectTo="/directory/departments"
+                iconOnly
+              />
+            </>
           )
         }
       />
 
-      <DepartmentForm
-        mode="edit"
-        readOnly={readOnly}
-        department={{
-          id,
-          name: department.name,
-          description: department.description,
-          parentId: department.parentId,
-          headPersonIds: department.heads.map((h) => h.person.id),
-          teamIds: memberTeams.map((t) => t.id),
-          personIds: memberPeople.map((p) => p.id),
-        }}
-        parents={parents}
-        people={peopleRows}
-        teams={teamRows}
-      />
+      <Card>
+        <CardContent>
+          <dl className="grid max-w-3xl grid-cols-[9rem_1fr] gap-x-4 gap-y-3 text-sm">
+            <Field label="Description">
+              {department.description ? (
+                <span className="whitespace-pre-wrap">
+                  {department.description}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">No description</span>
+              )}
+            </Field>
+            <Field label="Parent department">
+              {department.parent ? (
+                <Link
+                  href={`/directory/departments/${department.parent.id}`}
+                  className="font-medium hover:underline"
+                >
+                  {department.parent.name}
+                </Link>
+              ) : (
+                <span className="text-muted-foreground">Top level</span>
+              )}
+            </Field>
+            <Field label={heads.length === 1 ? "Head" : "Heads"}>
+              {heads.length === 0 ? (
+                <span className="text-muted-foreground">Not assigned</span>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {heads.map((head) => (
+                    <li key={head.id}>
+                      <Link
+                        href={`/${head.slug}`}
+                        className="font-medium hover:underline"
+                      >
+                        {head.name}
+                      </Link>
+                      {head.title && (
+                        <span className="ml-2 text-muted-foreground">
+                          {head.title}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Field>
+          </dl>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -190,12 +267,6 @@ export default async function DepartmentPage({ params }: PageProps) {
           <CardHeader>
             <CardTitle>People</CardTitle>
             <CardDescription>
-              {department.heads.length > 0
-                ? `Headed by ${department.heads
-                    .map((h) => h.person.name)
-                    .sort()
-                    .join(", ")}. `
-                : "No department head set. "}
               People assigned to this department directly.
             </CardDescription>
           </CardHeader>

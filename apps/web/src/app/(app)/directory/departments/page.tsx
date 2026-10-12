@@ -1,13 +1,12 @@
 import { eq } from "drizzle-orm";
-import Link from "next/link";
-import { Building2, Plus } from "lucide-react";
+import { Building2 } from "lucide-react";
 
+import { DepartmentDialog } from "@/components/directory/department-dialog";
 import { DepartmentTree } from "@/components/directory/department-tree";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/states/empty-state";
-import { Button } from "@/components/ui/button";
 import { getDb } from "@/db";
-import { departments } from "@/db/schema";
+import { departments, people, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 import { buildDepartmentTree } from "@/lib/directory/departments";
@@ -16,14 +15,33 @@ export default async function DepartmentsPage() {
   const session = await requireSession();
   const canEdit = hasRole(session.role, "editor");
 
-  const rows = await getDb().query.departments.findMany({
-    where: eq(departments.organizationId, session.organizationId),
-    with: {
-      heads: { with: { person: { columns: { name: true } } } },
-      teams: { columns: { teamId: true } },
-      people: { columns: { personId: true } },
-    },
-  });
+  const orgId = session.organizationId;
+  const db = getDb();
+  const [rows, peopleOptions, teamOptions] = await Promise.all([
+    db.query.departments.findMany({
+      where: eq(departments.organizationId, orgId),
+      with: {
+        heads: { with: { person: { columns: { name: true } } } },
+        teams: { columns: { teamId: true } },
+        people: { columns: { personId: true } },
+      },
+    }),
+    // The new-department popup's pickers; only editors can open it.
+    canEdit
+      ? db.query.people.findMany({
+          where: eq(people.organizationId, orgId),
+          columns: { id: true, name: true },
+          orderBy: (row, { asc }) => asc(row.name),
+        })
+      : Promise.resolve([]),
+    canEdit
+      ? db.query.teams.findMany({
+          where: eq(teams.organizationId, orgId),
+          columns: { id: true, name: true },
+          orderBy: (row, { asc }) => asc(row.name),
+        })
+      : Promise.resolve([]),
+  ]);
 
   const roots = buildDepartmentTree(
     rows.map((row) => ({
@@ -37,14 +55,15 @@ export default async function DepartmentsPage() {
     })),
   );
 
+  const parentOptions = rows
+    .map((row) => ({ id: row.id, name: row.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
   const newButton = canEdit && (
-    <Button
-      render={<Link href="/directory/departments/new" />}
-      nativeButton={false}
-    >
-      <Plus aria-hidden="true" />
-      New department
-    </Button>
+    <DepartmentDialog
+      parents={parentOptions}
+      people={peopleOptions}
+      teams={teamOptions}
+    />
   );
 
   return (
