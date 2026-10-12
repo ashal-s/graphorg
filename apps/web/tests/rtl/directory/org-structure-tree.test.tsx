@@ -57,25 +57,47 @@ describe("OrgStructureTree", () => {
       "href",
       "/directory/departments/eng",
     );
-    expect(screen.getByText("Hana Ito")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Payments/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Payments" })).toHaveAttribute(
       "href",
       "/payments",
     );
     expect(screen.getByRole("link", { name: /Ana Cruz/ })).toBeInTheDocument();
-    expect(screen.getByText("Lead")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Cy Direct/ })).toBeInTheDocument();
+  });
+
+  it("puts a team's people inside the team's block", () => {
+    render(<OrgStructureTree structure={structure} />);
+
+    const block = screen
+      .getByRole("link", { name: "Payments" })
+      .closest("div")!;
+    expect(
+      within(block).getByRole("link", { name: /Ana Cruz/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(block).getByRole("link", { name: /Ben Ole/ }),
+    ).toBeInTheDocument();
+    // Not a separate branch under the team.
+    expect(block.closest("li")!.querySelector(":scope > ul")).toBeNull();
+  });
+
+  it("shows no head names, headcounts or Lead label, only a subtle lead mark", () => {
+    render(<OrgStructureTree structure={structure} />);
+
+    expect(screen.queryByText("Hana Ito")).not.toBeInTheDocument();
+    expect(screen.queryByText("Lead")).not.toBeInTheDocument();
+    expect(screen.queryByText(/\d+ people?/)).not.toBeInTheDocument();
+    // Only the lead is marked.
+    expect(screen.getAllByRole("img", { name: "Team lead" })).toHaveLength(1);
+    const ana = screen.getByRole("link", { name: /Ana Cruz/ });
+    expect(
+      within(ana).getByRole("img", { name: "Team lead" }),
+    ).toBeInTheDocument();
   });
 
   it("draws it as a connected chart, like the people chart", () => {
     const { container } = render(<OrgStructureTree structure={structure} />);
-
-    // The same `.org-tree` lists the people chart uses draw the connectors.
     expect(container.querySelectorAll("ul.org-tree").length).toBeGreaterThan(0);
-    const team = screen.getByRole("link", { name: /Payments/ }).closest("li")!;
-    expect(
-      within(team).getByRole("link", { name: /Ben Ole/ }),
-    ).toBeInTheDocument();
   });
 
   it("hangs teams and people with no place off their own boxes", () => {

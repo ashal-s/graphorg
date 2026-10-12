@@ -21,7 +21,7 @@ const TABS = [
   { id: "people", label: "People", href: "/org-chart" },
   {
     id: "structure",
-    label: "Departments and teams",
+    label: "Departments",
     href: "/org-chart?tab=structure",
   },
 ];

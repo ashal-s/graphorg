@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { Building2, Users2 } from "lucide-react";
+import { Building2, Crown, Users2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { PersonAvatar } from "@/components/shared/person-avatar";
-import { Badge } from "@/components/ui/badge";
 import type {
   OrgStructure,
   StructureDepartment,
@@ -31,6 +30,17 @@ function Node({
   );
 }
 
+/** A small crown beside a team lead's name: a hint, not a label. */
+function LeadMark() {
+  return (
+    <Crown
+      role="img"
+      aria-label="Team lead"
+      className="size-3 shrink-0 text-amber-500"
+    />
+  );
+}
+
 function PersonCard({ person }: { person: StructurePerson }) {
   return (
     <Link href={`/${person.slug}`} className={CARD}>
@@ -41,53 +51,79 @@ function PersonCard({ person }: { person: StructurePerson }) {
         textClassName="text-xs"
       />
       <span className="min-w-0">
-        <span className="block truncate text-sm font-medium">
-          {person.name}
+        <span className="flex items-center gap-1">
+          <span className="truncate text-sm font-medium">{person.name}</span>
+          {person.teamRole === "lead" && <LeadMark />}
         </span>
         {person.title && (
           <span className="block truncate text-xs text-muted-foreground">
             {person.title}
           </span>
         )}
-        {person.teamRole === "lead" && (
-          <Badge variant="secondary" className="mt-1">
-            Lead
-          </Badge>
-        )}
       </span>
     </Link>
   );
 }
 
-function TeamNode({ team }: { team: StructureTeam }) {
+/** A person inside their team's block: no box of their own. */
+function MemberRow({ person }: { person: StructurePerson }) {
   return (
-    <Node
-      nested={team.members.map((member) => (
-        <Node key={member.id}>
-          <PersonCard person={member} />
-        </Node>
-      ))}
-    >
-      <Link href={`/${team.slug}`} className={CARD}>
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <Users2 className="size-4" aria-hidden="true" />
-        </span>
+    <li>
+      <Link
+        href={`/${person.slug}`}
+        className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        <PersonAvatar
+          name={person.name}
+          photoUrl={person.photoUrl}
+          colorKey={person.id}
+          className="size-7"
+          textClassName="text-[0.65rem]"
+        />
         <span className="min-w-0">
-          <span className="block truncate text-sm font-medium">
-            {team.name}
+          <span className="flex items-center gap-1">
+            <span className="truncate text-sm font-medium">{person.name}</span>
+            {person.teamRole === "lead" && <LeadMark />}
           </span>
-          <span className="block text-xs text-muted-foreground">
-            {team.members.length}{" "}
-            {team.members.length === 1 ? "person" : "people"}
-          </span>
+          {person.title && (
+            <span className="block truncate text-xs text-muted-foreground">
+              {person.title}
+            </span>
+          )}
         </span>
       </Link>
+    </li>
+  );
+}
+
+/** A team is one block with its people inside it. */
+function TeamNode({ team }: { team: StructureTeam }) {
+  return (
+    <Node>
+      <div className="w-56 rounded-xl border border-border bg-muted/20 p-2">
+        <Link
+          href={`/${team.slug}`}
+          className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <Users2
+            className="size-4 shrink-0 text-muted-foreground"
+            aria-hidden="true"
+          />
+          <span className="truncate text-sm font-semibold">{team.name}</span>
+        </Link>
+        {team.members.length > 0 && (
+          <ul className="mt-1 flex flex-col border-t border-border pt-1">
+            {team.members.map((member) => (
+              <MemberRow key={member.id} person={member} />
+            ))}
+          </ul>
+        )}
+      </div>
     </Node>
   );
 }
 
 function DepartmentNode({ department }: { department: StructureDepartment }) {
-  const heads = department.heads.map((head) => head.name).join(", ");
   return (
     <Node
       nested={[
@@ -115,11 +151,6 @@ function DepartmentNode({ department }: { department: StructureDepartment }) {
           <span className="block truncate text-sm font-semibold">
             {department.name}
           </span>
-          {heads && (
-            <span className="block truncate text-xs text-muted-foreground">
-              {heads}
-            </span>
-          )}
         </span>
       </Link>
     </Node>
