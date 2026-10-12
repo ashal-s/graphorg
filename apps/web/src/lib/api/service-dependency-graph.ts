@@ -1,6 +1,6 @@
 import { and, eq, ne } from "drizzle-orm";
 
-import { getDb } from "@/db";
+import { getDb, type Database } from "@/db";
 import { serviceDependencies, services } from "@/db/schema";
 
 /** `serviceId -> [dependsOnServiceId, ...]` for one organization's dependency graph. */
@@ -15,8 +15,10 @@ export type DependencyGraph = Map<string, string[]>;
 export async function loadDependencyGraph(
   organizationId: string,
   excludeServiceId?: string,
+  /** Pass a transaction to read inside it, after taking `lockOrganization`. */
+  db: Pick<Database, "select"> = getDb(),
 ): Promise<DependencyGraph> {
-  const rows = await getDb()
+  const rows = await db
     .select({
       serviceId: serviceDependencies.serviceId,
       dependsOnServiceId: serviceDependencies.dependsOnServiceId,

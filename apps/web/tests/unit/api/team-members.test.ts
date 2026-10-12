@@ -6,20 +6,27 @@ import { DELETE, PUT } from "@/app/api/teams/[id]/members/[personId]/route";
 // jest.mock specifiers are plain strings, so they must be relative.
 const findFirstMock = jest.fn();
 const returningMock = jest.fn();
-jest.mock("../../../src/db", () => ({
-  getDb: () => ({
-    query: {
-      teams: { findFirst: findFirstMock },
-      people: { findFirst: findFirstMock },
-    },
+jest.mock("../../../src/db", () => {
+  const tx = {
     insert: () => ({
       values: () => ({
         onConflictDoUpdate: () => ({ returning: returningMock }),
       }),
     }),
     delete: () => ({ where: jest.fn() }),
-  }),
-}));
+    // Locking and settling the person's primary team: no links, nothing to do.
+    execute: async () => [],
+  };
+  return {
+    getDb: () => ({
+      query: {
+        teams: { findFirst: findFirstMock },
+        people: { findFirst: findFirstMock },
+      },
+      transaction: async (fn: (t: typeof tx) => unknown) => fn(tx),
+    }),
+  };
+});
 
 const getSessionMock = jest.fn();
 jest.mock("../../../src/lib/auth/session", () => ({

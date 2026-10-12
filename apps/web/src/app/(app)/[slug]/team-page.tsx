@@ -8,9 +8,12 @@ import {
   ResourceStats,
   type Resource,
 } from "@/components/shared/resource-stats";
+import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { getDb } from "@/db";
 import {
+  departments,
+  departmentTeams,
   documents,
   people,
   services,
@@ -37,6 +40,8 @@ export async function TeamPage({ id }: { id: string }) {
     teamServices,
     teamDocuments,
     otherPeople,
+    departmentLinks,
+    departmentOptions,
   ] = await Promise.all([
     getTerminology(orgId),
     getDb().query.teams.findFirst({
@@ -80,6 +85,16 @@ export async function TeamPage({ id }: { id: string }) {
           },
           orderBy: (row, { asc }) => asc(row.name),
         }),
+    getDb().query.departmentTeams.findMany({
+      where: eq(departmentTeams.teamId, id),
+      columns: { isPrimary: true },
+      with: { department: { columns: { id: true, name: true } } },
+    }),
+    getDb().query.departments.findMany({
+      where: eq(departments.organizationId, orgId),
+      columns: { id: true, name: true },
+      orderBy: (row, { asc }) => asc(row.name),
+    }),
   ]);
 
   if (!team) notFound();
@@ -91,7 +106,7 @@ export async function TeamPage({ id }: { id: string }) {
       id: person.id,
       name: person.name,
       title: person.title,
-      otherTeamNames: person.memberships
+      otherNames: person.memberships
         .map((m) => m.team.name)
         .sort((a, b) => a.localeCompare(b)),
     }));
@@ -228,18 +243,30 @@ export async function TeamPage({ id }: { id: string }) {
     <div className="flex flex-col gap-6">
       <HighlightSection href="/directory" />
       <TeamDetails
-        team={team}
+        team={{
+          ...team,
+          departmentIds: departmentLinks.map((l) => l.department.id),
+          primaryDepartmentId:
+            departmentLinks.find((l) => l.isPrimary)?.department.id ?? null,
+        }}
+        departments={departmentOptions}
+        memberOf={departmentLinks
+          .map((l) => ({ ...l.department, isPrimary: l.isPrimary }))
+          .sort((a, b) => a.name.localeCompare(b.name))}
         readOnly={readOnly}
         actions={
-          !readOnly && (
-            <DeleteEntityButton
-              entityLabel="team"
-              entityName={team.name}
-              apiPath={`/api/teams/${team.id}`}
-              redirectTo="/directory/teams"
-              iconOnly
-            />
-          )
+          <>
+            <CopyContextButton scope={{ kind: "team", id: team.id }} />
+            {!readOnly && (
+              <DeleteEntityButton
+                entityLabel="team"
+                entityName={team.name}
+                apiPath={`/api/teams/${team.id}`}
+                redirectTo="/directory/teams"
+                iconOnly
+              />
+            )}
+          </>
         }
       />
 

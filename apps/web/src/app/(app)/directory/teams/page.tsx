@@ -21,6 +21,10 @@ export default async function TeamsPage() {
   const rows = await getDb().query.teams.findMany({
     where: eq(teams.organizationId, session.organizationId),
     with: {
+      departmentLinks: {
+        columns: { isPrimary: true },
+        with: { department: { columns: { id: true, name: true } } },
+      },
       memberships: {
         columns: { teamRole: true },
         with: {
@@ -36,6 +40,7 @@ export default async function TeamsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={{ kind: "teams" }}
         title="Teams"
         icon={Users2}
         description="Who owns what across your organisation."
@@ -58,6 +63,15 @@ export default async function TeamsPage() {
           slug: row.slug,
           name: row.name,
           description: row.description,
+          // Primary department first.
+          departments: row.departmentLinks
+            .map((link) => ({ ...link.department, isPrimary: link.isPrimary }))
+            .sort(
+              (a, b) =>
+                Number(b.isPrimary) - Number(a.isPrimary) ||
+                a.name.localeCompare(b.name),
+            )
+            .map(({ id, name }) => ({ id, name })),
           members: row.memberships
             .map((membership) => ({
               id: membership.person.id,

@@ -1,10 +1,12 @@
 import { relations, sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   pgTable,
   primaryKey,
   text,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -29,10 +31,15 @@ export const teamMembers = pgTable(
     teamRole: text("team_role", { enum: ["lead", "member", "trainee"] })
       .notNull()
       .default("member"),
+    /** The person's primary team: at most one of their rows is. */
+    isPrimary: boolean("is_primary").notNull().default(false),
   },
   (table) => [
     primaryKey({ columns: [table.teamId, table.personId] }),
     index("team_members_person_id_idx").on(table.personId),
+    uniqueIndex("team_members_one_primary_per_person")
+      .on(table.personId)
+      .where(sql`${table.isPrimary}`),
     check(
       "team_members_team_role_check",
       sql`${table.teamRole} in ('lead', 'member', 'trainee')`,

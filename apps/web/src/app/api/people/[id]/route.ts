@@ -2,7 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import { people, teams, users } from "@/db/schema";
+import { departments, people, teams, users } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation, pgConstraintName } from "@/lib/api/db-errors";
@@ -19,6 +19,10 @@ import {
   wouldCreateManagerCycle,
 } from "@/lib/api/manager-chain";
 import { findMissingInOrg } from "@/lib/api/org-refs";
+import {
+  applyPersonPrimaries,
+  PrimaryNotLinkedError,
+} from "@/lib/api/primary-links";
 import { setPersonTeams } from "@/lib/api/team-membership";
 
 import { createPersonSchema } from "../schema";
@@ -89,7 +93,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!parsed.success) return jsonValidationError(parsed.error);
   const emptyPatchError = requireNonEmptyPatch(parsed.data);
   if (emptyPatchError) return emptyPatchError;
-  const { teamIds, managerId, userId, ...values } = parsed.data;
+  const {
+    teamIds,
+    managerId,
+    userId,
+    primaryTeamId,
+    departmentIds,
+    primaryDepartmentId,
+    ...values
+  } = parsed.data;
 
   if (teamIds && teamIds.length > 0) {
     const missing = await findMissingInOrg(
@@ -102,6 +114,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return jsonError(
         400,
         "teamIds contains an id that does not reference a team in this organization",
+      );
+    }
+  }
+  if (departmentIds && departmentIds.length > 0) {
+    const missing = await findMissingInOrg(
+      departments.id,
+      departments.organizationId,
+      session.organizationId,
+      departmentIds,
+    );
+    if (missing.length > 0) {
+      return jsonError(
+        400,
+        "departmentIds contains an id that does not reference a department in this organization",
       );
     }
   }
@@ -179,10 +205,22 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           : await tx.select().from(people).where(eq(people.id, id));
 
       if (teamIds) await setPersonTeams(tx, id, teamIds);
+      await applyPersonPrimaries(tx, id, {
+        teamsChanged: Boolean(teamIds),
+        primaryTeamId,
+        departmentIds,
+        primaryDepartmentId,
+      });
       return row;
     });
     return NextResponse.json({ person });
   } catch (error) {
+    if (error instanceof PrimaryNotLinkedError) {
+      return jsonError(
+        400,
+        "primaryTeamId and primaryDepartmentId must be among the person's teams and departments",
+      );
+    }
     if (error instanceof CircularManagerError) {
       return jsonError(
         400,

@@ -113,6 +113,41 @@
       "when": 1791744604368,
       "tag": "0015_add_profile_slugs",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791788156534,
+      "tag": "0016_add_departments",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791788832769,
+      "tag": "0017_department_heads",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791791233128,
+      "tag": "0018_department_heads_are_people",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791791574457,
+      "tag": "0019_department_member_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791792468200,
+      "tag": "0020_backfill_primary_teams",
+      "breakpoints": true
     }
   ]
 }

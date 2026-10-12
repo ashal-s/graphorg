@@ -3,12 +3,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { getDb } from "@/db";
-import { people, teamMembers, teams, users } from "@/db/schema";
+import { departments, people, teamMembers, teams, users } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation, pgConstraintName } from "@/lib/api/db-errors";
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
 import { findMissingInOrg } from "@/lib/api/org-refs";
+import {
+  applyPersonPrimaries,
+  PrimaryNotLinkedError,
+} from "@/lib/api/primary-links";
 import { setPersonTeams } from "@/lib/api/team-membership";
 import { uniqueSlug } from "@/lib/slugs";
 import {
@@ -75,7 +79,15 @@ export async function POST(request: NextRequest) {
 
   const parsed = createPersonSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
-  const { teamIds = [], managerId, userId, ...values } = parsed.data;
+  const {
+    teamIds = [],
+    managerId,
+    userId,
+    primaryTeamId,
+    departmentIds,
+    primaryDepartmentId,
+    ...values
+  } = parsed.data;
 
   if (teamIds.length > 0) {
     const missing = await findMissingInOrg(
@@ -88,6 +100,20 @@ export async function POST(request: NextRequest) {
       return jsonError(
         400,
         "teamIds contains an id that does not reference a team in this organization",
+      );
+    }
+  }
+  if (departmentIds && departmentIds.length > 0) {
+    const missing = await findMissingInOrg(
+      departments.id,
+      departments.organizationId,
+      session.organizationId,
+      departmentIds,
+    );
+    if (missing.length > 0) {
+      return jsonError(
+        400,
+        "departmentIds contains an id that does not reference a department in this organization",
       );
     }
   }
@@ -139,10 +165,22 @@ export async function POST(request: NextRequest) {
           .returning();
         if (!created) throw new Error("Failed to insert person");
         await setPersonTeams(tx, created.id, teamIds);
+        await applyPersonPrimaries(tx, created.id, {
+          teamsChanged: true,
+          primaryTeamId,
+          departmentIds,
+          primaryDepartmentId,
+        });
         return created;
       });
       return NextResponse.json({ person: row }, { status: 201 });
     } catch (error) {
+      if (error instanceof PrimaryNotLinkedError) {
+        return jsonError(
+          400,
+          "primaryTeamId and primaryDepartmentId must be among the person's teams and departments",
+        );
+      }
       if (isUniqueViolation(error)) {
         const constraint = pgConstraintName(error);
         if (constraint?.includes("slug") && attempt < 2) continue;

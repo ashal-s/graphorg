@@ -7,6 +7,11 @@ import {
 } from "@/components/workflows/workflow-builder";
 
 const pushMock = jest.fn();
+// The copy button's server action pulls in auth and the database.
+jest.mock("../../../src/lib/page-context/actions", () => ({
+  getPageContext: jest.fn(),
+}));
+
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock, refresh: jest.fn() }),
 }));

@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { id, organizationId, timestamps } from "./_columns";
+import { departmentPeople } from "./department-people";
 import { organizations } from "./organizations";
 import { teamMembers } from "./team-members";
 import { users } from "./users";
@@ -56,6 +57,8 @@ export const peopleRelations = relations(people, ({ one, many }) => ({
   }),
   /** The teams this person is on (a person can be on several). */
   memberships: many(teamMembers),
+  /** The departments this person is directly in. */
+  departmentLinks: many(departmentPeople),
   manager: one(people, {
     fields: [people.managerId],
     references: [people.id],

@@ -61,6 +61,7 @@ export default async function ToolDetailPage({ params }: PageProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={{ kind: "tool", id: tool.id }}
         title={tool.name}
         description={`Edit this ${singular}'s details, or see where it's used below.`}
         align="start"

@@ -20,6 +20,7 @@ export default async function NewToolPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={null}
         title={`New ${lowerLabel(terms.singular)}`}
         description={terms.description}
       />

@@ -9,15 +9,38 @@ const findFirstMock = jest.fn();
 const findManyMock = jest.fn();
 const setMock = jest.fn();
 const whereMock = jest.fn();
+const executeMock = jest.fn();
+// Call order inside the transaction, to prove the lock comes first.
+const order: string[] = [];
 jest.mock("../../../src/db", () => {
+  // `where(...)` is awaited directly (delete / plain update) or followed by
+  // `.returning()`, so it is both a thenable and has `returning`.
+  const where = () => ({
+    returning: async () => [{ id: "a" }],
+    then: (resolve: (v: unknown) => unknown) =>
+      Promise.resolve(whereMock()).then(resolve),
+  });
   const tx = {
+    execute: async (...args: unknown[]) => {
+      order.push("lock");
+      return executeMock(...args);
+    },
+    select: () => ({
+      from: () => ({
+        where: async () => {
+          order.push("read");
+          return findManyMock();
+        },
+      }),
+    }),
     update: () => ({
       set: (v: unknown) => {
+        order.push("write");
         setMock(v);
-        return { where: whereMock };
+        return { where };
       },
     }),
-    delete: () => ({ where: whereMock }),
+    delete: () => ({ where }),
   };
   return {
     getDb: () => ({
@@ -25,12 +48,6 @@ jest.mock("../../../src/db", () => {
         documentFolders: { findFirst: findFirstMock, findMany: findManyMock },
       },
       select: () => ({ from: () => ({ where: async () => [{ id: "x" }] }) }),
-      update: () => ({
-        set: (v: unknown) => {
-          setMock(v);
-          return { where: () => ({ returning: async () => [{ id: "a" }] }) };
-        },
-      }),
       transaction: async (fn: (t: typeof tx) => unknown) => fn(tx),
     }),
   };
@@ -59,6 +76,8 @@ beforeEach(() => {
   findFirstMock.mockReset();
   findManyMock.mockReset();
   setMock.mockReset();
+  executeMock.mockReset().mockResolvedValue([]);
+  order.length = 0;
   whereMock.mockReset().mockResolvedValue(undefined);
   getSessionMock.mockReset().mockResolvedValue({
     userId: "u",
@@ -96,6 +115,19 @@ describe("PATCH /api/document-folders/[id]", () => {
     const response = await PATCH(patch({ parentId: C }), params(A));
     expect(response.status).toBe(400);
     expect(setMock).not.toHaveBeenCalled();
+  });
+
+  it("takes a lock before reading the tree and writing the move", async () => {
+    findFirstMock.mockResolvedValue({ id: C, parentId: B });
+    findManyMock.mockResolvedValue([
+      { id: A, parentId: null },
+      { id: B, parentId: A },
+      { id: C, parentId: B },
+    ]);
+    await PATCH(patch({ parentId: A }), params(C));
+
+    // Without this, two concurrent moves could each pass against the old tree.
+    expect(order).toEqual(["lock", "read", "write"]);
   });
 
   it("allows moving a folder to an unrelated one", async () => {

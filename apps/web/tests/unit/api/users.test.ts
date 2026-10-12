@@ -23,6 +23,8 @@ jest.mock("../../../src/db", () => {
   // Inside a transaction: users insert/people lookups and writes.
   // Built lazily: the mocks below are initialised after this factory is hoisted.
   const makeTx = () => ({
+    // The slug lock taken while picking the new person's slug.
+    execute: async () => [],
     query: {
       people: { findFirst: personFindFirstMock },
       teams: { findFirst: async () => undefined },

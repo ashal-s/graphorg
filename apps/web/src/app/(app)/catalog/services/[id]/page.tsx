@@ -96,6 +96,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={{ kind: "service", id: service.id }}
         title={service.name}
         description={`Edit this ${singular}'s details, or see how it fits the rest of the catalog below.`}
         align="start"

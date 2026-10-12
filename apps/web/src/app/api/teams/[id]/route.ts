@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import { teams } from "@/db/schema";
+import { departments, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation } from "@/lib/api/db-errors";
@@ -13,6 +13,13 @@ import {
   requireNonEmptyPatch,
   requireUuidParam,
 } from "@/lib/api/http";
+
+import { findMissingInOrg } from "@/lib/api/org-refs";
+import {
+  PrimaryNotLinkedError,
+  replaceLinks,
+  settlePrimary,
+} from "@/lib/api/primary-links";
 
 import { createTeamSchema } from "../schema";
 
@@ -66,14 +73,66 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const emptyPatchError = requireNonEmptyPatch(parsed.data);
   if (emptyPatchError) return emptyPatchError;
 
+  const { departmentIds, primaryDepartmentId, ...values } = parsed.data;
+  if (departmentIds) {
+    const missing = await findMissingInOrg(
+      departments.id,
+      departments.organizationId,
+      session.organizationId,
+      departmentIds,
+    );
+    if (missing.length > 0) {
+      return jsonError(
+        400,
+        "departmentIds contains an id that does not reference a department in this organization",
+      );
+    }
+  } else if (primaryDepartmentId) {
+    const missing = await findMissingInOrg(
+      departments.id,
+      departments.organizationId,
+      session.organizationId,
+      [primaryDepartmentId],
+    );
+    if (missing.length > 0) {
+      return jsonError(
+        400,
+        "primaryDepartmentId does not reference a department in this organization",
+      );
+    }
+  }
+
   try {
-    const [team] = await db
-      .update(teams)
-      .set(parsed.data)
-      .where(eq(teams.id, id))
-      .returning();
+    const team = await db.transaction(async (tx) => {
+      const [row] =
+        Object.keys(values).length > 0
+          ? await tx
+              .update(teams)
+              .set(values)
+              .where(eq(teams.id, id))
+              .returning()
+          : await tx.select().from(teams).where(eq(teams.id, id));
+      if (departmentIds) {
+        await replaceLinks(
+          tx,
+          "team-departments",
+          id,
+          departmentIds,
+          primaryDepartmentId,
+        );
+      } else if (primaryDepartmentId !== undefined) {
+        await settlePrimary(tx, "team-departments", id, primaryDepartmentId);
+      }
+      return row;
+    });
     return NextResponse.json({ team });
   } catch (error) {
+    if (error instanceof PrimaryNotLinkedError) {
+      return jsonError(
+        400,
+        "primaryDepartmentId must be one of the team's departments",
+      );
+    }
     if (isUniqueViolation(error)) {
       return jsonError(409, "A team with this name already exists");
     }

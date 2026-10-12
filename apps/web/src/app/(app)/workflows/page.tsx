@@ -40,6 +40,7 @@ export default async function WorkflowsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={{ kind: "workflows" }}
         title="Workflows"
         description="Triggers, conditions and actions your organisation runs by hand or on a schedule."
         actions={

@@ -44,6 +44,7 @@ export default async function CatalogPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={{ kind: "catalog" }}
         title="Catalog"
         description={`${terminology.services.plural} and ${lowerLabel(terminology.tools.plural)} across your organization.`}
       />

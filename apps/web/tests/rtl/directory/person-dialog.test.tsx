@@ -88,10 +88,73 @@ describe("PersonDialog", () => {
       email: "jordan@example.com",
       title: "Engineer",
       teamIds: ["team-a", "team-b"],
+      // Nothing was picked, so the first team is their primary one.
+      primaryTeamId: "team-a",
       managerId: "person-1",
     });
     expect(refreshMock).toHaveBeenCalled();
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+  });
+
+  it("lets you choose a primary team among the teams selected", async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await user.click(screen.getByRole("button", { name: /new person/i }));
+    await user.type(screen.getByLabelText("Name"), "Jordan Lee");
+    await user.type(screen.getByLabelText("Email"), "jordan");
+
+    // One team: nothing to choose between.
+    await user.type(screen.getByLabelText("Teams"), "alp");
+    await user.click(await screen.findByRole("option", { name: "Alpha" }));
+    expect(screen.queryByLabelText("Primary team")).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Teams"), "bet");
+    await user.click(await screen.findByRole("option", { name: "Beta" }));
+    await user.selectOptions(screen.getByLabelText("Primary team"), "team-b");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body.primaryTeamId).toBe("team-b");
+  });
+
+  it("offers departments only when the workspace has some, with a primary", async () => {
+    const user = userEvent.setup();
+    render(
+      <PersonDialog
+        teams={teams}
+        managers={managers}
+        emailDomain="example.com"
+        departments={[
+          { id: "dept-1", name: "Engineering" },
+          { id: "dept-2", name: "Operations" },
+        ]}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /new person/i }));
+    await user.type(screen.getByLabelText("Name"), "Jordan Lee");
+    await user.type(screen.getByLabelText("Email"), "jordan");
+    await user.type(screen.getByLabelText("Departments"), "eng");
+    await user.click(
+      await screen.findByRole("option", { name: "Engineering" }),
+    );
+    await user.type(screen.getByLabelText("Departments"), "ope");
+    await user.click(await screen.findByRole("option", { name: "Operations" }));
+    await user.selectOptions(
+      screen.getByLabelText("Primary department"),
+      "dept-2",
+    );
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body.departmentIds).toEqual(["dept-1", "dept-2"]);
+    expect(body.primaryDepartmentId).toBe("dept-2");
+  });
+
+  it("has no department fields when there are no departments", async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await user.click(screen.getByRole("button", { name: /new person/i }));
+    expect(screen.queryByLabelText("Departments")).not.toBeInTheDocument();
   });
 
   it("keeps the popup open and shows the error when saving fails", async () => {

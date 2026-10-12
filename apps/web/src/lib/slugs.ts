@@ -1,7 +1,8 @@
 import { and, eq } from "drizzle-orm";
 
-import { getDb, type Database } from "@/db";
+import type { Database } from "@/db";
 import { people, teams } from "@/db/schema";
+import { lockOrganization } from "@/lib/api/locks";
 
 /**
  * People and teams live at the top level of the site (`/jordan-lee`,
@@ -54,14 +55,23 @@ export async function firstFreeSlug(
   return candidate;
 }
 
-type Queryable = Pick<Database, "query">;
+/**
+ * Needs `execute` as well as `query` so the allocation can take a lock: pass
+ * the transaction the new row is inserted in.
+ */
+type Queryable = Pick<Database, "query" | "execute">;
 
 /** A slug for a new person or team that no person, team or page already uses. */
 export async function uniqueSlug(
   organizationId: string,
   name: string,
-  db: Queryable = getDb(),
+  db: Queryable,
 ): Promise<string> {
+  // People and teams share one namespace but have separate unique
+  // constraints, so the database alone can't stop a person and a team
+  // claiming the same slug at once. Holding this lock until the caller's
+  // transaction commits makes "pick a free slug, then insert" atomic.
+  await lockOrganization(db, organizationId, "slugs");
   return firstFreeSlug(toSlug(name), async (slug) => {
     const [person, team] = await Promise.all([
       db.query.people.findFirst({

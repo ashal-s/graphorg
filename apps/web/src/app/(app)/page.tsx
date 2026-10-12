@@ -12,6 +12,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/states/empty-state";
+import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { OrganizationLogo } from "@/components/shared/organization-logo";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -55,6 +56,9 @@ function OrganizationHero({
           {description ||
             "The whole organization in one view: who's here, what runs, and how it's built."}
         </p>
+      </div>
+      <div className="ml-auto shrink-0 self-start">
+        <CopyContextButton scope={{ kind: "overview" }} />
       </div>
     </header>
   );

@@ -31,6 +31,12 @@ export const createPersonSchema = z.object({
     .optional(),
   /** Full replacement set of the teams this person is on. Levels on teams they stay on are kept. */
   teamIds: z.array(z.string().uuid()).max(100).optional(),
+  /** Which of `teamIds` is their primary team. */
+  primaryTeamId: z.string().uuid().nullable().optional(),
+  /** Full replacement set of the departments they are directly in. */
+  departmentIds: z.array(z.string().uuid()).max(100).optional(),
+  /** Which of `departmentIds` is their primary department. */
+  primaryDepartmentId: z.string().uuid().nullable().optional(),
   managerId: z.string().uuid().nullable().optional(),
   /** Links this directory entry to a product account (users). Optional: not everyone in the directory has product access. */
   userId: z.string().uuid().nullable().optional(),

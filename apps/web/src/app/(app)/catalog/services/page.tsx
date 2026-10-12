@@ -67,6 +67,7 @@ export default async function ServicesPage({ searchParams }: PageProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        context={{ kind: "services" }}
         title={terms.plural}
         description={terms.description}
         actions={

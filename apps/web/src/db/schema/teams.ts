@@ -3,6 +3,7 @@ import { index, pgTable, text, unique } from "drizzle-orm/pg-core";
 
 import { id, organizationId, timestamps } from "./_columns";
 import { organizations } from "./organizations";
+import { departmentTeams } from "./department-teams";
 import { teamMembers } from "./team-members";
 
 export const teams = pgTable(
@@ -29,4 +30,6 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
     references: [organizations.id],
   }),
   memberships: many(teamMembers),
+  /** The departments this team is in (a team can be in several, or none). */
+  departmentLinks: many(departmentTeams),
 }));
