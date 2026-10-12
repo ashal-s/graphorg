@@ -160,7 +160,7 @@ function DepartmentNode({ department }: { department: StructureDepartment }) {
     >
       <div
         data-slot="department-block"
-        className="w-max rounded-xl border border-primary/40 bg-primary/5 p-2"
+        className="w-max rounded-xl border border-primary/40 bg-primary/5 p-4"
       >
         <Link
           href={`/directory/departments/${department.id}`}
@@ -175,14 +175,14 @@ function DepartmentNode({ department }: { department: StructureDepartment }) {
           </span>
         </Link>
         {hasContents && (
-          <div className="mt-1 flex flex-row items-start gap-2">
+          <div className="mt-3 flex flex-row items-start gap-5">
             {department.teams.map((team) => (
-              <TeamBlock key={team.id} team={team} className="w-56 shrink-0" />
+              <TeamBlock key={team.id} team={team} className="w-60 shrink-0" />
             ))}
             {department.people.length > 0 && (
               <div
                 role="list"
-                className="flex w-56 shrink-0 flex-col items-stretch"
+                className="flex w-60 shrink-0 flex-col items-stretch"
               >
                 {department.people.map((person) => (
                   <MemberRow key={person.id} person={person} />
@@ -218,14 +218,14 @@ export function OrgStructureTree({ structure }: { structure: OrgStructure }) {
 
   return (
     <div className="overflow-x-auto pb-4">
-      <div className="flex min-w-max items-start justify-center gap-10">
+      <div className="flex min-w-max items-start justify-center gap-16">
         {departments.map((department) => (
-          <ul key={department.id} className="org-tree">
+          <ul key={department.id} className="org-tree org-tree-wide">
             <DepartmentNode department={department} />
           </ul>
         ))}
         {teamsWithoutDepartment.length > 0 && (
-          <ul className="org-tree">
+          <ul className="org-tree org-tree-wide">
             <GroupNode
               label="No department"
               nested={teamsWithoutDepartment.map((team) => (
@@ -235,7 +235,7 @@ export function OrgStructureTree({ structure }: { structure: OrgStructure }) {
           </ul>
         )}
         {peopleWithoutPlace.length > 0 && (
-          <ul className="org-tree">
+          <ul className="org-tree org-tree-wide">
             <GroupNode
               label="No team or department"
               nested={peopleWithoutPlace.map((person) => (

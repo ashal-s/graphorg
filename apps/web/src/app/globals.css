@@ -189,6 +189,15 @@
 .org-tree li:last-child::after {
   border: 0 none;
 }
+/* A roomier variant for charts whose boxes hold other boxes. */
+.org-tree-wide li {
+  padding-right: 1.5rem;
+  padding-left: 1.5rem;
+}
+.org-tree-wide > li {
+  padding-right: 0;
+  padding-left: 0;
+}
 .org-tree li:last-child::before {
   border-right: 1px solid var(--border);
   border-radius: 0 0.5rem 0 0;
