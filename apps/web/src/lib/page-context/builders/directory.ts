@@ -7,7 +7,13 @@ import {
   buildDepartmentTree,
   type DepartmentNode,
 } from "@/lib/directory/departments";
+import { loadOrgStructure } from "@/lib/directory/load-org-structure";
 import { buildOrgChart, type OrgChartNode } from "@/lib/directory/org-chart";
+import type {
+  StructureDepartment,
+  StructurePerson,
+  StructureTeam,
+} from "@/lib/directory/org-structure";
 
 import { contextPaths } from "../paths";
 import type { PageContext } from "../types";
@@ -163,9 +169,13 @@ function chartNode(node: OrgChartNode): unknown {
   };
 }
 
+/** The org chart: departments, teams and people, or who reports to whom. */
 export async function buildOrgChartContext(
   orgId: string,
+  tab: "structure" | "people" = "structure",
 ): Promise<PageContext> {
+  if (tab === "structure") return buildOrgStructureContext(orgId);
+
   const rows = await getDb().query.people.findMany({
     where: eq(people.organizationId, orgId),
     columns: { id: true, slug: true, name: true, title: true, managerId: true },
@@ -173,9 +183,46 @@ export async function buildOrgChartContext(
   const roots = buildOrgChart(rows);
 
   return {
-    page: "Org chart",
-    path: "/org-chart",
+    page: "Org chart: people",
+    path: "/org-chart?tab=people",
     data: { count: rows.length, hierarchy: roots.map(chartNode) },
+  };
+}
+
+async function buildOrgStructureContext(orgId: string): Promise<PageContext> {
+  const structure = await loadOrgStructure(orgId);
+
+  const person = (p: StructurePerson) => ({
+    name: p.name,
+    title: p.title,
+    ...(p.teamRole ? { role: p.teamRole } : {}),
+    path: contextPaths.person(p.slug),
+  });
+  const team = (t: StructureTeam) => ({
+    name: t.name,
+    path: contextPaths.team(t.slug),
+    people: t.members.map(person),
+  });
+  const department = (d: StructureDepartment): unknown => ({
+    name: d.name,
+    path: contextPaths.department(d.id),
+    heads: d.heads.map((h) => ({
+      name: h.name,
+      path: contextPaths.person(h.slug),
+    })),
+    subDepartments: d.children.map(department),
+    teams: d.teams.map(team),
+    peopleInDepartmentOnly: d.people.map(person),
+  });
+
+  return {
+    page: "Org chart: departments and teams",
+    path: "/org-chart",
+    data: {
+      departments: structure.departments.map(department),
+      teamsWithoutDepartment: structure.teamsWithoutDepartment.map(team),
+      peopleWithoutTeamOrDepartment: structure.peopleWithoutPlace.map(person),
+    },
   };
 }
 

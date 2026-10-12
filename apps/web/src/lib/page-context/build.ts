@@ -50,7 +50,7 @@ export function buildPageContext(
     case "team":
       return buildTeam(orgId, scope.id);
     case "org-chart":
-      return buildOrgChartContext(orgId);
+      return buildOrgChartContext(orgId, scope.tab);
     case "catalog":
       return buildCatalog(orgId);
     case "services":
