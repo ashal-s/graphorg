@@ -79,6 +79,15 @@ describe("OrgStructureTree", () => {
     expect(
       within(platform).getByRole("link", { name: /Cy Direct/ }),
     ).toBeInTheDocument();
+    // Teams sit side by side in the department; people stack in the team.
+    const row = within(platform)
+      .getByRole("link", { name: "Payments" })
+      .closest('[data-slot="team-block"]')!.parentElement!;
+    expect(row).toHaveClass("flex-row");
+    const team = within(platform)
+      .getByRole("link", { name: "Payments" })
+      .closest('[data-slot="team-block"]')!;
+    expect(team.querySelector('[role="list"]')).toHaveClass("flex-col");
     // Sub-departments are further blocks below, not inside the parent block.
     const engineering = [...blocks].find((b) =>
       within(b as HTMLElement).queryByRole("link", { name: "Engineering" }),
