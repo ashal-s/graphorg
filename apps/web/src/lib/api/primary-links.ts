@@ -3,6 +3,8 @@ import { sql } from "drizzle-orm";
 import type { Database } from "@/db";
 
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
+/** Anything that can run raw SQL: the database or a transaction. */
+type Exec = Pick<Database, "execute">;
 
 /**
  * The join tables that carry an `is_primary` flag. `owner` is the side that
@@ -43,7 +45,7 @@ export class PrimaryNotLinkedError extends Error {
  * `PrimaryNotLinkedError` if the requested primary isn't linked.
  */
 export async function settlePrimary(
-  tx: Tx,
+  tx: Exec,
   kind: LinkKind,
   ownerId: string,
   primaryOtherId?: string | null,

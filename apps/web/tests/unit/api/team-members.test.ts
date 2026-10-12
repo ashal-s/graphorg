@@ -18,6 +18,8 @@ jest.mock("../../../src/db", () => ({
       }),
     }),
     delete: () => ({ where: jest.fn() }),
+    // Settling the person's primary team: no links, nothing to do.
+    execute: async () => [],
   }),
 }));
 

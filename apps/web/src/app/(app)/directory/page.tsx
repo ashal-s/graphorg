@@ -1,14 +1,21 @@
 import { eq } from "drizzle-orm";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
-import { ArrowRight, BookUser, Network, Users, Users2 } from "lucide-react";
+import {
+  ArrowRight,
+  BookUser,
+  Building2,
+  Network,
+  Users,
+  Users2,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 import { AvatarStack } from "@/components/shared/avatar-stack";
 import { PageHeader } from "@/components/shared/page-header";
 import { TeamChip } from "@/components/shared/team-chip";
 import { getDb } from "@/db";
-import { people, teams } from "@/db/schema";
+import { departments, people, teams } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
 import { loadTones } from "@/lib/directory/tones";
 import { personPhotoSrc } from "@/lib/person-photo";
@@ -64,7 +71,7 @@ export default async function DirectoryPage() {
   const session = await requireSession();
   const orgId = session.organizationId;
 
-  const [peopleRows, teamRows, tones] = await Promise.all([
+  const [peopleRows, teamRows, departmentRows, tones] = await Promise.all([
     getDb().query.people.findMany({
       where: eq(people.organizationId, orgId),
       columns: { id: true, name: true, photoUrl: true, updatedAt: true },
@@ -73,6 +80,11 @@ export default async function DirectoryPage() {
     getDb().query.teams.findMany({
       where: eq(teams.organizationId, orgId),
       columns: { id: true, name: true },
+      orderBy: (row, { asc }) => asc(row.name),
+    }),
+    getDb().query.departments.findMany({
+      where: eq(departments.organizationId, orgId),
+      columns: { id: true, name: true, parentId: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
     loadTones(orgId),
@@ -84,7 +96,7 @@ export default async function DirectoryPage() {
         context={{ kind: "directory" }}
         title="Directory"
         icon={BookUser}
-        description="People and teams in your organisation."
+        description="People, teams and departments in your organisation."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -136,6 +148,34 @@ export default async function DirectoryPage() {
           ) : (
             <span className="text-xs text-muted-foreground">
               No teams have been created yet.
+            </span>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          href="/directory/departments"
+          icon={Building2}
+          title="Departments"
+          stat={String(departmentRows.length)}
+          description="How teams and people are grouped, and which sit under which."
+        >
+          {departmentRows.length > 0 ? (
+            <span className="flex flex-wrap gap-1.5">
+              {departmentRows
+                .filter((department) => !department.parentId)
+                .slice(0, 4)
+                .map((department) => (
+                  <span
+                    key={department.id}
+                    className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium"
+                  >
+                    {department.name}
+                  </span>
+                ))}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              No departments have been created yet.
             </span>
           )}
         </SectionCard>

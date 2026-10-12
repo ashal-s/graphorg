@@ -6,7 +6,7 @@ import { Users } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { getDb } from "@/db";
-import { organizations, people, teams } from "@/db/schema";
+import { departments, organizations, people, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
 import { loadTones } from "@/lib/directory/tones";
@@ -19,38 +19,44 @@ export default async function PeoplePage() {
 
   // Everyone is sent to the page once; searching and filtering happen in
   // the browser, so results update on every keystroke.
-  const [rows, teamOptions, organization, tones] = await Promise.all([
-    getDb().query.people.findMany({
-      where: eq(people.organizationId, orgId),
-      columns: {
-        id: true,
-        slug: true,
-        name: true,
-        email: true,
-        title: true,
-        managerId: true,
-        photoUrl: true,
-        updatedAt: true,
-      },
-      with: {
-        memberships: {
-          columns: {},
-          with: { team: { columns: { id: true, name: true } } },
+  const [rows, teamOptions, departmentOptions, organization, tones] =
+    await Promise.all([
+      getDb().query.people.findMany({
+        where: eq(people.organizationId, orgId),
+        columns: {
+          id: true,
+          slug: true,
+          name: true,
+          email: true,
+          title: true,
+          managerId: true,
+          photoUrl: true,
+          updatedAt: true,
         },
-      },
-      orderBy: (row, { asc }) => asc(row.name),
-    }),
-    getDb().query.teams.findMany({
-      where: eq(teams.organizationId, orgId),
-      columns: { id: true, name: true },
-      orderBy: (row, { asc }) => asc(row.name),
-    }),
-    getDb().query.organizations.findFirst({
-      where: eq(organizations.id, orgId),
-      columns: { emailDomain: true },
-    }),
-    loadTones(orgId),
-  ]);
+        with: {
+          memberships: {
+            columns: {},
+            with: { team: { columns: { id: true, name: true } } },
+          },
+        },
+        orderBy: (row, { asc }) => asc(row.name),
+      }),
+      getDb().query.teams.findMany({
+        where: eq(teams.organizationId, orgId),
+        columns: { id: true, name: true },
+        orderBy: (row, { asc }) => asc(row.name),
+      }),
+      getDb().query.departments.findMany({
+        where: eq(departments.organizationId, orgId),
+        columns: { id: true, name: true },
+        orderBy: (row, { asc }) => asc(row.name),
+      }),
+      getDb().query.organizations.findFirst({
+        where: eq(organizations.id, orgId),
+        columns: { emailDomain: true },
+      }),
+      loadTones(orgId),
+    ]);
 
   // The new-person dialog's manager picker offers everyone.
   const managerOptions = canEdit
@@ -81,6 +87,7 @@ export default async function PeoplePage() {
         actions={
           canEdit && (
             <PersonDialog
+              departments={departmentOptions}
               teams={teamOptions}
               managers={managerOptions}
               emailDomain={organization?.emailDomain}
@@ -95,6 +102,7 @@ export default async function PeoplePage() {
         canEdit={canEdit}
         emptyAction={
           <PersonDialog
+            departments={departmentOptions}
             teams={teamOptions}
             managers={managerOptions}
             emailDomain={organization?.emailDomain}

@@ -6,6 +6,7 @@ import { getDb } from "@/db";
 import { people, teamMembers, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
+import { settlePrimary } from "@/lib/api/primary-links";
 import {
   jsonError,
   jsonValidationError,
@@ -65,7 +66,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   if (!team) return jsonError(404, "Team not found");
   if (!person) return jsonError(404, "Person not found");
 
-  const [membership] = await getDb()
+  const db = getDb();
+  const [membership] = await db
     .insert(teamMembers)
     .values({ teamId: id, personId, teamRole: parsed.data.teamRole })
     .onConflictDoUpdate({
@@ -73,6 +75,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       set: { teamRole: parsed.data.teamRole },
     })
     .returning();
+  // Their first team becomes their primary one.
+  await settlePrimary(db, "person-teams", personId);
 
   return NextResponse.json({ membership });
 }
@@ -91,8 +95,11 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   if (!team) return jsonError(404, "Team not found");
   if (!person) return jsonError(404, "Person not found");
 
-  await getDb()
+  const db = getDb();
+  await db
     .delete(teamMembers)
     .where(and(eq(teamMembers.teamId, id), eq(teamMembers.personId, personId)));
+  // If that was their primary team, another one takes over.
+  await settlePrimary(db, "person-teams", personId);
   return new NextResponse(null, { status: 204 });
 }

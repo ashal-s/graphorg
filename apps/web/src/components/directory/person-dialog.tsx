@@ -12,6 +12,10 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  effectivePrimary,
+  PrimarySelect,
+} from "@/components/directory/primary-select";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { Input } from "@/components/ui/input";
 import {
@@ -47,6 +51,11 @@ export interface PersonDialogPerson {
   /** Where their current photo can be loaded from (see `personPhotoSrc`). */
   photoSrc: string | null;
   teamIds: string[];
+  /** Which of `teamIds` is their primary team. */
+  primaryTeamId?: string | null;
+  /** The departments they are directly in. */
+  departmentIds?: string[];
+  primaryDepartmentId?: string | null;
   managerId: string | null;
 }
 
@@ -58,6 +67,7 @@ export interface PersonDialogPerson {
 export function PersonDialog({
   person,
   teams,
+  departments = [],
   managers,
   size,
   withIcon = true,
@@ -68,6 +78,8 @@ export function PersonDialog({
   /** Omit to create a new person. */
   person?: PersonDialogPerson;
   teams: { id: string; name: string }[];
+  /** Every department they could be in. */
+  departments?: { id: string; name: string }[];
   /** Everyone who could be the manager (never includes `person` itself). */
   managers: { id: string; name: string }[];
   size?: "sm";
@@ -95,6 +107,15 @@ export function PersonDialog({
   const [photoChanged, setPhotoChanged] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const [teamIds, setTeamIds] = useState<string[]>(person?.teamIds ?? []);
+  const [primaryTeamId, setPrimaryTeamId] = useState(
+    person?.primaryTeamId ?? "",
+  );
+  const [departmentIds, setDepartmentIds] = useState<string[]>(
+    person?.departmentIds ?? [],
+  );
+  const [primaryDepartmentId, setPrimaryDepartmentId] = useState(
+    person?.primaryDepartmentId ?? "",
+  );
   const [managerId, setManagerId] = useState(person?.managerId ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,6 +143,9 @@ export function PersonDialog({
     setPhoto(person?.photoSrc ?? null);
     setPhotoChanged(false);
     setTeamIds(person?.teamIds ?? []);
+    setPrimaryTeamId(person?.primaryTeamId ?? "");
+    setDepartmentIds(person?.departmentIds ?? []);
+    setPrimaryDepartmentId(person?.primaryDepartmentId ?? "");
     setManagerId(person?.managerId ?? "");
     setError(null);
   }
@@ -156,6 +180,17 @@ export function PersonDialog({
           // Omitted when untouched; "" removes the photo.
           ...(photoChanged ? { photoUrl: photo ?? "" } : {}),
           teamIds,
+          primaryTeamId: effectivePrimary(teamIds, primaryTeamId),
+          // Only sent when there are departments to choose from.
+          ...(departments.length > 0
+            ? {
+                departmentIds,
+                primaryDepartmentId: effectivePrimary(
+                  departmentIds,
+                  primaryDepartmentId,
+                ),
+              }
+            : {}),
           managerId: managerId.length > 0 ? managerId : null,
         }),
       },
@@ -353,6 +388,41 @@ export function PersonDialog({
                 emptyLabel="No teams match."
               />
             </div>
+            <PrimarySelect
+              id="person-dialog-primary-team"
+              label="Primary team"
+              options={teams}
+              selectedIds={teamIds}
+              value={primaryTeamId}
+              onChange={setPrimaryTeamId}
+            />
+
+            {departments.length > 0 && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="person-dialog-departments">Departments</Label>
+                  <SearchableMultiSelect
+                    id="person-dialog-departments"
+                    options={departments.map((department) => ({
+                      id: department.id,
+                      label: department.name,
+                    }))}
+                    values={departmentIds}
+                    onValuesChange={setDepartmentIds}
+                    placeholder="Search departments"
+                    emptyLabel="No departments match."
+                  />
+                </div>
+                <PrimarySelect
+                  id="person-dialog-primary-department"
+                  label="Primary department"
+                  options={departments}
+                  selectedIds={departmentIds}
+                  value={primaryDepartmentId}
+                  onChange={setPrimaryDepartmentId}
+                />
+              </>
+            )}
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="person-dialog-manager">Manager</Label>
