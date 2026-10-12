@@ -2,6 +2,8 @@ import { sql } from "drizzle-orm";
 
 import type { Database } from "@/db";
 
+import { lockResource } from "./locks";
+
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 /** Anything that can run raw SQL: the database or a transaction. */
 type Exec = Pick<Database, "execute">;
@@ -55,12 +57,21 @@ export async function settlePrimary(
   const ownerCol = sql.identifier(owner);
   const otherCol = sql.identifier(other);
 
+  // Two requests changing the same owner's links at once would each read the
+  // old primary and then both set one, tripping the one-primary index. Hold
+  // a lock on the owner until the caller's transaction ends.
+  await lockResource(tx, `primary:${kind}`, ownerId);
+
   const rows = await tx.execute<{ other: string; is_primary: boolean }>(
     sql`select ${otherCol} as other, is_primary from ${t}
         where ${ownerCol} = ${ownerId} order by ${otherCol}`,
   );
   const links = Array.from(rows);
-  if (links.length === 0) return;
+  if (links.length === 0) {
+    // Nothing to be primary of: a requested primary can't be honoured.
+    if (primaryOtherId) throw new PrimaryNotLinkedError();
+    return;
+  }
 
   let primary = primaryOtherId ?? undefined;
   if (primary !== undefined && !links.some((l) => l.other === primary)) {
@@ -100,6 +111,9 @@ export async function replaceLinks(
   const unique = [...new Set(otherIds)];
 
   if (unique.length === 0) {
+    // An empty set can't contain the requested primary.
+    if (primaryOtherId) throw new PrimaryNotLinkedError();
+    await lockResource(tx, `primary:${kind}`, ownerId);
     await tx.execute(sql`delete from ${t} where ${ownerCol} = ${ownerId}`);
     return;
   }
@@ -163,7 +177,8 @@ export async function replaceDepartmentMembers(
   }
 
   // Added people may have no primary yet; removed ones may have lost theirs.
-  const affected = new Set([...before, ...unique]);
+  // Sorted, so concurrent updates lock the same owners in the same order.
+  const affected = [...new Set([...before, ...unique])].sort();
   for (const ownerId of affected) {
     await settlePrimary(tx, kind, ownerId);
   }

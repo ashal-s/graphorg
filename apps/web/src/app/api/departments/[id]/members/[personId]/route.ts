@@ -70,17 +70,20 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   if (!department) return jsonError(404, "Department not found");
   if (!person) return jsonError(404, "Person not found");
 
-  const db = getDb();
-  const [membership] = await db
-    .insert(departmentPeople)
-    .values({ departmentId: id, personId, role: parsed.data.role })
-    .onConflictDoUpdate({
-      target: [departmentPeople.departmentId, departmentPeople.personId],
-      set: { role: parsed.data.role },
-    })
-    .returning();
-  // Their first department becomes their primary one.
-  await settlePrimary(db, "person-departments", personId);
+  // The membership and their primary department change together or not at all.
+  const membership = await getDb().transaction(async (tx) => {
+    const [row] = await tx
+      .insert(departmentPeople)
+      .values({ departmentId: id, personId, role: parsed.data.role })
+      .onConflictDoUpdate({
+        target: [departmentPeople.departmentId, departmentPeople.personId],
+        set: { role: parsed.data.role },
+      })
+      .returning();
+    // Their first department becomes their primary one.
+    await settlePrimary(tx, "person-departments", personId);
+    return row;
+  });
 
   return NextResponse.json({ membership });
 }
@@ -103,16 +106,17 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   if (!department) return jsonError(404, "Department not found");
   if (!person) return jsonError(404, "Person not found");
 
-  const db = getDb();
-  await db
-    .delete(departmentPeople)
-    .where(
-      and(
-        eq(departmentPeople.departmentId, id),
-        eq(departmentPeople.personId, personId),
-      ),
-    );
-  // If that was their primary department, another one takes over.
-  await settlePrimary(db, "person-departments", personId);
+  await getDb().transaction(async (tx) => {
+    await tx
+      .delete(departmentPeople)
+      .where(
+        and(
+          eq(departmentPeople.departmentId, id),
+          eq(departmentPeople.personId, personId),
+        ),
+      );
+    // If that was their primary department, another one takes over.
+    await settlePrimary(tx, "person-departments", personId);
+  });
   return new NextResponse(null, { status: 204 });
 }

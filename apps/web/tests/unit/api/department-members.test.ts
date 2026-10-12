@@ -9,22 +9,27 @@ import {
 // jest.mock specifiers are plain strings, so they must be relative.
 const findFirstMock = jest.fn();
 const returningMock = jest.fn();
-jest.mock("../../../src/db", () => ({
-  getDb: () => ({
-    query: {
-      departments: { findFirst: findFirstMock },
-      people: { findFirst: findFirstMock },
-    },
+jest.mock("../../../src/db", () => {
+  const tx = {
     insert: () => ({
       values: () => ({
         onConflictDoUpdate: () => ({ returning: returningMock }),
       }),
     }),
     delete: () => ({ where: jest.fn() }),
-    // Settling the person's primary department: no links, nothing to do.
+    // Locking and settling the person's primary department: nothing to do.
     execute: async () => [],
-  }),
-}));
+  };
+  return {
+    getDb: () => ({
+      query: {
+        departments: { findFirst: findFirstMock },
+        people: { findFirst: findFirstMock },
+      },
+      transaction: async (fn: (t: typeof tx) => unknown) => fn(tx),
+    }),
+  };
+});
 
 const getSessionMock = jest.fn();
 jest.mock("../../../src/lib/auth/session", () => ({

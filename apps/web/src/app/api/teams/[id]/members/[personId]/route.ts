@@ -66,17 +66,20 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   if (!team) return jsonError(404, "Team not found");
   if (!person) return jsonError(404, "Person not found");
 
-  const db = getDb();
-  const [membership] = await db
-    .insert(teamMembers)
-    .values({ teamId: id, personId, teamRole: parsed.data.teamRole })
-    .onConflictDoUpdate({
-      target: [teamMembers.teamId, teamMembers.personId],
-      set: { teamRole: parsed.data.teamRole },
-    })
-    .returning();
-  // Their first team becomes their primary one.
-  await settlePrimary(db, "person-teams", personId);
+  // The membership and their primary team change together or not at all.
+  const membership = await getDb().transaction(async (tx) => {
+    const [row] = await tx
+      .insert(teamMembers)
+      .values({ teamId: id, personId, teamRole: parsed.data.teamRole })
+      .onConflictDoUpdate({
+        target: [teamMembers.teamId, teamMembers.personId],
+        set: { teamRole: parsed.data.teamRole },
+      })
+      .returning();
+    // Their first team becomes their primary one.
+    await settlePrimary(tx, "person-teams", personId);
+    return row;
+  });
 
   return NextResponse.json({ membership });
 }
@@ -95,11 +98,14 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   if (!team) return jsonError(404, "Team not found");
   if (!person) return jsonError(404, "Person not found");
 
-  const db = getDb();
-  await db
-    .delete(teamMembers)
-    .where(and(eq(teamMembers.teamId, id), eq(teamMembers.personId, personId)));
-  // If that was their primary team, another one takes over.
-  await settlePrimary(db, "person-teams", personId);
+  await getDb().transaction(async (tx) => {
+    await tx
+      .delete(teamMembers)
+      .where(
+        and(eq(teamMembers.teamId, id), eq(teamMembers.personId, personId)),
+      );
+    // If that was their primary team, another one takes over.
+    await settlePrimary(tx, "person-teams", personId);
+  });
   return new NextResponse(null, { status: 204 });
 }

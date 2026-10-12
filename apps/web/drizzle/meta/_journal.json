@@ -141,6 +141,13 @@
       "when": 1791791574457,
       "tag": "0019_department_member_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791792468200,
+      "tag": "0020_backfill_primary_teams",
+      "breakpoints": true
     }
   ]
 }

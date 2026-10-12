@@ -23,7 +23,20 @@ export async function lockOrganization(
   organizationId: string,
   scope: string,
 ): Promise<void> {
+  await lockResource(tx, scope, organizationId);
+}
+
+/**
+ * The same lock for any other key, e.g. one person's primary links. Locks
+ * are held until the transaction ends, so when taking several, take them in
+ * a consistent order (sorted ids) to avoid two requests waiting on each other.
+ */
+export async function lockResource(
+  tx: Exec,
+  scope: string,
+  key: string,
+): Promise<void> {
   await tx.execute(
-    sql`select pg_advisory_xact_lock(hashtext(${`${scope}:${organizationId}`}))`,
+    sql`select pg_advisory_xact_lock(hashtext(${`${scope}:${key}`}))`,
   );
 }
