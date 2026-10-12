@@ -12,7 +12,10 @@ import {
   requireUuidParam,
 } from "@/lib/api/http";
 import { setDepartmentHeads } from "@/lib/api/department-heads";
-import { replaceDepartmentMembers } from "@/lib/api/primary-links";
+import {
+  addDepartmentPeople,
+  replaceDepartmentMembers,
+} from "@/lib/api/primary-links";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 
@@ -103,6 +106,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       if (personIds) {
         await replaceDepartmentMembers(tx, "person-departments", id, personIds);
       }
+      // Heads are always among the department's people. Done last so a
+      // people list that left a head out doesn't drop them.
+      if (headPersonIds) await addDepartmentPeople(tx, id, headPersonIds);
       return updated;
     });
     return NextResponse.json({ department: row });

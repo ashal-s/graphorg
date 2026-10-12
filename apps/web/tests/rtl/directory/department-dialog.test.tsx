@@ -59,6 +59,22 @@ describe("DepartmentDialog", () => {
     expect(pushMock).toHaveBeenCalledWith("/directory/departments/new-id");
   });
 
+  it("adds a chosen head to the department's people automatically", async () => {
+    const user = userEvent.setup();
+    render(
+      <DepartmentDialog parents={parents} people={people} teams={teams} />,
+    );
+    await user.click(screen.getByRole("button", { name: /new department/i }));
+    await user.type(screen.getByLabelText("Name"), "Operations");
+    await user.type(screen.getByLabelText("Department heads"), "pri");
+    await user.click(await screen.findByRole("option", { name: "Priya Shah" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    expect(body.headPersonIds).toEqual(["p-1"]);
+    expect(body.personIds).toEqual(["p-1"]);
+  });
+
   it("edits an existing department in place from Edit details", async () => {
     const user = userEvent.setup();
     render(

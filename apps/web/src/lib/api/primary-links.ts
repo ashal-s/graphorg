@@ -204,3 +204,31 @@ export async function applyPersonPrimaries(
     );
   }
 }
+
+/**
+ * Puts each of `personIds` directly in the department if they aren't
+ * already (used so a department's heads are always among its people).
+ * Anyone already there keeps their flag; a newcomer with no primary
+ * department yet gets this one.
+ */
+export async function addDepartmentPeople(
+  tx: Tx,
+  departmentId: string,
+  personIds: string[],
+): Promise<void> {
+  const unique = [...new Set(personIds)];
+  if (unique.length === 0) return;
+
+  const list = sql.join(
+    unique.map((id) => sql`${id}::uuid`),
+    sql`, `,
+  );
+  await tx.execute(
+    sql`insert into department_people (department_id, person_id)
+        select ${departmentId}::uuid, v from unnest(array[${list}]) as v
+        on conflict do nothing`,
+  );
+  for (const personId of unique) {
+    await settlePrimary(tx, "person-departments", personId);
+  }
+}

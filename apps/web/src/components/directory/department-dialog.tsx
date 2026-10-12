@@ -245,10 +245,20 @@ export function DepartmentDialog({
                 id="department-dialog-heads"
                 options={people.map((p) => ({ id: p.id, label: p.name }))}
                 values={headPersonIds}
-                onValuesChange={setHeadPersonIds}
+                onValuesChange={(next) => {
+                  setHeadPersonIds(next);
+                  // Heads are always among the department's people.
+                  setPersonIds((current) => [
+                    ...current,
+                    ...next.filter((id) => !current.includes(id)),
+                  ]);
+                }}
                 placeholder="Search people"
                 emptyLabel="No people match."
               />
+              <p className="text-xs text-muted-foreground">
+                Heads are added to the department&apos;s people automatically.
+              </p>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="department-dialog-teams">Teams</Label>

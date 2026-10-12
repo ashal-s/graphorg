@@ -12,7 +12,10 @@ import {
   toPage,
 } from "@/lib/api/pagination";
 import { setDepartmentHeads } from "@/lib/api/department-heads";
-import { replaceDepartmentMembers } from "@/lib/api/primary-links";
+import {
+  addDepartmentPeople,
+  replaceDepartmentMembers,
+} from "@/lib/api/primary-links";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 
@@ -82,6 +85,8 @@ export async function POST(request: NextRequest) {
         created.id,
         personIds,
       );
+      // Heads are always among the department's people.
+      await addDepartmentPeople(tx, created.id, headPersonIds);
       return created;
     });
     return NextResponse.json({ department: row }, { status: 201 });
