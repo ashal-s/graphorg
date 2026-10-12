@@ -11,6 +11,7 @@ import {
   requireNonEmptyPatch,
   requireUuidParam,
 } from "@/lib/api/http";
+import { setDepartmentHeads } from "@/lib/api/department-heads";
 import { replaceDepartmentMembers } from "@/lib/api/primary-links";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
@@ -31,6 +32,7 @@ async function loadDepartment(organizationId: string, id: string) {
       eq(departments.organizationId, organizationId),
     ),
     with: {
+      heads: { columns: { personId: true } },
       teams: { columns: { teamId: true, isPrimary: true } },
       people: { columns: { personId: true, isPrimary: true } },
     },
@@ -48,10 +50,11 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   const department = await loadDepartment(session.organizationId, id);
   if (!department) return jsonError(404, "Department not found");
 
-  const { teams, people, ...rest } = department;
+  const { teams, people, heads, ...rest } = department;
   return NextResponse.json({
     department: {
       ...rest,
+      headPersonIds: heads.map((h) => h.personId),
       teamIds: teams.map((t) => t.teamId),
       personIds: people.map((p) => p.personId),
     },
@@ -74,11 +77,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (!parsed.success) return jsonValidationError(parsed.error);
   const emptyPatchError = requireNonEmptyPatch(parsed.data);
   if (emptyPatchError) return emptyPatchError;
-  const { teamIds, personIds, ...values } = parsed.data;
+  const { teamIds, personIds, headPersonIds, ...values } = parsed.data;
 
   const refsError = await validateDepartmentRefs(
     session.organizationId,
-    { ...values, teamIds, personIds },
+    { ...values, headPersonIds, teamIds, personIds },
     id,
   );
   if (refsError) return refsError;
@@ -93,6 +96,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
               .where(eq(departments.id, id))
               .returning()
           : await tx.select().from(departments).where(eq(departments.id, id));
+      if (headPersonIds) await setDepartmentHeads(tx, id, headPersonIds);
       if (teamIds) {
         await replaceDepartmentMembers(tx, "team-departments", id, teamIds);
       }

@@ -19,7 +19,7 @@ export default async function DepartmentsPage() {
   const rows = await getDb().query.departments.findMany({
     where: eq(departments.organizationId, session.organizationId),
     with: {
-      head: { columns: { name: true } },
+      heads: { with: { person: { columns: { name: true } } } },
       teams: { columns: { teamId: true } },
       people: { columns: { personId: true } },
     },
@@ -31,7 +31,7 @@ export default async function DepartmentsPage() {
       name: row.name,
       parentId: row.parentId,
       description: row.description,
-      headName: row.head?.name ?? null,
+      headNames: row.heads.map((h) => h.person.name).sort(),
       teamCount: row.teams.length,
       peopleCount: row.people.length,
     })),

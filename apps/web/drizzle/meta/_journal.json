@@ -120,6 +120,13 @@
       "when": 1791788156534,
       "tag": "0016_add_departments",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791788832769,
+      "tag": "0017_department_heads",
+      "breakpoints": true
     }
   ]
 }

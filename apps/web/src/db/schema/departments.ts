@@ -9,10 +9,10 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { id, organizationId, timestamps } from "./_columns";
+import { departmentHeads } from "./department-heads";
 import { departmentPeople } from "./department-people";
 import { departmentTeams } from "./department-teams";
 import { organizations } from "./organizations";
-import { people } from "./people";
 
 /**
  * A department: a group of teams and people that can nest under a parent
@@ -29,10 +29,6 @@ export const departments = pgTable(
     parentId: uuid("parent_id").references((): AnyPgColumn => departments.id, {
       onDelete: "set null",
     }),
-    /** Who runs the department. Optional, and need not be a member. */
-    headPersonId: uuid("head_person_id").references(() => people.id, {
-      onDelete: "set null",
-    }),
     name: text("name").notNull(),
     description: text("description"),
     ...timestamps(),
@@ -41,7 +37,6 @@ export const departments = pgTable(
     unique().on(table.organizationId, table.name),
     index("departments_organization_id_idx").on(table.organizationId),
     index("departments_parent_id_idx").on(table.parentId),
-    index("departments_head_person_id_idx").on(table.headPersonId),
   ],
 );
 
@@ -56,10 +51,8 @@ export const departmentsRelations = relations(departments, ({ one, many }) => ({
     relationName: "parent",
   }),
   children: many(departments, { relationName: "parent" }),
-  head: one(people, {
-    fields: [departments.headPersonId],
-    references: [people.id],
-  }),
+  /** Who heads it: any number of people, none required. */
+  heads: many(departmentHeads),
   teams: many(departmentTeams),
   people: many(departmentPeople),
 }));

@@ -5,6 +5,7 @@ export * from "./people";
 export * from "./team-members";
 export * from "./departments";
 export * from "./department-teams";
+export * from "./department-heads";
 export * from "./department-people";
 export * from "./tools";
 export * from "./services";

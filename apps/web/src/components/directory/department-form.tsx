@@ -26,7 +26,7 @@ export interface DepartmentFormValues {
   name: string;
   description: string | null;
   parentId: string | null;
-  headPersonId: string | null;
+  headPersonIds: string[];
   teamIds: string[];
   personIds: string[];
 }
@@ -61,8 +61,8 @@ export function DepartmentForm({
   const [name, setName] = useState(department?.name ?? "");
   const [description, setDescription] = useState(department?.description ?? "");
   const [parentId, setParentId] = useState(department?.parentId ?? "");
-  const [headPersonId, setHeadPersonId] = useState(
-    department?.headPersonId ?? "",
+  const [headPersonIds, setHeadPersonIds] = useState(
+    department?.headPersonIds ?? [],
   );
   const [teamIds, setTeamIds] = useState(department?.teamIds ?? []);
   const [personIds, setPersonIds] = useState(department?.personIds ?? []);
@@ -90,7 +90,7 @@ export function DepartmentForm({
           description:
             description.trim().length > 0 ? description.trim() : null,
           parentId: parentId || null,
-          headPersonId: headPersonId || null,
+          headPersonIds,
           teamIds,
           personIds,
         }),
@@ -176,12 +176,12 @@ export function DepartmentForm({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="department-head">Department head</Label>
-            <SearchableSelect
+            <Label htmlFor="department-head">Department heads</Label>
+            <SearchableMultiSelect
               id="department-head"
               options={people.map((p) => ({ id: p.id, label: p.name }))}
-              value={headPersonId}
-              onValueChange={setHeadPersonId}
+              values={headPersonIds}
+              onValuesChange={setHeadPersonIds}
               placeholder="Search people"
               emptyLabel="No people match."
               disabled={readOnly}

@@ -7,8 +7,8 @@ export const createDepartmentSchema = z.object({
   description: z.string().trim().min(1).max(2000).nullable().optional(),
   /** The department this one sits under; null makes it top-level. */
   parentId: uuid.nullable().optional(),
-  /** Who runs it. Needn't be one of its people. */
-  headPersonId: uuid.nullable().optional(),
+  /** Full replacement set of who heads it. They needn't be in it. */
+  headPersonIds: z.array(uuid).max(50).optional(),
   /** Full replacement set of the teams in this department. */
   teamIds: z.array(uuid).max(500).optional(),
   /** Full replacement set of the people directly in this department. */

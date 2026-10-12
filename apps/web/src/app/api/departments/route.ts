@@ -11,6 +11,7 @@ import {
   parsePageParams,
   toPage,
 } from "@/lib/api/pagination";
+import { setDepartmentHeads } from "@/lib/api/department-heads";
 import { replaceDepartmentMembers } from "@/lib/api/primary-links";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
@@ -46,10 +47,16 @@ export async function POST(request: NextRequest) {
 
   const parsed = createDepartmentSchema.safeParse(await readJsonBody(request));
   if (!parsed.success) return jsonValidationError(parsed.error);
-  const { teamIds = [], personIds = [], ...values } = parsed.data;
+  const {
+    teamIds = [],
+    personIds = [],
+    headPersonIds = [],
+    ...values
+  } = parsed.data;
 
   const refsError = await validateDepartmentRefs(session.organizationId, {
     ...values,
+    headPersonIds,
     teamIds,
     personIds,
   });
@@ -62,6 +69,7 @@ export async function POST(request: NextRequest) {
         .values({ ...values, organizationId: session.organizationId })
         .returning();
       if (!created) throw new Error("Failed to insert department");
+      await setDepartmentHeads(tx, created.id, headPersonIds);
       await replaceDepartmentMembers(
         tx,
         "team-departments",

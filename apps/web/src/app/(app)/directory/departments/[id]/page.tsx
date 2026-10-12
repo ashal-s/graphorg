@@ -37,7 +37,9 @@ export default async function DepartmentPage({ params }: PageProps) {
       where: and(eq(departments.id, id), eq(departments.organizationId, orgId)),
       with: {
         parent: { columns: { id: true, name: true } },
-        head: { columns: { id: true, name: true, slug: true } },
+        heads: {
+          with: { person: { columns: { id: true, name: true, slug: true } } },
+        },
         children: { columns: { id: true, name: true } },
         teams: {
           columns: { isPrimary: true },
@@ -117,7 +119,7 @@ export default async function DepartmentPage({ params }: PageProps) {
           name: department.name,
           description: department.description,
           parentId: department.parentId,
-          headPersonId: department.headPersonId,
+          headPersonIds: department.heads.map((h) => h.person.id),
           teamIds: memberTeams.map((t) => t.id),
           personIds: memberPeople.map((p) => p.id),
         }}
@@ -188,8 +190,11 @@ export default async function DepartmentPage({ params }: PageProps) {
           <CardHeader>
             <CardTitle>People</CardTitle>
             <CardDescription>
-              {department.head
-                ? `Headed by ${department.head.name}. `
+              {department.heads.length > 0
+                ? `Headed by ${department.heads
+                    .map((h) => h.person.name)
+                    .sort()
+                    .join(", ")}. `
                 : "No department head set. "}
               People assigned to this department directly.
             </CardDescription>
