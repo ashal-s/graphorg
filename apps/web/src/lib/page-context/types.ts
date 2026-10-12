@@ -17,7 +17,7 @@ export const contextScopeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("department"), id }),
   z.object({ kind: z.literal("person"), id }),
   z.object({ kind: z.literal("team"), id }),
-  /** `tab` picks the view: departments/teams/people, or who reports to whom. */
+  /** `tab` picks the view: who reports to whom (default), or departments/teams/people. */
   z.object({
     kind: z.literal("org-chart"),
     tab: z.enum(["structure", "people"]).optional(),

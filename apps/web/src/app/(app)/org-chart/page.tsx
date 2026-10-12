@@ -18,14 +18,18 @@ interface PageProps {
 }
 
 const TABS = [
-  { id: "structure", label: "Departments and teams", href: "/org-chart" },
-  { id: "people", label: "People", href: "/org-chart?tab=people" },
+  { id: "people", label: "People", href: "/org-chart" },
+  {
+    id: "structure",
+    label: "Departments and teams",
+    href: "/org-chart?tab=structure",
+  },
 ];
 
 export default async function OrgChartPage({ searchParams }: PageProps) {
   const session = await requireSession();
   const { tab } = await searchParams;
-  const activeId = tab === "people" ? "people" : "structure";
+  const activeId = tab === "structure" ? "structure" : "people";
   const orgId = session.organizationId;
 
   return (

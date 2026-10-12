@@ -172,7 +172,7 @@ function chartNode(node: OrgChartNode): unknown {
 /** The org chart: departments, teams and people, or who reports to whom. */
 export async function buildOrgChartContext(
   orgId: string,
-  tab: "structure" | "people" = "structure",
+  tab: "structure" | "people" = "people",
 ): Promise<PageContext> {
   if (tab === "structure") return buildOrgStructureContext(orgId);
 
@@ -184,7 +184,7 @@ export async function buildOrgChartContext(
 
   return {
     page: "Org chart: people",
-    path: "/org-chart?tab=people",
+    path: "/org-chart",
     data: { count: rows.length, hierarchy: roots.map(chartNode) },
   };
 }
@@ -217,7 +217,7 @@ async function buildOrgStructureContext(orgId: string): Promise<PageContext> {
 
   return {
     page: "Org chart: departments and teams",
-    path: "/org-chart",
+    path: "/org-chart?tab=structure",
     data: {
       departments: structure.departments.map(department),
       teamsWithoutDepartment: structure.teamsWithoutDepartment.map(team),

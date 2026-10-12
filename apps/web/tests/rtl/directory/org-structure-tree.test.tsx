@@ -53,28 +53,41 @@ describe("OrgStructureTree", () => {
   it("shows departments, their teams, and the people on each team", () => {
     render(<OrgStructureTree structure={structure} />);
 
-    expect(screen.getByRole("link", { name: "Engineering" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Engineering/ })).toHaveAttribute(
       "href",
       "/directory/departments/eng",
     );
     expect(screen.getByText("Hana Ito")).toBeInTheDocument();
-    const team = screen.getByRole("link", { name: "Payments" });
-    expect(team).toHaveAttribute("href", "/payments");
+    expect(screen.getByRole("link", { name: /Payments/ })).toHaveAttribute(
+      "href",
+      "/payments",
+    );
     expect(screen.getByRole("link", { name: /Ana Cruz/ })).toBeInTheDocument();
     expect(screen.getByText("Lead")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Cy Direct/ })).toBeInTheDocument();
   });
 
-  it("lists teams and people that have no department or team", () => {
+  it("draws it as a connected chart, like the people chart", () => {
+    const { container } = render(<OrgStructureTree structure={structure} />);
+
+    // The same `.org-tree` lists the people chart uses draw the connectors.
+    expect(container.querySelectorAll("ul.org-tree").length).toBeGreaterThan(0);
+    const team = screen.getByRole("link", { name: /Payments/ }).closest("li")!;
+    expect(
+      within(team).getByRole("link", { name: /Ben Ole/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("hangs teams and people with no place off their own boxes", () => {
     render(<OrgStructureTree structure={structure} />);
 
-    expect(screen.getByText("Teams without a department")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Ops" })).toBeInTheDocument();
-    const group = screen
-      .getByText("People without a team or department")
-      .closest("section")!;
+    const noDepartment = screen.getByText("No department").closest("li")!;
     expect(
-      within(group).getByRole("link", { name: /Zoe Alone/ }),
+      within(noDepartment).getByRole("link", { name: /Ops/ }),
+    ).toBeInTheDocument();
+    const noPlace = screen.getByText("No team or department").closest("li")!;
+    expect(
+      within(noPlace).getByRole("link", { name: /Zoe Alone/ }),
     ).toBeInTheDocument();
   });
 });
