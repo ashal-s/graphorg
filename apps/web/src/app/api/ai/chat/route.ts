@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
+import { AI_NOT_CONFIGURED } from "@/lib/ai/errors";
 import {
   MAX_CONTEXT_CHARS,
   MAX_HISTORY_CHARS,
@@ -34,7 +35,12 @@ export async function POST(request: NextRequest) {
 
   // 2. is AI configured?
   const env = getEnv();
-  if (!env.AI_WORKER_SECRET) return jsonError(503, "AI is not configured");
+  if (!env.AI_WORKER_SECRET) {
+    return NextResponse.json(
+      { error: "AI is not configured", code: AI_NOT_CONFIGURED },
+      { status: 503 },
+    );
+  }
 
   // 2b. is this user asking too fast?
   try {

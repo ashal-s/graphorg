@@ -130,6 +130,48 @@ describe("AiChatButton", () => {
     expect(screen.queryByText("Thinking…")).not.toBeInTheDocument();
   });
 
+  it("explains how to set the assistant up when no worker is configured", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({
+        error: "AI is not configured",
+        code: "ai_not_configured",
+      }),
+    });
+    const user = await openPanel();
+
+    await user.type(screen.getByLabelText("Your question"), "Hello?");
+    await user.keyboard("{Enter}");
+
+    expect(
+      await screen.findByText(/isn.t set up on this deployment/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Deploy the AI worker/)).toBeInTheDocument();
+    expect(screen.getByText("AI_WORKER_URL")).toBeInTheDocument();
+    // Not presented as a failure of the request itself.
+    expect(screen.queryByText("AI is not configured")).not.toBeInTheDocument();
+  });
+
+  it("clears the setup instructions with the conversation", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: "x", code: "ai_not_configured" }),
+    });
+    const user = await openPanel();
+
+    await user.type(screen.getByLabelText("Your question"), "Hello?");
+    await user.keyboard("{Enter}");
+    await screen.findByText(/isn.t set up on this deployment/i);
+
+    await user.click(screen.getByRole("button", { name: /clear chat/i }));
+
+    expect(
+      screen.queryByText(/isn.t set up on this deployment/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows an error the worker sent mid-stream", async () => {
     (global.fetch as jest.Mock).mockResolvedValue(
       sseResponse(['event: error\ndata: "The model request failed."\n\n']),

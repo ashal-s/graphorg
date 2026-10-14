@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { ContextScope } from "@/lib/page-context/types";
 
+import { AI_NOT_CONFIGURED } from "./errors";
 import { createSseParser } from "./parse-sse";
 
 export interface ChatMessage {
@@ -19,14 +20,22 @@ export type AiProvider = "local" | "hosted";
 
 const GENERIC_ERROR = "Something went wrong. Please try again.";
 
-async function readErrorMessage(response: Response): Promise<string> {
+async function readError(
+  response: Response,
+): Promise<{ message: string; code: string | null }> {
   try {
-    const body = (await response.json()) as { error?: unknown };
-    if (typeof body.error === "string") return body.error;
+    const body = (await response.json()) as {
+      error?: unknown;
+      code?: unknown;
+    };
+    return {
+      message: typeof body.error === "string" ? body.error : GENERIC_ERROR,
+      code: typeof body.code === "string" ? body.code : null,
+    };
   } catch {
     // not JSON: fall through
   }
-  return GENERIC_ERROR;
+  return { message: GENERIC_ERROR, code: null };
 }
 
 /**
@@ -37,6 +46,9 @@ export function useAiChat(scope: ContextScope) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True when this deployment has no AI worker configured: the panel then
+  // shows setup instructions in place of an error.
+  const [setupNeeded, setSetupNeeded] = useState(false);
   // Which kind of model answered the latest request, once we know.
   const [provider, setProvider] = useState<AiProvider | null>(null);
 
@@ -70,6 +82,7 @@ export function useAiChat(scope: ContextScope) {
     controllerRef.current?.abort();
     commit([]);
     setError(null);
+    setSetupNeeded(false);
   }
 
   async function send(question: string) {
@@ -94,6 +107,7 @@ export function useAiChat(scope: ContextScope) {
     const controller = new AbortController();
     controllerRef.current = controller;
     setError(null);
+    setSetupNeeded(false);
     setStreaming(true);
 
     try {
@@ -104,7 +118,9 @@ export function useAiChat(scope: ContextScope) {
         signal: controller.signal,
       });
       if (!response.ok || !response.body) {
-        setError(await readErrorMessage(response));
+        const failure = await readError(response);
+        if (failure.code === AI_NOT_CONFIGURED) setSetupNeeded(true);
+        else setError(failure.message);
         return;
       }
 
@@ -145,7 +161,16 @@ export function useAiChat(scope: ContextScope) {
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  return { messages, streaming, error, provider, send, stop, clear };
+  return {
+    messages,
+    streaming,
+    error,
+    setupNeeded,
+    provider,
+    send,
+    stop,
+    clear,
+  };
 }
 
 export type AiChat = ReturnType<typeof useAiChat>;

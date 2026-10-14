@@ -102,9 +102,12 @@ describe("POST /api/ai/chat", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("503s when the AI worker isn't configured", async () => {
+  it("503s when the AI worker isn't configured, with a code the UI can act on", async () => {
     getEnvMock.mockReturnValue({ AI_WORKER_URL: WORKER_URL });
-    expect((await post(validBody)).status).toBe(503);
+    const response = await post(validBody);
+    expect(response.status).toBe(503);
+    expect((await response.json()).code).toBe("ai_not_configured");
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
