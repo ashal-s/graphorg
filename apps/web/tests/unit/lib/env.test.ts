@@ -58,4 +58,29 @@ describe("envSchema", () => {
       expect(result.data.NODE_ENV).toBe("development");
     }
   });
+
+  it("treats the AI worker settings as optional", () => {
+    const result = envSchema.safeParse({
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.AI_WORKER_URL).toBe("http://localhost:8001");
+      expect(result.data.AI_WORKER_SECRET).toBeUndefined();
+    }
+  });
+
+  it("rejects an AI_WORKER_URL that isn't a URL", () => {
+    const result = envSchema.safeParse({
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+      AI_WORKER_URL: "not-a-url",
+    });
+
+    expect(result.success).toBe(false);
+  });
 });
