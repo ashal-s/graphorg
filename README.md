@@ -61,13 +61,21 @@ docs/                 Repo-local reference docs
    → http://localhost:3000, health check at http://localhost:3000/api/health
 
 6. In a separate terminal, start the Python AI worker:
+
    ```bash
    cd services/ai-worker
    python3 -m venv .venv && source .venv/bin/activate
    pip install -e ".[dev]"
-   uvicorn ai_worker.main:app --reload --port 8000
+   cp .env.example .env   # then fill it in: see docs/ai-local-setup.md
+   uvicorn ai_worker.main:app --reload --port 8001
    ```
-   → health check at http://localhost:8000/health
+
+   → health check at http://localhost:8001/health
+
+   Port 8001 is what the web app expects (`AI_WORKER_URL`). The worker's
+   `/health` runs without a model, but "Ask AI" needs Ollama and a few
+   environment variables: [docs/ai-local-setup.md](docs/ai-local-setup.md)
+   walks through them.
 
 ## Common commands
 
