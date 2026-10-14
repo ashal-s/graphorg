@@ -14,4 +14,5 @@ def get_llm() -> BaseChatModel:
         api_key=s.llm_api_key,
         model=s.llm_model,
         temperature=0.2,
+        max_tokens=1024,
     )

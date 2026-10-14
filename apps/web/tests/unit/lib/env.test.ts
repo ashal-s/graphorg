@@ -73,6 +73,40 @@ describe("envSchema", () => {
     }
   });
 
+  it("defaults the AI rate limit and reads it from a string", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    const defaulted = envSchema.safeParse(base);
+    const fromEnv = envSchema.safeParse({
+      ...base,
+      AI_RATE_LIMIT_PER_MINUTE: "3",
+    });
+
+    expect(defaulted.success && defaulted.data.AI_RATE_LIMIT_PER_MINUTE).toBe(
+      20,
+    );
+    expect(fromEnv.success && fromEnv.data.AI_RATE_LIMIT_PER_MINUTE).toBe(3);
+  });
+
+  it("rejects a zero or fractional AI rate limit", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(
+      envSchema.safeParse({ ...base, AI_RATE_LIMIT_PER_MINUTE: "0" }).success,
+    ).toBe(false);
+    expect(
+      envSchema.safeParse({ ...base, AI_RATE_LIMIT_PER_MINUTE: "2.5" }).success,
+    ).toBe(false);
+  });
+
   it("rejects an AI_WORKER_URL that isn't a URL", () => {
     const result = envSchema.safeParse({
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db",

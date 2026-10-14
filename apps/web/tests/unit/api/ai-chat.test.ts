@@ -13,6 +13,11 @@ jest.mock("../../../src/lib/env", () => ({
   getEnv: () => getEnvMock(),
 }));
 
+const checkRateLimitMock = jest.fn();
+jest.mock("../../../src/lib/ai/rate-limit", () => ({
+  checkRateLimit: (...args: unknown[]) => checkRateLimitMock(...args),
+}));
+
 const buildPageContextMock = jest.fn();
 jest.mock("../../../src/lib/page-context/build", () => ({
   buildPageContext: (...args: unknown[]) => buildPageContextMock(...args),
@@ -27,6 +32,7 @@ const realFetch = global.fetch;
 
 const WORKER_URL = "http://worker.test";
 const SECRET = "worker-secret";
+const RATE_LIMIT = 20;
 
 const session = {
   userId: "u",
@@ -71,9 +77,14 @@ function workerStream() {
 describe("POST /api/ai/chat", () => {
   beforeEach(() => {
     getSessionMock.mockReset().mockResolvedValue(session);
-    getEnvMock
+    getEnvMock.mockReset().mockReturnValue({
+      AI_WORKER_URL: WORKER_URL,
+      AI_WORKER_SECRET: SECRET,
+      AI_RATE_LIMIT_PER_MINUTE: RATE_LIMIT,
+    });
+    checkRateLimitMock
       .mockReset()
-      .mockReturnValue({ AI_WORKER_URL: WORKER_URL, AI_WORKER_SECRET: SECRET });
+      .mockResolvedValue({ allowed: true, retryAfterSeconds: 0 });
     buildPageContextMock
       .mockReset()
       .mockResolvedValue({ page: "Overview", path: "/", data: { people: 13 } });
@@ -169,6 +180,78 @@ describe("POST /api/ai/chat", () => {
       return upstream;
     });
     expect((await post(validBody)).headers.get("X-LLM-Provider")).toBeNull();
+  });
+
+  describe("limits", () => {
+    it("rate limits per user, and never calls the worker when over", async () => {
+      checkRateLimitMock.mockResolvedValue({
+        allowed: false,
+        retryAfterSeconds: 37,
+      });
+
+      const response = await post(validBody);
+
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Retry-After")).toBe("37");
+      expect((await response.json()).error).toContain("37");
+      expect(checkRateLimitMock).toHaveBeenCalledWith({
+        key: "ai:rl:u",
+        limit: RATE_LIMIT,
+        windowSeconds: 60,
+      });
+      expect(buildPageContextMock).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("checks the limit after sign-in, so anonymous traffic never touches Redis", async () => {
+      getSessionMock.mockResolvedValue(null);
+      await post(validBody);
+      expect(checkRateLimitMock).not.toHaveBeenCalled();
+    });
+
+    it("still answers when the rate limiter is unavailable", async () => {
+      const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+      checkRateLimitMock.mockRejectedValue(new Error("ECONNREFUSED"));
+
+      const response = await post(validBody);
+
+      expect(response.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      warn.mockRestore();
+    });
+
+    it("413s a page whose context is too large, before calling the worker", async () => {
+      buildPageContextMock.mockResolvedValue({
+        page: "Big",
+        path: "/big",
+        data: { blob: "x".repeat(25_000) },
+      });
+
+      const response = await post(validBody);
+
+      expect(response.status).toBe(413);
+      expect((await response.json()).error).toMatch(/too much data/i);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("trims the oldest history instead of failing", async () => {
+      const turn = (role: "user" | "assistant", text: string) => ({
+        role,
+        content: text.repeat(5_000),
+      });
+      const history = [
+        turn("user", "a"),
+        turn("assistant", "b"),
+        turn("user", "c"),
+      ];
+
+      const response = await post({ ...validBody, history });
+
+      expect(response.status).toBe(200);
+      const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
+      // 5,000 + 5,000 would exceed the 8,000 budget: only the newest fits.
+      expect(sent.history).toEqual([turn("user", "c")]);
+    });
   });
 
   it("ignores any context or organization the client tries to supply", async () => {
