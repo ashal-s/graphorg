@@ -16,18 +16,22 @@ You need four things running: Redis, Ollama, the AI worker and the web app.
 
 1. Install Ollama from https://ollama.com
 2. Start the server with a larger context window (keep this terminal open):
+
    ```
    OLLAMA_CONTEXT_LENGTH=8192 ollama serve
    ```
+
    Ollama defaults to 4096 tokens and silently drops anything past that, so
    a large page would be cut off with no error. 8192 fits comfortably in
    16 GB alongside the 7B model.
 
    If you run the Ollama menu-bar app instead of `ollama serve`, set it for
    the app and restart it:
+
    ```
    launchctl setenv OLLAMA_CONTEXT_LENGTH 8192
    ```
+
 3. In a second terminal, pull the models:
    ```
    ollama pull qwen2.5:7b-instruct   # ~4.7 GB, default
@@ -122,15 +126,15 @@ Local models are free, but a hosted model is billed per token and the chat
 is reachable by every signed-in user. These guards keep one user, or one
 large page, from running up cost or exhausting the model's context window.
 
-| Guard | Default | Where it lives |
-| --- | --- | --- |
-| Requests per user per minute | 20 | `AI_RATE_LIMIT_PER_MINUTE` in `apps/web/.env.local`; over the limit gets `429` with `Retry-After` |
-| Page context size | 20,000 characters (about 5,000 tokens) | `MAX_CONTEXT_CHARS` in `apps/web/src/lib/ai/limits.ts`; over it gets `413` |
-| Conversation history | 8,000 characters; oldest turns are dropped first | `MAX_HISTORY_CHARS` in the same file |
-| Question length | 2,000 characters | route schema and the worker's `ChatRequest` |
-| History length | 20 messages | route schema and the worker's `ChatRequest` |
-| Answer length | 1,024 tokens | `max_tokens` in `services/ai-worker/src/ai_worker/llm.py` |
-| Spend | Set in the provider's dashboard | see below |
+| Guard                        | Default                                          | Where it lives                                                                                    |
+| ---------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Requests per user per minute | 20                                               | `AI_RATE_LIMIT_PER_MINUTE` in `apps/web/.env.local`; over the limit gets `429` with `Retry-After` |
+| Page context size            | 20,000 characters (about 5,000 tokens)           | `MAX_CONTEXT_CHARS` in `apps/web/src/lib/ai/limits.ts`; over it gets `413`                        |
+| Conversation history         | 8,000 characters; oldest turns are dropped first | `MAX_HISTORY_CHARS` in the same file                                                              |
+| Question length              | 2,000 characters                                 | route schema and the worker's `ChatRequest`                                                       |
+| History length               | 20 messages                                      | route schema and the worker's `ChatRequest`                                                       |
+| Answer length                | 1,024 tokens                                     | `max_tokens` in `services/ai-worker/src/ai_worker/llm.py`                                         |
+| Spend                        | Set in the provider's dashboard                  | see below                                                                                         |
 
 Notes:
 
