@@ -46,6 +46,22 @@ describe("PageHeader", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows the Ask AI button when the page has context", () => {
+    render(<PageHeader title="Teams" context={{ kind: "teams" }} />);
+
+    expect(
+      screen.getByRole("button", { name: /ask ai about this page/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("has no Ask AI button when the page opts out", () => {
+    render(<PageHeader title="New team" context={null} />);
+
+    expect(
+      screen.queryByRole("button", { name: /ask ai/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("has no copy button when the page opts out", () => {
     render(<PageHeader title="New team" context={null} />);
 

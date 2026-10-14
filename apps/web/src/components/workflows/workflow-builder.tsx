@@ -31,6 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AiChatButton } from "@/components/shared/ai-chat-button";
 import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -580,7 +581,12 @@ export function WorkflowBuilder({
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {mode === "edit" && workflow?.id && (
-            <CopyContextButton scope={{ kind: "workflow", id: workflow.id }} />
+            <>
+              <AiChatButton scope={{ kind: "workflow", id: workflow.id }} />
+              <CopyContextButton
+                scope={{ kind: "workflow", id: workflow.id }}
+              />
+            </>
           )}
           {!readOnly && (
             <Button type="submit" disabled={!canSave} className="h-8 px-3">

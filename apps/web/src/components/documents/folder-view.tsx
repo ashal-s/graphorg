@@ -13,6 +13,7 @@ import {
 import { DocumentDialog } from "@/components/documents/document-dialog";
 import { useDocuments } from "@/components/documents/documents-context";
 import { FolderDialog } from "@/components/documents/folder-dialog";
+import { AiChatButton } from "@/components/shared/ai-chat-button";
 import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,7 @@ export function FolderView({ folderId }: { folderId: string | null }) {
               </Button>
             </>
           )}
+          <AiChatButton scope={{ kind: "folder", id: folderId }} />
           <CopyContextButton scope={{ kind: "folder", id: folderId }} />
         </div>
       </div>

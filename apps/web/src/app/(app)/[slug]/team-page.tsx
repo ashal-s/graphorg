@@ -8,6 +8,7 @@ import {
   ResourceStats,
   type Resource,
 } from "@/components/shared/resource-stats";
+import { AiChatButton } from "@/components/shared/ai-chat-button";
 import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { getDb } from "@/db";
@@ -256,6 +257,7 @@ export async function TeamPage({ id }: { id: string }) {
         readOnly={readOnly}
         actions={
           <>
+            <AiChatButton scope={{ kind: "team", id: team.id }} />
             <CopyContextButton scope={{ kind: "team", id: team.id }} />
             {!readOnly && (
               <DeleteEntityButton

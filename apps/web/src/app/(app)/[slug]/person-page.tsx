@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { HighlightSection } from "@/components/shell/highlight-section";
 import { PersonDialog } from "@/components/directory/person-dialog";
+import { AiChatButton } from "@/components/shared/ai-chat-button";
 import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { PersonAvatar } from "@/components/shared/person-avatar";
@@ -205,6 +206,7 @@ export async function PersonPage({ id }: { id: string }) {
         </div>
 
         <div className="flex shrink-0 gap-2">
+          <AiChatButton scope={{ kind: "person", id: person.id }} />
           <CopyContextButton scope={{ kind: "person", id: person.id }} />
           {canEdit && (
             <PersonDialog

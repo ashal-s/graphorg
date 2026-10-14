@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { DocumentActions } from "@/components/documents/document-actions";
+import { AiChatButton } from "@/components/shared/ai-chat-button";
 import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,6 +88,7 @@ export default async function DocumentPage({ params }: PageProps) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <AiChatButton scope={{ kind: "document", id: document.id }} />
           <CopyContextButton scope={{ kind: "document", id: document.id }} />
           <DocumentActions documentId={document.id} title={document.title} />
         </div>

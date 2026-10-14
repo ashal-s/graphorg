@@ -12,6 +12,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import { EmptyState } from "@/components/states/empty-state";
+import { AiChatButton } from "@/components/shared/ai-chat-button";
 import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { OrganizationLogo } from "@/components/shared/organization-logo";
 import { Badge } from "@/components/ui/badge";
@@ -57,7 +58,8 @@ function OrganizationHero({
             "The whole organization in one view: who's here, what runs, and how it's built."}
         </p>
       </div>
-      <div className="ml-auto shrink-0 self-start">
+      <div className="ml-auto flex shrink-0 items-center gap-2 self-start">
+        <AiChatButton scope={{ kind: "overview" }} />
         <CopyContextButton scope={{ kind: "overview" }} />
       </div>
     </header>
