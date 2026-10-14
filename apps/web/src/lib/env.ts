@@ -7,6 +7,8 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
   AUTH_SECRET: z.string().min(32),
+  AI_WORKER_URL: z.string().url().default("http://localhost:8001"),
+  AI_WORKER_SECRET: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
