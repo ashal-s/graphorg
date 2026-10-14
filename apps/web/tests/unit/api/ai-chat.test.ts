@@ -153,6 +153,24 @@ describe("POST /api/ai/chat", () => {
     });
   });
 
+  it("tells the UI which provider answered, for known values only", async () => {
+    fetchMock.mockImplementationOnce(async () => {
+      const upstream = workerStream();
+      upstream.headers.set("X-LLM-Provider", "hosted");
+      return upstream;
+    });
+    expect((await post(validBody)).headers.get("X-LLM-Provider")).toBe(
+      "hosted",
+    );
+
+    fetchMock.mockImplementationOnce(async () => {
+      const upstream = workerStream();
+      upstream.headers.set("X-LLM-Provider", "<script>");
+      return upstream;
+    });
+    expect((await post(validBody)).headers.get("X-LLM-Provider")).toBeNull();
+  });
+
   it("ignores any context or organization the client tries to supply", async () => {
     await post({
       ...validBody,

@@ -64,11 +64,15 @@ export async function POST(request: NextRequest) {
     return jsonError(502, "The AI service is unavailable.");
   }
 
-  // 6. pipe the stream straight through
-  return new Response(upstream.body, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-store",
-    },
-  });
+  // 6. pipe the stream straight through, telling the UI which kind of model
+  // answered. Only the two known values are passed on, never the raw header.
+  const headers: Record<string, string> = {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-store",
+  };
+  const provider = upstream.headers.get("X-LLM-Provider");
+  if (provider === "local" || provider === "hosted") {
+    headers["X-LLM-Provider"] = provider;
+  }
+  return new Response(upstream.body, { headers });
 }

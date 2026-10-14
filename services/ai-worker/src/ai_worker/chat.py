@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import BaseModel, Field
 
+from ai_worker.config import get_settings
 from ai_worker.llm import get_llm
 from ai_worker.prompts import build_messages
 from ai_worker.security import require_internal_secret
@@ -49,4 +50,9 @@ async def chat(
         except Exception:
             yield _sse("The model request failed.", event="error")
 
-    return StreamingResponse(stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        # Lets the UI show whether this answer came from a local or hosted model.
+        headers={"X-LLM-Provider": get_settings().llm_provider},
+    )

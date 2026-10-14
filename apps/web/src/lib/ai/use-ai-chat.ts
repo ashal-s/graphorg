@@ -15,6 +15,8 @@ export interface ChatMessage {
 /** Matches the route's limit on `history`. */
 const MAX_HISTORY = 20;
 
+export type AiProvider = "local" | "hosted";
+
 const GENERIC_ERROR = "Something went wrong. Please try again.";
 
 async function readErrorMessage(response: Response): Promise<string> {
@@ -35,6 +37,8 @@ export function useAiChat(scope: ContextScope) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Which kind of model answered the latest request, once we know.
+  const [provider, setProvider] = useState<AiProvider | null>(null);
 
   // Mirrors `messages` so `send` always reads the latest conversation, even
   // when it is called again before React has re-rendered.
@@ -104,6 +108,9 @@ export function useAiChat(scope: ContextScope) {
         return;
       }
 
+      const reported = response.headers?.get("X-LLM-Provider");
+      if (reported === "local" || reported === "hosted") setProvider(reported);
+
       const outcome: { error: string | null } = { error: null };
       const push = createSseParser((event) => {
         if (event.type === "token") append(assistantId, event.text);
@@ -138,7 +145,7 @@ export function useAiChat(scope: ContextScope) {
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  return { messages, streaming, error, send, stop, clear };
+  return { messages, streaming, error, provider, send, stop, clear };
 }
 
 export type AiChat = ReturnType<typeof useAiChat>;

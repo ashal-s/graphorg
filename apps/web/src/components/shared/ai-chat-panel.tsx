@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { SendHorizontal, Square, Trash2 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   SheetDescription,
@@ -33,7 +34,7 @@ export function AiChatPanel({
   chat: AiChat;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
 }) {
-  const { messages, streaming, error, send, stop, clear } = chat;
+  const { messages, streaming, error, provider, send, stop, clear } = chat;
   const [draft, setDraft] = useState("");
   const scroller = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
@@ -56,7 +57,14 @@ export function AiChatPanel({
   return (
     <>
       <SheetHeader>
-        <SheetTitle>Ask AI</SheetTitle>
+        <SheetTitle className="flex items-center gap-2">
+          Ask AI
+          {provider && (
+            <Badge variant="secondary">
+              {provider === "local" ? "Local model" : "Hosted model"}
+            </Badge>
+          )}
+        </SheetTitle>
         <SheetDescription>
           Answers come from this page&apos;s data.
         </SheetDescription>

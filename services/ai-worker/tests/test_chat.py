@@ -35,3 +35,12 @@ def test_streams_tokens():
     res = client.post("/chat", json=BODY, headers={"X-Internal-Secret": SECRET})
     assert res.status_code == 200
     assert '"Hello"' in res.text and "event: done" in res.text
+
+def test_reports_the_provider_in_a_header(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "hosted")
+    get_settings.cache_clear()
+    fake = GenericFakeChatModel(messages=iter([AIMessage(content="Hi")]))
+    app.dependency_overrides[get_llm] = lambda: fake
+    client = TestClient(app)
+    res = client.post("/chat", json=BODY, headers={"X-Internal-Secret": SECRET})
+    assert res.headers["x-llm-provider"] == "hosted"

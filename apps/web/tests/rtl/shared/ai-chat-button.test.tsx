@@ -12,10 +12,11 @@ Object.assign(globalThis, { ReadableStream, TextDecoderStream, TextEncoder });
 const encoder = new TextEncoder();
 
 /** A fetch response whose body streams the given chunks. */
-function sseResponse(chunks: string[]) {
+function sseResponse(chunks: string[], provider?: string) {
   return {
     ok: true,
     status: 200,
+    headers: new Headers(provider ? { "X-LLM-Provider": provider } : {}),
     body: new ReadableStream({
       start(controller) {
         for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
@@ -62,6 +63,32 @@ describe("AiChatButton", () => {
       question: "How many teams?",
       history: [],
     });
+  });
+
+  it("shows whether a local or hosted model answered", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      sseResponse(['data: "Hi."\n\n'], "hosted"),
+    );
+    const user = await openPanel();
+    expect(screen.queryByText("Hosted model")).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Your question"), "Hello?");
+    await user.keyboard("{Enter}");
+
+    expect(await screen.findByText("Hosted model")).toBeInTheDocument();
+  });
+
+  it("ignores a provider value it doesn't know", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue(
+      sseResponse(['data: "Hi."\n\n'], "something-else"),
+    );
+    const user = await openPanel();
+
+    await user.type(screen.getByLabelText("Your question"), "Hello?");
+    await user.keyboard("{Enter}");
+    await screen.findByText("Hi.");
+
+    expect(screen.queryByText(/model$/)).not.toBeInTheDocument();
   });
 
   it("sends earlier turns as history on the next question", async () => {
