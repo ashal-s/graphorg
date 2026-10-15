@@ -126,15 +126,15 @@ Local models are free, but a hosted model is billed per token and the chat
 is reachable by every signed-in user. These guards keep one user, or one
 large page, from running up cost or exhausting the model's context window.
 
-| Guard                        | Default                                          | Where it lives                                                                                    |
-| ---------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| Requests per user per minute | 20                                               | `AI_RATE_LIMIT_PER_MINUTE` in `apps/web/.env.local`; over the limit gets `429` with `Retry-After` |
-| Page context size            | 20,000 characters (about 5,000 tokens)           | `MAX_CONTEXT_CHARS` in `apps/web/src/lib/ai/limits.ts`; over it gets `413`                        |
-| Conversation history         | 8,000 characters; oldest turns are dropped first | `MAX_HISTORY_CHARS` in the same file                                                              |
-| Question length              | 2,000 characters                                 | route schema and the worker's `ChatRequest`                                                       |
-| History length               | 20 messages                                      | route schema and the worker's `ChatRequest`                                                       |
-| Answer length                | 1,024 tokens                                     | `max_tokens` in `services/ai-worker/src/ai_worker/llm.py`                                         |
-| Spend                        | Set in the provider's dashboard                  | see below                                                                                         |
+| Guard                        | Default                                                                                           | Where it lives                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Requests per user per minute | 20                                                                                                | `AI_RATE_LIMIT_PER_MINUTE` in `apps/web/.env.local`; over the limit gets `429` with `Retry-After` |
+| Page context size            | 14,000 characters                                                                                 | `MAX_CONTEXT_CHARS` in `apps/web/src/lib/ai/limits.ts`; over it gets `413`                        |
+| Conversation history         | Up to 8,000 characters, less beside a large page or long question; oldest turns are dropped first | `historyBudget` and `MAX_HISTORY_CHARS` in the same file                                          |
+| Question length              | 2,000 characters                                                                                  | route schema and the worker's `ChatRequest`                                                       |
+| History length               | 20 messages                                                                                       | route schema and the worker's `ChatRequest`                                                       |
+| Answer length                | 1,024 tokens                                                                                      | `max_tokens` in `services/ai-worker/src/ai_worker/llm.py`                                         |
+| Spend                        | Set in the provider's dashboard                                                                   | see below                                                                                         |
 
 Notes:
 
@@ -142,8 +142,12 @@ Notes:
   allowed through and a warning is logged, so a Redis outage doesn't take
   chat down. That is why the provider spend limit below matters.
 - **The context budget is shared.** The model's window holds the system
-  prompt, page data, history, question and the answer together, so the
-  caps are set well under `OLLAMA_CONTEXT_LENGTH`.
+  prompt, page data, history, question and the answer together. The route
+  budgets them as one: a prompt may total about 21,500 characters (the
+  8,192-token window minus 1,024 for the answer, at a conservative 3
+  characters per token), and history gets whatever the page and question
+  leave. The limits in `limits.ts` are derived from `OLLAMA_CONTEXT_LENGTH`
+  and `max_tokens`, so change them together.
 - **Limits apply to local and hosted alike,** so behaviour doesn't change
   when you switch providers.
 
