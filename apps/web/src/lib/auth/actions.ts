@@ -33,7 +33,16 @@ export async function login(
     await signIn("credentials", { ...parsed.data, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
-      return { message: "Invalid workspace, email or password." };
+      if (error.type === "CredentialsSignin") {
+        return { message: "Invalid workspace, email or password." };
+      }
+      // Anything else (database down, missing AUTH_SECRET, ...) is our
+      // fault, not the user's. Say so, and leave the cause in the logs
+      // instead of blaming their password.
+      console.error("[auth] sign-in failed", error.type, error.cause);
+      return {
+        message: "Sign-in is unavailable right now. Please try again later.",
+      };
     }
     throw error;
   }

@@ -1,0 +1,58 @@
+/**
+ * @jest-environment node
+ */
+import { login } from "../../../../src/lib/auth/actions";
+
+const signIn = jest.fn();
+
+// next-auth ships ESM that Jest doesn't transform, so stand in for the only
+// part the action uses: an error class carrying a `type`.
+jest.mock("next-auth", () => ({
+  AuthError: class AuthError extends Error {
+    type = "AdapterError";
+    cause?: unknown;
+  },
+}));
+jest.mock("../../../../src/auth", () => ({
+  signIn: (...args: unknown[]) => signIn(...args),
+  signOut: jest.fn(),
+}));
+jest.mock("../../../../src/db", () => ({ getDb: jest.fn() }));
+jest.mock("next/navigation", () => ({ redirect: jest.fn() }));
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { AuthError } = require("next-auth");
+
+function form() {
+  const data = new FormData();
+  data.set("workspace", "acme");
+  data.set("email", "a@acme.example");
+  data.set("password", "password-123");
+  return data;
+}
+
+describe("login", () => {
+  beforeEach(() => {
+    signIn.mockReset();
+    jest.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("blames the credentials only when they were wrong", async () => {
+    const error = new AuthError("bad credentials");
+    error.type = "CredentialsSignin";
+    signIn.mockRejectedValue(error);
+
+    const state = await login(undefined, form());
+
+    expect(state?.message).toMatch(/invalid workspace/i);
+  });
+
+  it("does not blame the credentials for a server fault", async () => {
+    signIn.mockRejectedValue(new AuthError("db down"));
+
+    const state = await login(undefined, form());
+
+    expect(state?.message).toMatch(/unavailable/i);
+    expect(console.error).toHaveBeenCalled();
+  });
+});
