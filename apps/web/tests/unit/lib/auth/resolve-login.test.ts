@@ -42,18 +42,26 @@ describe("resolveLoginWorkspaces", () => {
     orderBy.mockReturnValue({ limit });
   });
 
-  it("asks for one more row than the bcrypt cap so overflow is detectable", async () => {
-    const rows = Array.from({ length: MAX_LOGIN_PASSWORD_CHECKS }, (_, i) => ({
-      passwordHash: `hash-${i}`,
-      slug: `org-${i}`,
-      name: `Org ${i}`,
-    }));
-    limit.mockResolvedValue(rows);
+  it("always runs a fixed number of password checks", async () => {
+    limit.mockResolvedValue([
+      { passwordHash: "a", slug: "acme", name: "Acme" },
+      { passwordHash: "b", slug: "globex", name: "Globex" },
+    ]);
     compare.mockResolvedValue(false);
 
     await resolveLoginWorkspaces("a@example.com", "password-123");
 
     expect(limit).toHaveBeenCalledWith(MAX_LOGIN_PASSWORD_CHECKS + 1);
+    expect(compare).toHaveBeenCalledTimes(MAX_LOGIN_PASSWORD_CHECKS);
+  });
+
+  it("pads unknown emails to the same fixed work", async () => {
+    limit.mockResolvedValue([]);
+    compare.mockResolvedValue(false);
+
+    await expect(
+      resolveLoginWorkspaces("missing@example.com", "password-123"),
+    ).resolves.toEqual([]);
     expect(compare).toHaveBeenCalledTimes(MAX_LOGIN_PASSWORD_CHECKS);
   });
 
@@ -72,16 +80,6 @@ describe("resolveLoginWorkspaces", () => {
       resolveLoginWorkspaces("a@example.com", "password-123"),
     ).rejects.toBeInstanceOf(TooManyLoginCandidatesError);
     expect(compare).not.toHaveBeenCalled();
-  });
-
-  it("still runs a password compare when the email is unknown", async () => {
-    limit.mockResolvedValue([]);
-    compare.mockResolvedValue(false);
-
-    await expect(
-      resolveLoginWorkspaces("missing@example.com", "password-123"),
-    ).resolves.toEqual([]);
-    expect(compare).toHaveBeenCalledTimes(1);
   });
 
   it("returns only the workspaces whose password matches", async () => {

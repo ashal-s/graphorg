@@ -18,8 +18,8 @@ export interface LoginWorkspace {
 export const MAX_LOGIN_PASSWORD_CHECKS = 10;
 
 /**
- * Valid bcrypt hash of a fixed string. Used so unknown emails still pay one
- * comparison and cannot be enumerated by response timing alone.
+ * Valid bcrypt hash of a fixed string. Used to pad comparisons so unknown and
+ * multi-workspace emails pay the same work and cannot be told apart by timing.
  */
 const DUMMY_PASSWORD_HASH =
   "$2b$10$aXgB0zEOcV5cWbukwuoUQuUztemZWE8MS9lxbJ5OkH3oTRyPp5IYq";
@@ -37,10 +37,11 @@ export class TooManyLoginCandidatesError extends Error {
  * exist in more than one organization as separate rows; only rows the
  * password unlocks are returned.
  *
- * Caps work at {@link MAX_LOGIN_PASSWORD_CHECKS}. If more accounts exist for
- * the email, throws {@link TooManyLoginCandidatesError} so the login form can
- * ask for a workspace slug instead of silently dropping newer rows. Callers
- * that already know the workspace should skip this helper.
+ * Always runs exactly {@link MAX_LOGIN_PASSWORD_CHECKS} bcrypt compares
+ * (padding with a dummy hash) so latency does not reveal how many accounts
+ * share the email. If more accounts exist than the cap, throws
+ * {@link TooManyLoginCandidatesError} so the login form can ask for a
+ * workspace slug. Callers that already know the workspace should skip this.
  */
 export async function resolveLoginWorkspaces(
   email: string,
@@ -63,14 +64,14 @@ export async function resolveLoginWorkspaces(
     throw new TooManyLoginCandidatesError();
   }
 
-  if (rows.length === 0) {
-    await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
-    return [];
-  }
-
   const matches: LoginWorkspace[] = [];
-  for (const row of rows) {
-    if (await bcrypt.compare(password, row.passwordHash)) {
+  for (let i = 0; i < MAX_LOGIN_PASSWORD_CHECKS; i++) {
+    const row = rows[i];
+    const ok = await bcrypt.compare(
+      password,
+      row?.passwordHash ?? DUMMY_PASSWORD_HASH,
+    );
+    if (row && ok) {
       matches.push({ slug: row.slug, name: row.name });
     }
   }

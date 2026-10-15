@@ -110,7 +110,7 @@ const AI_POINTS: Array<{ icon: LucideIcon; title: string; body: string }> = [
   {
     icon: EyeOff,
     title: "Private by default",
-    body: "Exports leave out emails, credentials and photos, and link related records by reference instead of copying them.",
+    body: "Exports leave out credentials and photo URLs, keep emails only on that person’s own page, and link related records by reference instead of copying them.",
   },
 ];
 
