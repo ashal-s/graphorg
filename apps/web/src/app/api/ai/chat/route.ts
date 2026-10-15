@@ -3,11 +3,7 @@ import { z } from "zod";
 
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
 import { AI_NOT_CONFIGURED } from "@/lib/ai/errors";
-import {
-  MAX_CONTEXT_CHARS,
-  MAX_HISTORY_CHARS,
-  trimHistory,
-} from "@/lib/ai/limits"; // new
+import { MAX_CONTEXT_CHARS, historyBudget, trimHistory } from "@/lib/ai/limits"; // new
 import { checkRateLimit } from "@/lib/ai/rate-limit";
 import { getSession } from "@/lib/auth/session";
 import { getEnv } from "@/lib/env";
@@ -100,7 +96,13 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         question,
         page_context: pageContext,
-        history: trimHistory(history, MAX_HISTORY_CHARS),
+        history: trimHistory(
+          history,
+          historyBudget({
+            contextChars: pageContext.length,
+            questionChars: question.length,
+          }),
+        ),
       }),
       signal: request.signal,
     });
