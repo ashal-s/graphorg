@@ -27,6 +27,10 @@ export function LoginForm({
 }) {
   const [state, action, pending] = useActionState(login, undefined);
   const [picked, setPicked] = useState(workspace);
+  // Controlled so credentials survive the re-render after a multi-workspace
+  // response (uncontrolled fields reset when the form action settles).
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const workspaces = state?.workspaces;
   const choosingWorkspace = Boolean(workspaces && workspaces.length > 1);
@@ -96,6 +100,8 @@ export function LoginForm({
               type="email"
               autoComplete="email"
               required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
             />
             {state?.errors?.email && (
               <p className="text-xs text-destructive">
@@ -116,6 +122,8 @@ export function LoginForm({
               type="password"
               autoComplete="current-password"
               required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
             />
             {state?.errors?.password && (
               <p className="text-xs text-destructive">

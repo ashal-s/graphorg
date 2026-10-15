@@ -109,4 +109,14 @@ describe("login", () => {
     expect(state?.message).toMatch(/unavailable/i);
     expect(console.error).toHaveBeenCalled();
   });
+
+  it("treats a workspace lookup failure as a server fault", async () => {
+    resolveLoginWorkspaces.mockRejectedValue(new Error("db down"));
+
+    const state = await login(undefined, form());
+
+    expect(state?.message).toMatch(/unavailable/i);
+    expect(signIn).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalled();
+  });
 });

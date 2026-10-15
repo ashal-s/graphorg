@@ -41,10 +41,18 @@ export async function login(
 
   let workspace = workspaceHint;
   if (!workspace) {
-    const matches = await resolveLoginWorkspaces(
-      credentials.data.email,
-      credentials.data.password,
-    );
+    let matches;
+    try {
+      matches = await resolveLoginWorkspaces(
+        credentials.data.email,
+        credentials.data.password,
+      );
+    } catch (error) {
+      console.error("[auth] resolve login workspaces failed", error);
+      return {
+        message: "Sign-in is unavailable right now. Please try again later.",
+      };
+    }
     if (matches.length === 0) {
       return { message: "Invalid email or password." };
     }
