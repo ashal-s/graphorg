@@ -94,9 +94,7 @@ describe("WorkspaceBreadcrumb", () => {
     render(<WorkspaceBreadcrumb current={current} others={[]} />);
     await user.click(screen.getByRole("button", { name: /switch workspace/i }));
 
-    await user.click(
-      await screen.findByRole("menuitem", { name: /new org/i }),
-    );
+    await user.click(await screen.findByRole("menuitem", { name: /new org/i }));
 
     expect(pushMock).toHaveBeenCalledWith("/signup");
   });

@@ -21,7 +21,9 @@ export function GraphOrgMark({
       aria-hidden="true"
       focusable="false"
     >
-      {!plain && <rect width="24" height="24" rx="6" className="fill-primary" />}
+      {!plain && (
+        <rect width="24" height="24" rx="6" className="fill-primary" />
+      )}
       <g
         className={plain ? "stroke-primary" : "stroke-primary-foreground"}
         strokeWidth="1.6"
