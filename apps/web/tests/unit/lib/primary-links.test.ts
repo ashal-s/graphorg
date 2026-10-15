@@ -2,7 +2,9 @@
  * @jest-environment node
  */
 import {
+  lockPrimaries,
   PrimaryNotLinkedError,
+  replaceDepartmentMembers,
   replaceLinks,
   settlePrimary,
 } from "@/lib/api/primary-links";
@@ -67,5 +69,61 @@ describe("settlePrimary", () => {
     await expect(
       settlePrimary(tx, "person-teams", "person-1"),
     ).resolves.toBeUndefined();
+  });
+});
+
+const isLock = (statement: string) => /pg_advisory_xact_lock/.test(statement);
+const isDelete = (statement: string) => /delete from/.test(statement);
+
+describe("lock ordering", () => {
+  it("lockPrimaries takes each owner's lock once, in sorted order", async () => {
+    const { tx, statements } = fakeTx();
+
+    await lockPrimaries(tx, "person-teams", ["p-c", "p-a", "p-b", "p-a"]);
+
+    expect(statements).toHaveLength(3);
+    expect(statements[0]).toContain("primary:person-teams:p-a");
+    expect(statements[1]).toContain("primary:person-teams:p-b");
+    expect(statements[2]).toContain("primary:person-teams:p-c");
+  });
+
+  it("replaceLinks locks the owner before its first delete", async () => {
+    const { tx, statements } = fakeTx();
+
+    await replaceLinks(tx, "person-departments", "person-1", ["dept-a"]);
+
+    const firstDelete = statements.findIndex(isDelete);
+    const firstLock = statements.findIndex(isLock);
+    expect(firstLock).toBeGreaterThanOrEqual(0);
+    expect(firstLock).toBeLessThan(firstDelete);
+  });
+
+  it("replaceDepartmentMembers locks everyone affected, sorted, before changing links", async () => {
+    const statements: string[] = [];
+    const tx = {
+      execute: jest.fn(async (query: unknown) => {
+        const text = JSON.stringify(query);
+        statements.push(text);
+        // The department's current people, read before anything changes.
+        if (/as owner/.test(text)) return [{ owner: "p-z" }, { owner: "p-m" }];
+        return [];
+      }),
+    };
+
+    await replaceDepartmentMembers(
+      tx as never,
+      "person-departments",
+      "dept-1",
+      ["p-a", "p-m"],
+    );
+
+    const firstDelete = statements.findIndex(isDelete);
+    const locks = statements
+      .slice(0, firstDelete)
+      .filter(isLock)
+      .map(
+        (statement) => /primary:person-departments:(p-\w)/.exec(statement)?.[1],
+      );
+    expect(locks).toEqual(["p-a", "p-m", "p-z"]);
   });
 });

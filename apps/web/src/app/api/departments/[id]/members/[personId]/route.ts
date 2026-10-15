@@ -10,7 +10,7 @@ import {
   readJsonBody,
   requireUuidParam,
 } from "@/lib/api/http";
-import { settlePrimary } from "@/lib/api/primary-links";
+import { lockPrimaries, settlePrimary } from "@/lib/api/primary-links";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 
@@ -72,6 +72,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
   // The membership and their primary department change together or not at all.
   const membership = await getDb().transaction(async (tx) => {
+    // Lock before changing their rows, so settling can't deadlock.
+    await lockPrimaries(tx, "person-departments", [personId]);
     const [row] = await tx
       .insert(departmentPeople)
       .values({ departmentId: id, personId, role: parsed.data.role })
@@ -107,6 +109,8 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   if (!person) return jsonError(404, "Person not found");
 
   await getDb().transaction(async (tx) => {
+    // Lock before deleting, so settling can't deadlock with another removal.
+    await lockPrimaries(tx, "person-departments", [personId]);
     await tx
       .delete(departmentPeople)
       .where(

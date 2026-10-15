@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getDb } from "@/db";
-import { departments, teams } from "@/db/schema";
+import { departments, teamMembers, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
 import { isUniqueViolation } from "@/lib/api/db-errors";
@@ -18,6 +18,7 @@ import { findMissingInOrg } from "@/lib/api/org-refs";
 import {
   PrimaryNotLinkedError,
   replaceLinks,
+  lockPrimaries,
   settlePrimary,
 } from "@/lib/api/primary-links";
 
@@ -159,6 +160,30 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   });
   if (!existing) return jsonError(404, "Team not found");
 
-  await db.delete(teams).where(eq(teams.id, id));
+  // Deleting a team removes its membership rows, so anyone whose primary team
+  // it was is left with none. Lock them first (sorted, before any delete),
+  // remove the memberships, then give each remaining team a primary again.
+  await db.transaction(async (tx) => {
+    const members = await tx
+      .select({ personId: teamMembers.personId })
+      .from(teamMembers)
+      .where(eq(teamMembers.teamId, id));
+    await lockPrimaries(
+      tx,
+      "person-teams",
+      members.map((member) => member.personId),
+    );
+
+    const removed = await tx
+      .delete(teamMembers)
+      .where(eq(teamMembers.teamId, id))
+      .returning({ personId: teamMembers.personId });
+    await tx.delete(teams).where(eq(teams.id, id));
+
+    const affected = new Set(removed.map((member) => member.personId));
+    for (const personId of [...affected].sort()) {
+      await settlePrimary(tx, "person-teams", personId);
+    }
+  });
   return new NextResponse(null, { status: 204 });
 }

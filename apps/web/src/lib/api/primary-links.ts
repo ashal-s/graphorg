@@ -41,6 +41,23 @@ export class PrimaryNotLinkedError extends Error {
 }
 
 /**
+ * Takes the primary lock for each owner, in sorted order, and holds it until
+ * the transaction ends. Call it BEFORE changing any of their links: a writer
+ * that deletes a link first and locks afterwards can hold a row another
+ * transaction needs while waiting for a lock that transaction holds, which
+ * Postgres resolves by failing one of them with a deadlock.
+ */
+export async function lockPrimaries(
+  tx: Exec,
+  kind: LinkKind,
+  ownerIds: string[],
+): Promise<void> {
+  for (const ownerId of [...new Set(ownerIds)].sort()) {
+    await lockResource(tx, `primary:${kind}`, ownerId);
+  }
+}
+
+/**
  * Makes `ownerId` have exactly one primary link, if it has any links at all.
  * `primaryOtherId` picks it; without one, the current primary is kept, or the
  * first link (by id) becomes primary when there is none. Throws
@@ -60,7 +77,7 @@ export async function settlePrimary(
   // Two requests changing the same owner's links at once would each read the
   // old primary and then both set one, tripping the one-primary index. Hold
   // a lock on the owner until the caller's transaction ends.
-  await lockResource(tx, `primary:${kind}`, ownerId);
+  await lockPrimaries(tx, kind, [ownerId]);
 
   const rows = await tx.execute<{ other: string; is_primary: boolean }>(
     sql`select ${otherCol} as other, is_primary from ${t}
@@ -113,10 +130,12 @@ export async function replaceLinks(
   if (unique.length === 0) {
     // An empty set can't contain the requested primary.
     if (primaryOtherId) throw new PrimaryNotLinkedError();
-    await lockResource(tx, `primary:${kind}`, ownerId);
+    await lockPrimaries(tx, kind, [ownerId]);
     await tx.execute(sql`delete from ${t} where ${ownerCol} = ${ownerId}`);
     return;
   }
+  // Lock before the first delete, not after: see `lockPrimaries`.
+  await lockPrimaries(tx, kind, [ownerId]);
   const list = sql.join(
     unique.map((id) => sql`${id}::uuid`),
     sql`, `,
@@ -155,6 +174,12 @@ export async function replaceDepartmentMembers(
     ),
   ).map((row) => row.owner);
 
+  // Everyone whose links change, locked up front and in a fixed order so
+  // two requests can't each hold a row the other needs. Anyone who appears
+  // after the read above is locked by `settlePrimary` below.
+  const affected = [...new Set([...before, ...unique])].sort();
+  await lockPrimaries(tx, kind, affected);
+
   // Diff rather than delete-and-reinsert, so links that stay keep their flag.
   if (unique.length === 0) {
     await tx.execute(
@@ -177,8 +202,6 @@ export async function replaceDepartmentMembers(
   }
 
   // Added people may have no primary yet; removed ones may have lost theirs.
-  // Sorted, so concurrent updates lock the same owners in the same order.
-  const affected = [...new Set([...before, ...unique])].sort();
   for (const ownerId of affected) {
     await settlePrimary(tx, kind, ownerId);
   }
