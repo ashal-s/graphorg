@@ -6,7 +6,7 @@ import { getDb } from "@/db";
 import { people, teamMembers, teams } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { getSession } from "@/lib/auth/session";
-import { settlePrimary } from "@/lib/api/primary-links";
+import { lockPrimaries, settlePrimary } from "@/lib/api/primary-links";
 import {
   jsonError,
   jsonValidationError,
@@ -68,6 +68,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
   // The membership and their primary team change together or not at all.
   const membership = await getDb().transaction(async (tx) => {
+    // Lock before changing their rows, so settling can't deadlock.
+    await lockPrimaries(tx, "person-teams", [personId]);
     const [row] = await tx
       .insert(teamMembers)
       .values({ teamId: id, personId, teamRole: parsed.data.teamRole })
@@ -99,6 +101,8 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   if (!person) return jsonError(404, "Person not found");
 
   await getDb().transaction(async (tx) => {
+    // Lock before deleting, so settling can't deadlock with another removal.
+    await lockPrimaries(tx, "person-teams", [personId]);
     await tx
       .delete(teamMembers)
       .where(

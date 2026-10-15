@@ -6,16 +6,29 @@ import { DELETE, PUT } from "@/app/api/teams/[id]/members/[personId]/route";
 // jest.mock specifiers are plain strings, so they must be relative.
 const findFirstMock = jest.fn();
 const returningMock = jest.fn();
+// What the transaction did, in order, to check the lock comes first.
+const calls: string[] = [];
 jest.mock("../../../src/db", () => {
   const tx = {
-    insert: () => ({
-      values: () => ({
-        onConflictDoUpdate: () => ({ returning: returningMock }),
-      }),
-    }),
-    delete: () => ({ where: jest.fn() }),
+    insert: () => {
+      calls.push("insert");
+      return {
+        values: () => ({
+          onConflictDoUpdate: () => ({ returning: returningMock }),
+        }),
+      };
+    },
+    delete: () => {
+      calls.push("delete");
+      return { where: jest.fn() };
+    },
     // Locking and settling the person's primary team: no links, nothing to do.
-    execute: async () => [],
+    execute: async (query: unknown) => {
+      if (/pg_advisory_xact_lock/.test(JSON.stringify(query))) {
+        calls.push("lock");
+      }
+      return [];
+    },
   };
   return {
     getDb: () => ({
@@ -64,6 +77,14 @@ describe("PUT /api/teams/[id]/members/[personId]", () => {
     getSessionMock.mockReset();
   });
 
+  it("locks the person's primary before adding the membership", async () => {
+    getSessionMock.mockResolvedValue(session("editor"));
+    calls.length = 0;
+    await PUT(put({ teamRole: "lead" }), params());
+    expect(calls.indexOf("lock")).toBeGreaterThanOrEqual(0);
+    expect(calls.indexOf("lock")).toBeLessThan(calls.indexOf("insert"));
+  });
+
   it("rejects unauthenticated requests", async () => {
     getSessionMock.mockResolvedValue(null);
     const response = await PUT(put({ teamRole: "lead" }), params());
@@ -107,6 +128,16 @@ describe("DELETE /api/teams/[id]/members/[personId]", () => {
   beforeEach(() => {
     findFirstMock.mockReset().mockResolvedValue({ id: "found" });
     getSessionMock.mockReset().mockResolvedValue(session("editor"));
+  });
+
+  it("locks the person's primary before deleting the membership", async () => {
+    calls.length = 0;
+    await DELETE(
+      new Request("http://localhost/x", { method: "DELETE" }) as never,
+      params(),
+    );
+    expect(calls.indexOf("lock")).toBeGreaterThanOrEqual(0);
+    expect(calls.indexOf("lock")).toBeLessThan(calls.indexOf("delete"));
   });
 
   it("removes the membership", async () => {

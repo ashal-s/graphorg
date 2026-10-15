@@ -2,11 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
-import {
-  MAX_CONTEXT_CHARS,
-  MAX_HISTORY_CHARS,
-  trimHistory,
-} from "@/lib/ai/limits"; // new
+import { AI_NOT_CONFIGURED } from "@/lib/ai/errors";
+import { MAX_CONTEXT_CHARS, historyBudget, trimHistory } from "@/lib/ai/limits"; // new
 import { checkRateLimit } from "@/lib/ai/rate-limit";
 import { getSession } from "@/lib/auth/session";
 import { getEnv } from "@/lib/env";
@@ -34,7 +31,12 @@ export async function POST(request: NextRequest) {
 
   // 2. is AI configured?
   const env = getEnv();
-  if (!env.AI_WORKER_SECRET) return jsonError(503, "AI is not configured");
+  if (!env.AI_WORKER_SECRET) {
+    return NextResponse.json(
+      { error: "AI is not configured", code: AI_NOT_CONFIGURED },
+      { status: 503 },
+    );
+  }
 
   // 2b. is this user asking too fast?
   try {
@@ -94,7 +96,13 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         question,
         page_context: pageContext,
-        history: trimHistory(history, MAX_HISTORY_CHARS),
+        history: trimHistory(
+          history,
+          historyBudget({
+            contextChars: pageContext.length,
+            questionChars: question.length,
+          }),
+        ),
       }),
       signal: request.signal,
     });

@@ -3,6 +3,8 @@ import { and, eq, notInArray } from "drizzle-orm";
 import type { Database } from "@/db";
 import { teamMembers } from "@/db/schema";
 
+import { lockPrimaries } from "./primary-links";
+
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 /**
@@ -15,6 +17,10 @@ export async function setPersonTeams(
   teamIds: string[],
 ): Promise<void> {
   const unique = [...new Set(teamIds)];
+
+  // Before touching their rows, so the primary settling that follows can't
+  // deadlock with another request editing the same person.
+  await lockPrimaries(tx, "person-teams", [personId]);
 
   if (unique.length === 0) {
     await tx.delete(teamMembers).where(eq(teamMembers.personId, personId));

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SendHorizontal, Square, Trash2 } from "lucide-react";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +34,16 @@ export function AiChatPanel({
   chat: AiChat;
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
 }) {
-  const { messages, streaming, error, provider, send, stop, clear } = chat;
+  const {
+    messages,
+    streaming,
+    error,
+    setupNeeded,
+    provider,
+    send,
+    stop,
+    clear,
+  } = chat;
   const [draft, setDraft] = useState("");
   const scroller = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
@@ -44,7 +53,7 @@ export function AiChatPanel({
     if (element && stickToBottom.current) {
       element.scrollTop = element.scrollHeight;
     }
-  }, [messages, error]);
+  }, [messages, error, setupNeeded]);
 
   function submit(question: string) {
     const text = question.trim();
@@ -119,6 +128,36 @@ export function AiChatPanel({
           </div>
         ))}
 
+        {setupNeeded && (
+          <Alert>
+            <AlertTitle>
+              The AI assistant isn&apos;t set up on this deployment
+            </AlertTitle>
+            <AlertDescription>
+              <p>
+                The app is running, but there is no AI worker for it to talk to.
+                To enable the assistant:
+              </p>
+              <ol className="mt-2 list-decimal space-y-1 pl-5">
+                <li>
+                  Deploy the AI worker (<code>services/ai-worker</code>) and
+                  point it at a model, local or hosted.
+                </li>
+                <li>
+                  Set <code>AI_WORKER_URL</code> and{" "}
+                  <code>AI_WORKER_SECRET</code> on this app. The secret must
+                  match the worker&apos;s <code>INTERNAL_SECRET</code>.
+                </li>
+                <li>Redeploy this app, then ask again.</li>
+              </ol>
+              <p className="mt-2">
+                Full steps are in <code>docs/ai-local-setup.md</code> in the
+                repository.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
@@ -158,7 +197,7 @@ export function AiChatPanel({
             type="button"
             variant="ghost"
             size="sm"
-            disabled={messages.length === 0 && !error}
+            disabled={messages.length === 0 && !error && !setupNeeded}
             onClick={clear}
           >
             <Trash2 aria-hidden="true" />

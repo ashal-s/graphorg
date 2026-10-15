@@ -23,6 +23,13 @@ const LABEL = "Ask AI about this page";
  * and reopening it doesn't lose it.
  */
 export function AiChatButton({ scope }: { scope: ContextScope }) {
+  // Keyed by scope so a page that changes it without unmounting (the org
+  // chart's tabs) starts a fresh conversation instead of sending the old
+  // tab's turns as history alongside the new tab's data.
+  return <AiChatSheet key={JSON.stringify(scope)} scope={scope} />;
+}
+
+function AiChatSheet({ scope }: { scope: ContextScope }) {
   const [open, setOpen] = useState(false);
   const chat = useAiChat(scope);
   const input = useRef<HTMLTextAreaElement>(null);

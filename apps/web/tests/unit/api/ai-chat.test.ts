@@ -102,9 +102,12 @@ describe("POST /api/ai/chat", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("503s when the AI worker isn't configured", async () => {
+  it("503s when the AI worker isn't configured, with a code the UI can act on", async () => {
     getEnvMock.mockReturnValue({ AI_WORKER_URL: WORKER_URL });
-    expect((await post(validBody)).status).toBe(503);
+    const response = await post(validBody);
+    expect(response.status).toBe(503);
+    expect((await response.json()).code).toBe("ai_not_configured");
+    expect(checkRateLimitMock).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -232,6 +235,28 @@ describe("POST /api/ai/chat", () => {
       expect(response.status).toBe(413);
       expect((await response.json()).error).toMatch(/too much data/i);
       expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("gives history less room beside a large page", async () => {
+      const turns = (["a", "b", "c"] as const).map((letter, i) => ({
+        role: i % 2 === 0 ? ("user" as const) : ("assistant" as const),
+        content: letter.repeat(2_500),
+      }));
+
+      // Small page: all three turns (7,500 characters) fit.
+      await post({ ...validBody, history: turns });
+      const small = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(small.history).toHaveLength(3);
+
+      // A page near its cap leaves room for only two of them.
+      buildPageContextMock.mockResolvedValue({
+        page: "Big",
+        path: "/big",
+        data: { blob: "x".repeat(13_500) },
+      });
+      await post({ ...validBody, history: turns });
+      const large = JSON.parse(fetchMock.mock.calls[1][1].body);
+      expect(large.history).toEqual(turns.slice(1));
     });
 
     it("trims the oldest history instead of failing", async () => {

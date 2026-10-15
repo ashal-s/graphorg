@@ -91,6 +91,33 @@ describe("AiChatButton", () => {
     expect(screen.queryByText(/model$/)).not.toBeInTheDocument();
   });
 
+  it("starts a new conversation when the page's scope changes", async () => {
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce(sseResponse(['data: "About structure."\n\n']))
+      .mockResolvedValueOnce(sseResponse(['data: "About people."\n\n']));
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <AiChatButton scope={{ kind: "org-chart", tab: "structure" }} />,
+    );
+    await user.click(screen.getByRole("button", { name: /ask ai about/i }));
+    await user.type(screen.getByLabelText("Your question"), "First?");
+    await user.keyboard("{Enter}");
+    await screen.findByText("About structure.");
+
+    // Same component instance, new scope: what Next does on a tab change.
+    rerender(<AiChatButton scope={{ kind: "org-chart", tab: "people" }} />);
+    await user.click(screen.getByRole("button", { name: /ask ai about/i }));
+
+    expect(screen.queryByText("About structure.")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Your question"), "Second?");
+    await user.keyboard("{Enter}");
+    await screen.findByText("About people.");
+
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[1][1].body);
+    expect(body.scope).toEqual({ kind: "org-chart", tab: "people" });
+    expect(body.history).toEqual([]);
+  });
+
   it("sends earlier turns as history on the next question", async () => {
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce(sseResponse(['data: "Seven."\n\n']))
@@ -128,6 +155,48 @@ describe("AiChatButton", () => {
     ).toBeInTheDocument();
     // The unanswered placeholder is dropped; only the question remains.
     expect(screen.queryByText("Thinking…")).not.toBeInTheDocument();
+  });
+
+  it("explains how to set the assistant up when no worker is configured", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({
+        error: "AI is not configured",
+        code: "ai_not_configured",
+      }),
+    });
+    const user = await openPanel();
+
+    await user.type(screen.getByLabelText("Your question"), "Hello?");
+    await user.keyboard("{Enter}");
+
+    expect(
+      await screen.findByText(/isn.t set up on this deployment/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Deploy the AI worker/)).toBeInTheDocument();
+    expect(screen.getByText("AI_WORKER_URL")).toBeInTheDocument();
+    // Not presented as a failure of the request itself.
+    expect(screen.queryByText("AI is not configured")).not.toBeInTheDocument();
+  });
+
+  it("clears the setup instructions with the conversation", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: "x", code: "ai_not_configured" }),
+    });
+    const user = await openPanel();
+
+    await user.type(screen.getByLabelText("Your question"), "Hello?");
+    await user.keyboard("{Enter}");
+    await screen.findByText(/isn.t set up on this deployment/i);
+
+    await user.click(screen.getByRole("button", { name: /clear chat/i }));
+
+    expect(
+      screen.queryByText(/isn.t set up on this deployment/i),
+    ).not.toBeInTheDocument();
   });
 
   it("shows an error the worker sent mid-stream", async () => {
