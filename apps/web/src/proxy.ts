@@ -34,7 +34,9 @@ export default auth((req) => {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isAuthenticated && isPublicRoute) {
+  // Signed-in members can still open /signup to create another workspace;
+  // /login alone bounces them back into the app.
+  if (isAuthenticated && isPublicRoute && pathname !== "/signup") {
     return NextResponse.redirect(new URL("/", req.nextUrl));
   }
 

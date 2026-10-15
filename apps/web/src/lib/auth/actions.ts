@@ -8,22 +8,55 @@ import { redirect } from "next/navigation";
 import { signIn, signOut } from "@/auth";
 import { getDb } from "@/db";
 import { organizations, users } from "@/db/schema";
-import { loginSchema, signupSchema } from "@/lib/auth/schemas";
+import { resolveLoginWorkspaces } from "@/lib/auth/resolve-login";
+import {
+  loginCredentialsSchema,
+  loginSchema,
+  signupSchema,
+} from "@/lib/auth/schemas";
 import { slugify } from "@/lib/utils";
 
 export interface FormState {
   errors?: Record<string, string[]>;
   message?: string;
+  /** Set when email+password match more than one workspace: pick one to continue. */
+  workspaces?: Array<{ slug: string; name: string }>;
 }
 
 export async function login(
   _prevState: FormState | undefined,
   formData: FormData,
 ): Promise<FormState | undefined> {
-  const parsed = loginSchema.safeParse({
-    workspace: formData.get("workspace"),
+  const credentials = loginCredentialsSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+  });
+  if (!credentials.success) {
+    return { errors: credentials.error.flatten().fieldErrors };
+  }
+
+  const workspaceRaw = formData.get("workspace");
+  const workspaceHint =
+    typeof workspaceRaw === "string" ? workspaceRaw.trim().toLowerCase() : "";
+
+  let workspace = workspaceHint;
+  if (!workspace) {
+    const matches = await resolveLoginWorkspaces(
+      credentials.data.email,
+      credentials.data.password,
+    );
+    if (matches.length === 0) {
+      return { message: "Invalid email or password." };
+    }
+    if (matches.length > 1) {
+      return { workspaces: matches };
+    }
+    workspace = matches[0]!.slug;
+  }
+
+  const parsed = loginSchema.safeParse({
+    ...credentials.data,
+    workspace,
   });
   if (!parsed.success) {
     return { errors: parsed.error.flatten().fieldErrors };
@@ -34,7 +67,7 @@ export async function login(
   } catch (error) {
     if (error instanceof AuthError) {
       if (error.type === "CredentialsSignin") {
-        return { message: "Invalid workspace, email or password." };
+        return { message: "Invalid email or password." };
       }
       // Anything else (database down, missing AUTH_SECRET, ...) is our
       // fault, not the user's. Say so, and leave the cause in the logs
@@ -123,7 +156,7 @@ export async function signup(
 
 /**
  * Moves to another workspace: accounts belong to one organization each, so
- * this signs out and opens that workspace's sign-in with it pre-filled.
+ * this signs out and opens sign-in with that workspace pre-selected.
  */
 export async function switchWorkspace(slug: string) {
   const workspace = slugify(slug);

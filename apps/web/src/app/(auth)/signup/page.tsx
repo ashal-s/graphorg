@@ -28,7 +28,7 @@ export default function SignupPage() {
         </CardDescription>
       </CardHeader>
       <form action={action}>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-4 pb-(--card-spacing)">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="organizationName">Organisation name</Label>
             <Input

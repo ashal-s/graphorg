@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -69,11 +69,6 @@ export function WorkspaceBreadcrumb({
             </DropdownMenuLabel>
           </DropdownMenuGroup>
           <DropdownMenuItem onClick={() => router.push("/")}>
-            <OrganizationLogo
-              name={current.name}
-              logoUrl={current.logoUrl}
-              className="h-5 max-w-10 text-[10px]"
-            />
             <span className="min-w-0 flex-1 truncate font-medium">
               {current.name}
             </span>
@@ -85,14 +80,14 @@ export function WorkspaceBreadcrumb({
               key={workspace.slug}
               onClick={() => void switchWorkspace(workspace.slug)}
             >
-              <OrganizationLogo
-                name={workspace.name}
-                logoUrl={workspace.logoUrl}
-                className="h-5 max-w-10 text-[10px]"
-              />
               <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
             </DropdownMenuItem>
           ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => router.push("/signup")}>
+            <Plus aria-hidden="true" />
+            New Org
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </nav>

@@ -10,9 +10,10 @@ import { loginSchema } from "@/lib/auth/schemas";
 
 /**
  * Credentials-only, JWT sessions: no accounts/sessions tables, no adapter.
- * A workspace (organization) is identified by its slug, not guessed from
- * email, since `(organization_id, email)` is the unique key on `users` and
- * the same email can exist in more than one organization.
+ * Sign-in is email + password; the login action resolves which workspace
+ * when the same email exists in more than one organization (see
+ * `resolveLoginWorkspaces`). Authorize still receives a workspace slug so
+ * the JWT is bound to one `(organization_id, email)` row.
  *
  * `organizationName`/`organizationSlug` are set once, at sign-in, and are
  * NOT re-checked against the database on later requests: `getSession()`
