@@ -19,10 +19,19 @@ jest.mock("../../../../src/auth", () => ({
   signOut: jest.fn(),
 }));
 jest.mock("../../../../src/db", () => ({ getDb: jest.fn() }));
-jest.mock("../../../../src/lib/auth/resolve-login", () => ({
-  resolveLoginWorkspaces: (...args: unknown[]) =>
-    resolveLoginWorkspaces(...args),
-}));
+jest.mock("../../../../src/lib/auth/resolve-login", () => {
+  class TooManyLoginCandidatesError extends Error {
+    constructor() {
+      super("Too many login candidates for email");
+      this.name = "TooManyLoginCandidatesError";
+    }
+  }
+  return {
+    resolveLoginWorkspaces: (...args: unknown[]) =>
+      resolveLoginWorkspaces(...args),
+    TooManyLoginCandidatesError,
+  };
+});
 jest.mock("next/navigation", () => ({ redirect: jest.fn() }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -118,5 +127,18 @@ describe("login", () => {
     expect(state?.message).toMatch(/unavailable/i);
     expect(signIn).not.toHaveBeenCalled();
     expect(console.error).toHaveBeenCalled();
+  });
+
+  it("asks for a workspace when too many accounts share the email", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const {
+      TooManyLoginCandidatesError,
+    } = require("../../../../src/lib/auth/resolve-login");
+    resolveLoginWorkspaces.mockRejectedValue(new TooManyLoginCandidatesError());
+
+    const state = await login(undefined, form());
+
+    expect(state?.message).toMatch(/too many workspaces/i);
+    expect(signIn).not.toHaveBeenCalled();
   });
 });

@@ -8,7 +8,10 @@ import { redirect } from "next/navigation";
 import { signIn, signOut } from "@/auth";
 import { getDb } from "@/db";
 import { organizations, users } from "@/db/schema";
-import { resolveLoginWorkspaces } from "@/lib/auth/resolve-login";
+import {
+  resolveLoginWorkspaces,
+  TooManyLoginCandidatesError,
+} from "@/lib/auth/resolve-login";
 import {
   loginCredentialsSchema,
   loginSchema,
@@ -48,6 +51,12 @@ export async function login(
         credentials.data.password,
       );
     } catch (error) {
+      if (error instanceof TooManyLoginCandidatesError) {
+        return {
+          message:
+            "This email is linked to too many workspaces. Switch from a workspace you already use, or sign in with that workspace selected.",
+        };
+      }
       console.error("[auth] resolve login workspaces failed", error);
       return {
         message: "Sign-in is unavailable right now. Please try again later.",

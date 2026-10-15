@@ -4,6 +4,7 @@
 import {
   MAX_LOGIN_PASSWORD_CHECKS,
   resolveLoginWorkspaces,
+  TooManyLoginCandidatesError,
 } from "../../../../src/lib/auth/resolve-login";
 
 const compare = jest.fn();
@@ -41,7 +42,7 @@ describe("resolveLoginWorkspaces", () => {
     orderBy.mockReturnValue({ limit });
   });
 
-  it("caps the candidate query and only bcrypts that many rows", async () => {
+  it("asks for one more row than the bcrypt cap so overflow is detectable", async () => {
     const rows = Array.from({ length: MAX_LOGIN_PASSWORD_CHECKS }, (_, i) => ({
       passwordHash: `hash-${i}`,
       slug: `org-${i}`,
@@ -52,8 +53,25 @@ describe("resolveLoginWorkspaces", () => {
 
     await resolveLoginWorkspaces("a@example.com", "password-123");
 
-    expect(limit).toHaveBeenCalledWith(MAX_LOGIN_PASSWORD_CHECKS);
+    expect(limit).toHaveBeenCalledWith(MAX_LOGIN_PASSWORD_CHECKS + 1);
     expect(compare).toHaveBeenCalledTimes(MAX_LOGIN_PASSWORD_CHECKS);
+  });
+
+  it("refuses to truncate when more accounts exist than the cap", async () => {
+    const rows = Array.from(
+      { length: MAX_LOGIN_PASSWORD_CHECKS + 1 },
+      (_, i) => ({
+        passwordHash: `hash-${i}`,
+        slug: `org-${i}`,
+        name: `Org ${i}`,
+      }),
+    );
+    limit.mockResolvedValue(rows);
+
+    await expect(
+      resolveLoginWorkspaces("a@example.com", "password-123"),
+    ).rejects.toBeInstanceOf(TooManyLoginCandidatesError);
+    expect(compare).not.toHaveBeenCalled();
   });
 
   it("returns only the workspaces whose password matches", async () => {
