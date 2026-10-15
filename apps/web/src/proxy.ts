@@ -12,11 +12,21 @@ import { auth } from "@/auth";
  * should return 401/403, not an HTML redirect.
  */
 const PUBLIC_ROUTES = new Set(["/login", "/signup"]);
+/** Open to everyone; signed-out visitors also see it at `/`. */
+const LANDING_ROUTE = "/welcome";
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isAuthenticated = Boolean(req.auth);
   const isPublicRoute = PUBLIC_ROUTES.has(pathname);
+
+  if (pathname === LANDING_ROUTE) {
+    return NextResponse.next();
+  }
+
+  if (!isAuthenticated && pathname === "/") {
+    return NextResponse.rewrite(new URL(LANDING_ROUTE, req.nextUrl));
+  }
 
   if (!isAuthenticated && !isPublicRoute) {
     const loginUrl = new URL("/login", req.nextUrl);

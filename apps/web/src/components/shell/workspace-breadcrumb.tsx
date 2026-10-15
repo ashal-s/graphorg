@@ -40,7 +40,7 @@ export function WorkspaceBreadcrumb({
         href="/"
         className="flex shrink-0 items-center gap-2 rounded-md font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <GraphOrgMark className="size-5" />
+        <GraphOrgMark variant="plain" className="size-5" />
         <span className="hidden sm:inline">GraphOrg</span>
       </Link>
       <span className="text-muted-foreground/60" aria-hidden="true">

@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "GraphOrg",
   description:
-    "Company context platform for people, systems, tools, cloud, data and AI.",
+    "Company context for AI: people, systems, tools, cloud, data and workflows in one map.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
