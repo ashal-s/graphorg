@@ -29,6 +29,9 @@ export const users = pgTable(
   (table) => [
     unique().on(table.organizationId, table.email),
     index("users_organization_id_idx").on(table.organizationId),
+    // Email-only sign-in looks up every account for an address (see
+    // resolveLoginWorkspaces); the composite unique key does not help that path.
+    index("users_email_idx").on(table.email),
     check(
       "users_role_check",
       sql`${table.role} in ('owner', 'admin', 'editor', 'viewer')`,

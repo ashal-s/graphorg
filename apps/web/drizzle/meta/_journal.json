@@ -148,6 +148,13 @@
       "when": 1791792468200,
       "tag": "0020_backfill_primary_teams",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792085742992,
+      "tag": "0021_add_users_email_index",
+      "breakpoints": true
     }
   ]
 }
