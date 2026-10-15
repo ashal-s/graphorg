@@ -31,10 +31,13 @@ jest.mock("../../../../src/lib/auth/resolve-login", () => {
     resolveLoginWorkspaces: (...args: unknown[]) =>
       resolveLoginWorkspaces(...args),
     TooManyLoginCandidatesError,
-    MAX_LOGIN_PASSWORD_CHECKS: 10,
-    countAccountsForEmail: jest.fn().mockResolvedValue(0),
   };
 });
+const enforceLoginRateLimit = jest.fn();
+jest.mock("../../../../src/lib/auth/rate-limit", () => ({
+  enforceLoginRateLimit: (...args: unknown[]) => enforceLoginRateLimit(...args),
+  enforceSignupRateLimit: jest.fn().mockResolvedValue({ allowed: true }),
+}));
 jest.mock("next/navigation", () => ({ redirect: jest.fn() }));
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -56,7 +59,23 @@ describe("login", () => {
   beforeEach(() => {
     signIn.mockReset();
     resolveLoginWorkspaces.mockReset();
+    enforceLoginRateLimit.mockReset();
+    enforceLoginRateLimit.mockResolvedValue({ allowed: true });
     jest.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  it("stops before bcrypt work when the rate limit is hit", async () => {
+    enforceLoginRateLimit.mockResolvedValue({
+      allowed: false,
+      retryAfterSeconds: 42,
+    });
+
+    const state = await login(undefined, form());
+
+    expect(state?.message).toMatch(/too many sign-in attempts/i);
+    expect(state?.message).toMatch(/42/);
+    expect(resolveLoginWorkspaces).not.toHaveBeenCalled();
+    expect(signIn).not.toHaveBeenCalled();
   });
 
   it("blames the credentials only when they were wrong", async () => {

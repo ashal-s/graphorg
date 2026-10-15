@@ -9,8 +9,10 @@ import { signIn, signOut } from "@/auth";
 import { getDb } from "@/db";
 import { organizations, users } from "@/db/schema";
 import {
-  countAccountsForEmail,
-  MAX_LOGIN_PASSWORD_CHECKS,
+  enforceLoginRateLimit,
+  enforceSignupRateLimit,
+} from "@/lib/auth/rate-limit";
+import {
   resolveLoginWorkspaces,
   TooManyLoginCandidatesError,
 } from "@/lib/auth/resolve-login";
@@ -43,6 +45,13 @@ export async function login(
   });
   if (!credentials.success) {
     return { errors: credentials.error.flatten().fieldErrors };
+  }
+
+  const rate = await enforceLoginRateLimit(credentials.data.email);
+  if (!rate.allowed) {
+    return {
+      message: `Too many sign-in attempts. Try again in ${rate.retryAfterSeconds}s.`,
+    };
   }
 
   const workspaceRaw = formData.get("workspace");
@@ -124,6 +133,13 @@ export async function signup(
   }
   const { organizationName, name, email, password } = parsed.data;
 
+  const rate = await enforceSignupRateLimit(email);
+  if (!rate.allowed) {
+    return {
+      message: `Too many signup attempts. Try again in ${rate.retryAfterSeconds}s.`,
+    };
+  }
+
   const slug = slugify(organizationName);
   if (!slug) {
     return {
@@ -140,13 +156,6 @@ export async function signup(
   if (existing) {
     return {
       message: `The workspace "${slug}" already exists. Try a different organisation name.`,
-    };
-  }
-
-  const accountCount = await countAccountsForEmail(email);
-  if (accountCount >= MAX_LOGIN_PASSWORD_CHECKS) {
-    return {
-      message: `This email is already used in the maximum number of workspaces (${MAX_LOGIN_PASSWORD_CHECKS}). Sign in to an existing one instead.`,
     };
   }
 

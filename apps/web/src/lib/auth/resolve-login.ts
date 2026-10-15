@@ -78,13 +78,3 @@ export async function resolveLoginWorkspaces(
 
   return matches.sort((a, b) => a.name.localeCompare(b.name));
 }
-
-/** How many product accounts already use this email across organizations. */
-export async function countAccountsForEmail(email: string): Promise<number> {
-  const db = getDb();
-  const rows = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, email));
-  return rows.length;
-}
