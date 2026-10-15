@@ -8,25 +8,109 @@ import { redirect } from "next/navigation";
 import { signIn, signOut } from "@/auth";
 import { getDb } from "@/db";
 import { organizations, users } from "@/db/schema";
-import { loginSchema, signupSchema } from "@/lib/auth/schemas";
+import {
+  enforceLoginRateLimit,
+  enforceSignupRateLimit,
+} from "@/lib/auth/rate-limit";
+import {
+  resolveLoginWorkspaces,
+  TooManyLoginCandidatesError,
+} from "@/lib/auth/resolve-login";
+import {
+  loginCredentialsSchema,
+  loginSchema,
+  signupSchema,
+} from "@/lib/auth/schemas";
 import { slugify } from "@/lib/utils";
 
 export interface FormState {
   errors?: Record<string, string[]>;
   message?: string;
+  /** Set when email+password match more than one workspace: pick one to continue. */
+  workspaces?: Array<{ slug: string; name: string }>;
+  /**
+   * Email has more accounts than email-only sign-in will check: ask for the
+   * workspace slug on the form so a real account is never locked out.
+   */
+  needWorkspace?: boolean;
+}
+
+/** Keep overflow / picker UI so a bad password does not force a full restart. */
+function retainWorkspaceUi(
+  prev: FormState | undefined,
+): Pick<FormState, "needWorkspace" | "workspaces"> {
+  return {
+    ...(prev?.needWorkspace ? { needWorkspace: true } : {}),
+    ...(prev?.workspaces?.length ? { workspaces: prev.workspaces } : {}),
+  };
 }
 
 export async function login(
-  _prevState: FormState | undefined,
+  prevState: FormState | undefined,
   formData: FormData,
 ): Promise<FormState | undefined> {
-  const parsed = loginSchema.safeParse({
-    workspace: formData.get("workspace"),
+  const credentials = loginCredentialsSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
+  if (!credentials.success) {
+    return {
+      errors: credentials.error.flatten().fieldErrors,
+      ...retainWorkspaceUi(prevState),
+    };
+  }
+
+  const rate = await enforceLoginRateLimit(credentials.data.email);
+  if (!rate.allowed) {
+    return {
+      message: `Too many sign-in attempts. Try again in ${rate.retryAfterSeconds}s.`,
+      ...retainWorkspaceUi(prevState),
+    };
+  }
+
+  const workspaceRaw = formData.get("workspace");
+  const workspaceHint =
+    typeof workspaceRaw === "string" ? workspaceRaw.trim().toLowerCase() : "";
+
+  let workspace = workspaceHint;
+  if (!workspace) {
+    let matches;
+    try {
+      matches = await resolveLoginWorkspaces(
+        credentials.data.email,
+        credentials.data.password,
+      );
+    } catch (error) {
+      if (error instanceof TooManyLoginCandidatesError) {
+        return {
+          needWorkspace: true,
+          message:
+            "This email is linked to many workspaces. Enter the workspace slug to continue.",
+        };
+      }
+      console.error("[auth] resolve login workspaces failed", error);
+      return {
+        message: "Sign-in is unavailable right now. Please try again later.",
+      };
+    }
+    if (matches.length === 0) {
+      return { message: "Invalid email or password." };
+    }
+    if (matches.length > 1) {
+      return { workspaces: matches };
+    }
+    workspace = matches[0]!.slug;
+  }
+
+  const parsed = loginSchema.safeParse({
+    ...credentials.data,
+    workspace,
+  });
   if (!parsed.success) {
-    return { errors: parsed.error.flatten().fieldErrors };
+    return {
+      errors: parsed.error.flatten().fieldErrors,
+      ...retainWorkspaceUi(prevState),
+    };
   }
 
   try {
@@ -34,7 +118,10 @@ export async function login(
   } catch (error) {
     if (error instanceof AuthError) {
       if (error.type === "CredentialsSignin") {
-        return { message: "Invalid workspace, email or password." };
+        return {
+          message: "Invalid email or password.",
+          ...retainWorkspaceUi(prevState),
+        };
       }
       // Anything else (database down, missing AUTH_SECRET, ...) is our
       // fault, not the user's. Say so, and leave the cause in the logs
@@ -42,6 +129,7 @@ export async function login(
       console.error("[auth] sign-in failed", error.type, error.cause);
       return {
         message: "Sign-in is unavailable right now. Please try again later.",
+        ...retainWorkspaceUi(prevState),
       };
     }
     throw error;
@@ -65,6 +153,13 @@ export async function signup(
     return { errors: parsed.error.flatten().fieldErrors };
   }
   const { organizationName, name, email, password } = parsed.data;
+
+  const rate = await enforceSignupRateLimit(email);
+  if (!rate.allowed) {
+    return {
+      message: `Too many signup attempts. Try again in ${rate.retryAfterSeconds}s.`,
+    };
+  }
 
   const slug = slugify(organizationName);
   if (!slug) {
@@ -123,7 +218,7 @@ export async function signup(
 
 /**
  * Moves to another workspace: accounts belong to one organization each, so
- * this signs out and opens that workspace's sign-in with it pre-filled.
+ * this signs out and opens sign-in with that workspace pre-selected.
  */
 export async function switchWorkspace(slug: string) {
   const workspace = slugify(slug);

@@ -86,7 +86,17 @@ describe("WorkspaceBreadcrumb", () => {
     expect(
       screen.queryByText(/only in this workspace/i),
     ).not.toBeInTheDocument();
-    expect(screen.getAllByRole("menuitem")).toHaveLength(1);
+    expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+  });
+
+  it("offers new org after a section break", async () => {
+    const user = userEvent.setup();
+    render(<WorkspaceBreadcrumb current={current} others={[]} />);
+    await user.click(screen.getByRole("button", { name: /switch workspace/i }));
+
+    await user.click(await screen.findByRole("menuitem", { name: /new org/i }));
+
+    expect(pushMock).toHaveBeenCalledWith("/signup");
   });
 
   it("opens the overview when the current workspace is chosen", async () => {

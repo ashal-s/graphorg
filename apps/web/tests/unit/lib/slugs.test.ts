@@ -48,6 +48,7 @@ describe("firstFreeSlug", () => {
       "settings",
       "login",
       "signup",
+      "welcome",
       "api",
     ]) {
       expect(RESERVED_SLUGS.has(route)).toBe(true);

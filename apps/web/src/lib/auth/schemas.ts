@@ -1,9 +1,19 @@
 import { z } from "zod";
 
-export const loginSchema = z.object({
-  workspace: z.string().trim().min(1, "Workspace is required").toLowerCase(),
+/** What the sign-in form collects before a workspace is known. */
+export const loginCredentialsSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),
+});
+
+export type LoginCredentials = z.infer<typeof loginCredentialsSchema>;
+
+/**
+ * Credentials Auth.js authorize() accepts: email + password plus the
+ * workspace slug once it has been chosen (or was the only match).
+ */
+export const loginSchema = loginCredentialsSchema.extend({
+  workspace: z.string().trim().min(1, "Workspace is required").toLowerCase(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;

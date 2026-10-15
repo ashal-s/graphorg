@@ -1,15 +1,16 @@
 import { checkRateLimit } from "@/lib/ai/rate-limit";
 
 /**
- * A just-enough Redis: SET with EX/NX, INCR and TTL, with expiry driven by a
- * clock the test controls.
+ * A just-enough Redis: EVAL (INCR + EXPIRE when TTL missing) and TTL, with
+ * expiry driven by a clock the test controls.
  */
 let now = 0;
-const store = new Map<string, { value: number; expiresAt: number }>();
+const store = new Map<string, { value: number; expiresAt: number | null }>();
 
 function live(key: string) {
   const entry = store.get(key);
-  if (entry && entry.expiresAt <= now) {
+  if (!entry) return undefined;
+  if (entry.expiresAt !== null && entry.expiresAt <= now) {
     store.delete(key);
     return undefined;
   }
@@ -17,24 +18,36 @@ function live(key: string) {
 }
 
 const fakeRedis = {
-  set: jest.fn(
-    async (key: string, value: number, _ex: "EX", seconds: number) => {
-      if (live(key)) return null;
-      store.set(key, { value, expiresAt: now + seconds * 1000 });
-      return "OK";
+  eval: jest.fn(
+    async (
+      _script: string,
+      _numKeys: number,
+      key: string,
+      windowSeconds: number | string,
+    ) => {
+      const windowMs = Number(windowSeconds) * 1000;
+      let entry = live(key);
+      if (!entry) {
+        entry = { value: 0, expiresAt: null };
+        store.set(key, entry);
+      }
+      entry.value += 1;
+      // Mirror the Lua: attach a TTL whenever the key has none.
+      if (entry.expiresAt === null) {
+        entry.expiresAt = now + windowMs;
+      }
+      return entry.value;
     },
   ),
-  incr: jest.fn(async (key: string) => {
-    const entry = live(key);
-    if (!entry)
-      throw new Error("INCR on a missing key: SET NX should run first");
-    entry.value += 1;
-    return entry.value;
-  }),
   ttl: jest.fn(async (key: string) => {
     const entry = live(key);
-    return entry ? Math.ceil((entry.expiresAt - now) / 1000) : -2;
+    if (!entry) return -2;
+    if (entry.expiresAt === null) return -1;
+    return Math.ceil((entry.expiresAt - now) / 1000);
   }),
+  expire: jest.fn(),
+  set: jest.fn(),
+  incr: jest.fn(),
 };
 
 jest.mock("../../../../src/lib/redis", () => ({
@@ -84,10 +97,26 @@ describe("checkRateLimit", () => {
     expect(other.allowed).toBe(true);
   });
 
-  it("sets the expiry when the counter is created, not in a second step", async () => {
+  it("increments and expires atomically via EVAL", async () => {
     await checkRateLimit(OPTS);
 
-    expect(fakeRedis.set).toHaveBeenCalledWith(OPTS.key, 0, "EX", 60, "NX");
+    expect(fakeRedis.eval).toHaveBeenCalledWith(
+      expect.stringContaining("INCR"),
+      1,
+      OPTS.key,
+      60,
+    );
+    expect(store.get(OPTS.key)?.expiresAt).toBe(60_000);
+  });
+
+  it("restores expiry on a persistent orphan counter", async () => {
+    store.set(OPTS.key, { value: 3, expiresAt: null });
+
+    const result = await checkRateLimit(OPTS);
+
+    expect(result.allowed).toBe(false);
+    expect(store.get(OPTS.key)?.expiresAt).toBe(60_000);
+    expect(result.retryAfterSeconds).toBe(60);
   });
 
   it("never reports a retry time below one second", async () => {
