@@ -11,29 +11,18 @@ const SIGNUP_EMAIL_LIMIT = 3;
 const SIGNUP_WINDOW_SECONDS = 60 * 60;
 
 /**
- * Client address for rate-limit buckets. Only uses platform / trusted-proxy
- * values — never the leftmost X-Forwarded-For hop, which a client can forge.
+ * Client address from a platform header only. Client-supplied
+ * X-Forwarded-For / X-Real-IP are ignored — without a configured trusted
+ * proxy boundary they are attacker-controlled on a direct deployment.
  */
-export function clientIpFromHeaders(headerStore: Headers): string {
+export function clientIpFromHeaders(headerStore: Headers): string | null {
   // Vercel sets this itself; it is not taken from a client-supplied header.
   const vercel = headerStore.get("x-vercel-forwarded-for");
   if (vercel) {
     const hop = vercel.split(",")[0]?.trim();
     if (hop) return hop;
   }
-
-  // One trusted reverse proxy that appends: the rightmost hop is what it saw.
-  const forwarded = headerStore.get("x-forwarded-for");
-  if (forwarded) {
-    const hops = forwarded
-      .split(",")
-      .map((part) => part.trim())
-      .filter(Boolean);
-    const trusted = hops.at(-1);
-    if (trusted) return trusted;
-  }
-
-  return "unknown";
+  return null;
 }
 
 async function enforce(
@@ -64,33 +53,41 @@ async function enforce(
 /** Throttles email-only and workspace login before expensive bcrypt work. */
 export async function enforceLoginRateLimit(email: string) {
   const ip = clientIpFromHeaders(await headers());
-  return enforce([
-    {
-      key: `auth:login:ip:${ip}`,
-      limit: LOGIN_IP_LIMIT,
-      windowSeconds: LOGIN_WINDOW_SECONDS,
-    },
+  const checks: Array<{ key: string; limit: number; windowSeconds: number }> = [
     {
       key: `auth:login:email:${email}`,
       limit: LOGIN_EMAIL_LIMIT,
       windowSeconds: LOGIN_WINDOW_SECONDS,
     },
-  ]);
+  ];
+  // Skip the IP bucket when no trusted address exists — a shared "unknown"
+  // key would lock out every user after a few attempts.
+  if (ip) {
+    checks.push({
+      key: `auth:login:ip:${ip}`,
+      limit: LOGIN_IP_LIMIT,
+      windowSeconds: LOGIN_WINDOW_SECONDS,
+    });
+  }
+  return enforce(checks);
 }
 
 /** Throttles public signup so unverified emails cannot flood workspaces. */
 export async function enforceSignupRateLimit(email: string) {
   const ip = clientIpFromHeaders(await headers());
-  return enforce([
-    {
-      key: `auth:signup:ip:${ip}`,
-      limit: SIGNUP_IP_LIMIT,
-      windowSeconds: SIGNUP_WINDOW_SECONDS,
-    },
+  const checks: Array<{ key: string; limit: number; windowSeconds: number }> = [
     {
       key: `auth:signup:email:${email}`,
       limit: SIGNUP_EMAIL_LIMIT,
       windowSeconds: SIGNUP_WINDOW_SECONDS,
     },
-  ]);
+  ];
+  if (ip) {
+    checks.push({
+      key: `auth:signup:ip:${ip}`,
+      limit: SIGNUP_IP_LIMIT,
+      windowSeconds: SIGNUP_WINDOW_SECONDS,
+    });
+  }
+  return enforce(checks);
 }
