@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 import { login } from "../../../../src/lib/auth/actions";
+import { TooManyLoginCandidatesError } from "../../../../src/lib/auth/resolve-login";
 
 const signIn = jest.fn();
 const resolveLoginWorkspaces = jest.fn();
@@ -130,10 +131,6 @@ describe("login", () => {
   });
 
   it("asks for a workspace when too many accounts share the email", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const {
-      TooManyLoginCandidatesError,
-    } = require("../../../../src/lib/auth/resolve-login");
     resolveLoginWorkspaces.mockRejectedValue(new TooManyLoginCandidatesError());
 
     const state = await login(undefined, form());
