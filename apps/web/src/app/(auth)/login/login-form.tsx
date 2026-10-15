@@ -31,9 +31,12 @@ export function LoginForm({
   // response (uncontrolled fields reset when the form action settles).
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [workspaceSlug, setWorkspaceSlug] = useState(workspace);
 
   const workspaces = state?.workspaces;
   const choosingWorkspace = Boolean(workspaces && workspaces.length > 1);
+  const needWorkspaceField =
+    Boolean(state?.needWorkspace) || Boolean(workspace);
   // Prefer the user's click; otherwise the first match (no effect needed).
   const selectedWorkspace =
     choosingWorkspace && workspaces
@@ -49,7 +52,9 @@ export function LoginForm({
         <CardDescription>
           {choosingWorkspace
             ? "That email belongs to more than one workspace. Choose which one to open."
-            : "Enter your email and password."}
+            : state?.needWorkspace
+              ? "Enter your workspace slug, email and password."
+              : "Enter your email and password."}
         </CardDescription>
       </CardHeader>
       <form action={action}>
@@ -82,8 +87,24 @@ export function LoginForm({
                 ))}
               </fieldset>
             </>
-          ) : workspace ? (
-            <input type="hidden" name="workspace" value={workspace} />
+          ) : needWorkspaceField ? (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="workspace">Workspace</Label>
+              <Input
+                id="workspace"
+                name="workspace"
+                value={workspaceSlug}
+                onChange={(event) => setWorkspaceSlug(event.target.value)}
+                placeholder="acme"
+                autoComplete="organization"
+                required={Boolean(state?.needWorkspace)}
+              />
+              {state?.errors?.workspace && (
+                <p className="text-xs text-destructive">
+                  {state.errors.workspace[0]}
+                </p>
+              )}
+            </div>
           ) : null}
           <div
             className={cn(

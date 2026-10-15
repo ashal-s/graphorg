@@ -9,6 +9,8 @@ import { signIn, signOut } from "@/auth";
 import { getDb } from "@/db";
 import { organizations, users } from "@/db/schema";
 import {
+  countAccountsForEmail,
+  MAX_LOGIN_PASSWORD_CHECKS,
   resolveLoginWorkspaces,
   TooManyLoginCandidatesError,
 } from "@/lib/auth/resolve-login";
@@ -24,6 +26,11 @@ export interface FormState {
   message?: string;
   /** Set when email+password match more than one workspace: pick one to continue. */
   workspaces?: Array<{ slug: string; name: string }>;
+  /**
+   * Email has more accounts than email-only sign-in will check: ask for the
+   * workspace slug on the form so a real account is never locked out.
+   */
+  needWorkspace?: boolean;
 }
 
 export async function login(
@@ -53,8 +60,9 @@ export async function login(
     } catch (error) {
       if (error instanceof TooManyLoginCandidatesError) {
         return {
+          needWorkspace: true,
           message:
-            "This email is linked to too many workspaces. Switch from a workspace you already use, or sign in with that workspace selected.",
+            "This email is linked to many workspaces. Enter the workspace slug to continue.",
         };
       }
       console.error("[auth] resolve login workspaces failed", error);
@@ -132,6 +140,13 @@ export async function signup(
   if (existing) {
     return {
       message: `The workspace "${slug}" already exists. Try a different organisation name.`,
+    };
+  }
+
+  const accountCount = await countAccountsForEmail(email);
+  if (accountCount >= MAX_LOGIN_PASSWORD_CHECKS) {
+    return {
+      message: `This email is already used in the maximum number of workspaces (${MAX_LOGIN_PASSWORD_CHECKS}). Sign in to an existing one instead.`,
     };
   }
 

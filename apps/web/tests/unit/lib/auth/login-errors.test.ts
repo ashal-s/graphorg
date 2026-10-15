@@ -31,6 +31,8 @@ jest.mock("../../../../src/lib/auth/resolve-login", () => {
     resolveLoginWorkspaces: (...args: unknown[]) =>
       resolveLoginWorkspaces(...args),
     TooManyLoginCandidatesError,
+    MAX_LOGIN_PASSWORD_CHECKS: 10,
+    countAccountsForEmail: jest.fn().mockResolvedValue(0),
   };
 });
 jest.mock("next/navigation", () => ({ redirect: jest.fn() }));
@@ -135,7 +137,8 @@ describe("login", () => {
 
     const state = await login(undefined, form());
 
-    expect(state?.message).toMatch(/too many workspaces/i);
+    expect(state?.needWorkspace).toBe(true);
+    expect(state?.message).toMatch(/workspace slug/i);
     expect(signIn).not.toHaveBeenCalled();
   });
 });

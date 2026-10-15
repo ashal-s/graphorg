@@ -17,6 +17,13 @@ export interface LoginWorkspace {
  */
 export const MAX_LOGIN_PASSWORD_CHECKS = 10;
 
+/**
+ * Valid bcrypt hash of a fixed string. Used so unknown emails still pay one
+ * comparison and cannot be enumerated by response timing alone.
+ */
+const DUMMY_PASSWORD_HASH =
+  "$2b$10$aXgB0zEOcV5cWbukwuoUQuUztemZWE8MS9lxbJ5OkH3oTRyPp5IYq";
+
 /** Thrown when email-only login would need more than {@link MAX_LOGIN_PASSWORD_CHECKS} candidates. */
 export class TooManyLoginCandidatesError extends Error {
   constructor() {
@@ -31,9 +38,9 @@ export class TooManyLoginCandidatesError extends Error {
  * password unlocks are returned.
  *
  * Caps work at {@link MAX_LOGIN_PASSWORD_CHECKS}. If more accounts exist for
- * the email, throws {@link TooManyLoginCandidatesError} instead of silently
- * ignoring newer rows (which would lock out a real account after an email
- * flood). Callers that already know the workspace should skip this helper.
+ * the email, throws {@link TooManyLoginCandidatesError} so the login form can
+ * ask for a workspace slug instead of silently dropping newer rows. Callers
+ * that already know the workspace should skip this helper.
  */
 export async function resolveLoginWorkspaces(
   email: string,
@@ -56,6 +63,11 @@ export async function resolveLoginWorkspaces(
     throw new TooManyLoginCandidatesError();
   }
 
+  if (rows.length === 0) {
+    await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+    return [];
+  }
+
   const matches: LoginWorkspace[] = [];
   for (const row of rows) {
     if (await bcrypt.compare(password, row.passwordHash)) {
@@ -64,4 +76,14 @@ export async function resolveLoginWorkspaces(
   }
 
   return matches.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** How many product accounts already use this email across organizations. */
+export async function countAccountsForEmail(email: string): Promise<number> {
+  const db = getDb();
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email));
+  return rows.length;
 }

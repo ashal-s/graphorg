@@ -74,6 +74,16 @@ describe("resolveLoginWorkspaces", () => {
     expect(compare).not.toHaveBeenCalled();
   });
 
+  it("still runs a password compare when the email is unknown", async () => {
+    limit.mockResolvedValue([]);
+    compare.mockResolvedValue(false);
+
+    await expect(
+      resolveLoginWorkspaces("missing@example.com", "password-123"),
+    ).resolves.toEqual([]);
+    expect(compare).toHaveBeenCalledTimes(1);
+  });
+
   it("returns only the workspaces whose password matches", async () => {
     limit.mockResolvedValue([
       { passwordHash: "a", slug: "acme", name: "Acme" },
