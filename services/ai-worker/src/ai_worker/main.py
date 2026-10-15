@@ -7,9 +7,11 @@ this service has no public HTTP surface once deployed.
 """
 
 from fastapi import FastAPI
+from ai_worker.chat import router as chat_router
 
 app = FastAPI(title="GraphOrg AI Worker")
 
+app.include_router(chat_router)
 
 @app.get("/health")
 def health() -> dict[str, str]:

@@ -58,4 +58,63 @@ describe("envSchema", () => {
       expect(result.data.NODE_ENV).toBe("development");
     }
   });
+
+  it("treats the AI worker settings as optional", () => {
+    const result = envSchema.safeParse({
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.AI_WORKER_URL).toBe("http://localhost:8001");
+      expect(result.data.AI_WORKER_SECRET).toBeUndefined();
+    }
+  });
+
+  it("defaults the AI rate limit and reads it from a string", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    const defaulted = envSchema.safeParse(base);
+    const fromEnv = envSchema.safeParse({
+      ...base,
+      AI_RATE_LIMIT_PER_MINUTE: "3",
+    });
+
+    expect(defaulted.success && defaulted.data.AI_RATE_LIMIT_PER_MINUTE).toBe(
+      20,
+    );
+    expect(fromEnv.success && fromEnv.data.AI_RATE_LIMIT_PER_MINUTE).toBe(3);
+  });
+
+  it("rejects a zero or fractional AI rate limit", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(
+      envSchema.safeParse({ ...base, AI_RATE_LIMIT_PER_MINUTE: "0" }).success,
+    ).toBe(false);
+    expect(
+      envSchema.safeParse({ ...base, AI_RATE_LIMIT_PER_MINUTE: "2.5" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an AI_WORKER_URL that isn't a URL", () => {
+    const result = envSchema.safeParse({
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+      AI_WORKER_URL: "not-a-url",
+    });
+
+    expect(result.success).toBe(false);
+  });
 });

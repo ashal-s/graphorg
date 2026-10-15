@@ -31,6 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AiChatButton } from "@/components/shared/ai-chat-button";
 import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -580,7 +581,12 @@ export function WorkflowBuilder({
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {mode === "edit" && workflow?.id && (
-            <CopyContextButton scope={{ kind: "workflow", id: workflow.id }} />
+            <>
+              <AiChatButton scope={{ kind: "workflow", id: workflow.id }} />
+              <CopyContextButton
+                scope={{ kind: "workflow", id: workflow.id }}
+              />
+            </>
           )}
           {!readOnly && (
             <Button type="submit" disabled={!canSave} className="h-8 px-3">
@@ -663,7 +669,7 @@ export function WorkflowBuilder({
         {/* Canvas */}
         <div className="relative min-w-0 flex-1 overflow-auto bg-background">
           <div
-            className="absolute inset-0 bg-background [background-image:radial-gradient(circle,var(--border)_1px,transparent_1px)] [background-size:20px_20px]"
+            className="absolute inset-0 bg-background bg-[radial-gradient(circle,var(--border)_1px,transparent_1px)] bg-size-[20px_20px]"
             aria-hidden="true"
           />
           <div
@@ -777,7 +783,7 @@ export function WorkflowBuilder({
         </div>
 
         {/* Right sidebar */}
-        <aside className="flex w-[360px] shrink-0 flex-col border-l border-border bg-background">
+        <aside className="flex w-90 shrink-0 flex-col border-l border-border bg-background">
           <div className="flex h-12 shrink-0 items-center border-b border-border px-4">
             <h2 className="text-sm font-semibold text-foreground">
               {panelTitle}
