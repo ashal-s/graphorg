@@ -132,6 +132,35 @@ describe("login", () => {
     expect(state?.message).toMatch(/invalid email or password/i);
   });
 
+  it("keeps the workspace slug field after a bad password in overflow mode", async () => {
+    const error = new AuthError("bad credentials");
+    error.type = "CredentialsSignin";
+    signIn.mockRejectedValue(error);
+
+    const state = await login(
+      { needWorkspace: true },
+      form({ workspace: "acme" }),
+    );
+
+    expect(state?.needWorkspace).toBe(true);
+    expect(state?.message).toMatch(/invalid email or password/i);
+  });
+
+  it("keeps the workspace picker after a bad password", async () => {
+    const error = new AuthError("bad credentials");
+    error.type = "CredentialsSignin";
+    signIn.mockRejectedValue(error);
+    const workspaces = [
+      { slug: "acme", name: "Acme" },
+      { slug: "globex", name: "Globex" },
+    ];
+
+    const state = await login({ workspaces }, form({ workspace: "acme" }));
+
+    expect(state?.workspaces).toEqual(workspaces);
+    expect(state?.message).toMatch(/invalid email or password/i);
+  });
+
   it("does not blame the credentials for a server fault", async () => {
     signIn.mockRejectedValue(new AuthError("db down"));
 

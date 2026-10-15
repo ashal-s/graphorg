@@ -35,8 +35,18 @@ export interface FormState {
   needWorkspace?: boolean;
 }
 
+/** Keep overflow / picker UI so a bad password does not force a full restart. */
+function retainWorkspaceUi(
+  prev: FormState | undefined,
+): Pick<FormState, "needWorkspace" | "workspaces"> {
+  return {
+    ...(prev?.needWorkspace ? { needWorkspace: true } : {}),
+    ...(prev?.workspaces?.length ? { workspaces: prev.workspaces } : {}),
+  };
+}
+
 export async function login(
-  _prevState: FormState | undefined,
+  prevState: FormState | undefined,
   formData: FormData,
 ): Promise<FormState | undefined> {
   const credentials = loginCredentialsSchema.safeParse({
@@ -44,13 +54,17 @@ export async function login(
     password: formData.get("password"),
   });
   if (!credentials.success) {
-    return { errors: credentials.error.flatten().fieldErrors };
+    return {
+      errors: credentials.error.flatten().fieldErrors,
+      ...retainWorkspaceUi(prevState),
+    };
   }
 
   const rate = await enforceLoginRateLimit(credentials.data.email);
   if (!rate.allowed) {
     return {
       message: `Too many sign-in attempts. Try again in ${rate.retryAfterSeconds}s.`,
+      ...retainWorkspaceUi(prevState),
     };
   }
 
@@ -93,7 +107,10 @@ export async function login(
     workspace,
   });
   if (!parsed.success) {
-    return { errors: parsed.error.flatten().fieldErrors };
+    return {
+      errors: parsed.error.flatten().fieldErrors,
+      ...retainWorkspaceUi(prevState),
+    };
   }
 
   try {
@@ -101,7 +118,10 @@ export async function login(
   } catch (error) {
     if (error instanceof AuthError) {
       if (error.type === "CredentialsSignin") {
-        return { message: "Invalid email or password." };
+        return {
+          message: "Invalid email or password.",
+          ...retainWorkspaceUi(prevState),
+        };
       }
       // Anything else (database down, missing AUTH_SECRET, ...) is our
       // fault, not the user's. Say so, and leave the cause in the logs
@@ -109,6 +129,7 @@ export async function login(
       console.error("[auth] sign-in failed", error.type, error.cause);
       return {
         message: "Sign-in is unavailable right now. Please try again later.",
+        ...retainWorkspaceUi(prevState),
       };
     }
     throw error;
