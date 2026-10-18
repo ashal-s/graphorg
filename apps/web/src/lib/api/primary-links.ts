@@ -79,11 +79,13 @@ export async function settlePrimary(
   // a lock on the owner until the caller's transaction ends.
   await lockPrimaries(tx, kind, [ownerId]);
 
-  const rows = await tx.execute<{ other: string; is_primary: boolean }>(
+  const { rows: links } = await tx.execute<{
+    other: string;
+    is_primary: boolean;
+  }>(
     sql`select ${otherCol} as other, is_primary from ${t}
         where ${ownerCol} = ${ownerId} order by ${otherCol}`,
   );
-  const links = Array.from(rows);
   if (links.length === 0) {
     // Nothing to be primary of: a requested primary can't be honoured.
     if (primaryOtherId) throw new PrimaryNotLinkedError();
@@ -168,11 +170,10 @@ export async function replaceDepartmentMembers(
   const ownerCol = sql.identifier(owner);
   const unique = [...new Set(ownerIds)];
 
-  const before = Array.from(
-    await tx.execute<{ owner: string }>(
-      sql`select ${ownerCol} as owner from ${t} where department_id = ${departmentId}`,
-    ),
-  ).map((row) => row.owner);
+  const { rows: beforeRows } = await tx.execute<{ owner: string }>(
+    sql`select ${ownerCol} as owner from ${t} where department_id = ${departmentId}`,
+  );
+  const before = beforeRows.map((row) => row.owner);
 
   // Everyone whose links change, locked up front and in a fixed order so
   // two requests can't each hold a row the other needs. Anyone who appears

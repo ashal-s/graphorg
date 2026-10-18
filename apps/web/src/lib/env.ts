@@ -4,7 +4,12 @@ export const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
+  // App traffic: Neon *pooled* URL (`-pooler` in the host) on Vercel.
   DATABASE_URL: z.string().url(),
+  // Migrations / drizzle-kit / pg_dump: Neon *direct* URL. Optional locally
+  // (same as DATABASE_URL for Docker Postgres). Required in production if
+  // DATABASE_URL is pooled — PgBouncer transaction mode breaks some DDL.
+  DATABASE_URL_UNPOOLED: z.string().url().optional(),
   REDIS_URL: z.string().url(),
   AUTH_SECRET: z.string().min(32),
   AI_WORKER_URL: z.string().url().default("http://localhost:8001"),
