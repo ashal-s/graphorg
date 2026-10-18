@@ -18,7 +18,7 @@ jest.mock("../../../src/db", () => {
     }),
     delete: () => ({ where: jest.fn() }),
     // Locking and settling the person's primary department: nothing to do.
-    execute: async () => [],
+    execute: async () => ({ rows: [] }),
   };
   return {
     getDb: () => ({

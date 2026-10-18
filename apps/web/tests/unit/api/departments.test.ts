@@ -16,7 +16,7 @@ jest.mock("../../../src/db", () => {
   const tx = {
     execute: async () => {
       order.push("lock");
-      return [];
+      return { rows: [] };
     },
     select: () => ({
       from: () => ({

@@ -24,7 +24,7 @@ jest.mock("../../../src/db", () => {
   // Built lazily: the mocks below are initialised after this factory is hoisted.
   const makeTx = () => ({
     // The slug lock taken while picking the new person's slug.
-    execute: async () => [],
+    execute: async () => ({ rows: [] }),
     query: {
       people: { findFirst: personFindFirstMock },
       teams: { findFirst: async () => undefined },

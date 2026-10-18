@@ -9,6 +9,11 @@ import {
   settlePrimary,
 } from "@/lib/api/primary-links";
 
+// node-postgres / drizzle return `{ rows }` from execute, not a bare array.
+function asResult<T>(rows: T[]) {
+  return { rows };
+}
+
 // A transaction that records the SQL it runs and answers selects with `rows`.
 function fakeTx(rows: Array<{ other: string; is_primary: boolean }> = []) {
   const statements: string[] = [];
@@ -16,7 +21,7 @@ function fakeTx(rows: Array<{ other: string; is_primary: boolean }> = []) {
     execute: jest.fn(async (query: { queryChunks?: unknown[] }) => {
       const text = JSON.stringify(query);
       statements.push(text);
-      return /select .*as other/.test(text) ? rows : [];
+      return asResult(/select .*as other/.test(text) ? rows : []);
     }),
   };
   return { tx: tx as never, statements, execute: tx.execute };
@@ -105,8 +110,10 @@ describe("lock ordering", () => {
         const text = JSON.stringify(query);
         statements.push(text);
         // The department's current people, read before anything changes.
-        if (/as owner/.test(text)) return [{ owner: "p-z" }, { owner: "p-m" }];
-        return [];
+        if (/as owner/.test(text)) {
+          return asResult([{ owner: "p-z" }, { owner: "p-m" }]);
+        }
+        return asResult([]);
       }),
     };
 
