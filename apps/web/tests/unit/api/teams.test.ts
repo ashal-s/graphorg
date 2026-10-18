@@ -22,7 +22,7 @@ jest.mock("../../../src/db", () => {
       },
       insert: () => ({ values: valuesMock }),
       // Raw SQL for department links: no rows, nothing to settle.
-      execute: async () => [],
+      execute: async () => ({ rows: [] }),
       transaction: async (run: (tx: unknown) => unknown) => run(db),
     };
     return db;

@@ -1,13 +1,23 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { attachDatabasePool } from "@vercel/functions";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 
 import { getEnv } from "@/lib/env";
 
 import * as schema from "./schema";
 
 function createDb() {
-  const client = postgres(getEnv().DATABASE_URL);
-  return drizzle(client, { schema, casing: "snake_case" });
+  // Neon pooled URL in production (host contains `-pooler`). Fluid shares
+  // this module across concurrent invocations, so keep max > 1 to allow
+  // Promise.all fan-out and avoid head-of-line blocking. PgBouncer still
+  // multiplexes; attachDatabasePool closes idle clients before suspend.
+  const pool = new Pool({
+    connectionString: getEnv().DATABASE_URL,
+    max: 10,
+    idleTimeoutMillis: 20_000,
+  });
+  attachDatabasePool(pool);
+  return drizzle({ client: pool, schema, casing: "snake_case" });
 }
 
 export type Database = ReturnType<typeof createDb>;

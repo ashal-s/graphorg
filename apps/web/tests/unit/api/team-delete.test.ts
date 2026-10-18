@@ -43,7 +43,7 @@ jest.mock("../../../src/db", () => {
           const owner = /"(p-[a-z])"/.exec(text);
           events.push(`settle ${owner?.[1] ?? "?"}`);
         }
-        return [];
+        return { rows: [] };
       },
     };
     return {

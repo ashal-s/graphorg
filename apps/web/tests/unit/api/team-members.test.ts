@@ -27,7 +27,7 @@ jest.mock("../../../src/db", () => {
       if (/pg_advisory_xact_lock/.test(JSON.stringify(query))) {
         calls.push("lock");
       }
-      return [];
+      return { rows: [] };
     },
   };
   return {
