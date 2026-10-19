@@ -58,7 +58,7 @@ export default async function DirectoryPage() {
         >
           {departmentRows.length > 0 ? (
             <span className="flex flex-wrap gap-1.5">
-              {departmentRows.map((department) => (
+              {departmentRows.slice(0, 4).map((department) => (
                 <TeamChip
                   key={department.id}
                   team={{
@@ -67,6 +67,11 @@ export default async function DirectoryPage() {
                   }}
                 />
               ))}
+              {departmentRows.length > 4 && (
+                <span className="px-1 py-0.5 text-xs font-medium text-muted-foreground">
+                  +{departmentRows.length - 4} more
+                </span>
+              )}
             </span>
           ) : (
             <span className="text-xs text-muted-foreground">
