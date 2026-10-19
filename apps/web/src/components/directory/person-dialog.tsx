@@ -29,6 +29,7 @@ import {
   SearchableMultiSelect,
   SearchableSelect,
 } from "@/components/ui/searchable-select";
+import { messageFromApiError } from "@/lib/api/client-error";
 
 /** "jordan@acme.com" -> the part before the "@" and the "@…" after it. */
 function splitEmail(email: string): { username: string; domain: string } {
@@ -199,17 +200,7 @@ export function PersonDialog({
 
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      const fieldErrors = body?.details as
-        Record<string, string[] | undefined> | undefined;
-      const firstFieldError = fieldErrors
-        ? Object.values(fieldErrors).flat()[0]
-        : undefined;
-      setError(
-        firstFieldError ??
-          (typeof body?.error === "string"
-            ? body.error
-            : "Something went wrong. Please try again."),
-      );
+      setError(messageFromApiError(body));
       return;
     }
 

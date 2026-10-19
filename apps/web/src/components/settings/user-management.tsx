@@ -24,6 +24,7 @@ import {
 import { SettingsSectionHeader } from "@/components/settings/setting-row";
 import type { Role } from "@/lib/auth/roles";
 import { assignableRoles, canManageRole } from "@/lib/auth/user-management";
+import { messageFromApiError } from "@/lib/api/client-error";
 
 export interface Member {
   id: string;
@@ -63,9 +64,7 @@ async function errorMessage(response: Response): Promise<string> {
     Record<string, string[] | undefined> | undefined;
   const first = fieldErrors ? Object.values(fieldErrors).flat()[0] : undefined;
   if (first) return first;
-  return typeof body?.error === "string"
-    ? body.error
-    : "Something went wrong. Please try again.";
+  return messageFromApiError(body);
 }
 
 function RoleOptions({ roles }: { roles: Role[] }) {

@@ -2,6 +2,7 @@ import type {
   Resource,
   ResourceAssign,
 } from "@/components/shared/resource-stats";
+import { MEMBERSHIP_LEVEL_OPTIONS } from "@/lib/membership-levels";
 import type { Terminology } from "@/lib/terminology";
 import { lowerLabel } from "@/lib/terminology";
 
@@ -66,11 +67,7 @@ export function buildPersonResources(
             label: "Level",
             key: "teamRole",
             defaultValue: "member",
-            options: [
-              { value: "lead", label: "Lead" },
-              { value: "member", label: "Member" },
-              { value: "trainee", label: "Trainee" },
-            ],
+            options: MEMBERSHIP_LEVEL_OPTIONS,
           },
         }
       : undefined;

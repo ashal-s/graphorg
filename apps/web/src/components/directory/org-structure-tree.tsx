@@ -145,9 +145,9 @@ function TeamNode({ team }: { team: StructureTeam }) {
 }
 
 /**
- * A department is one block with its teams side by side inside it (each
- * team a block with its people stacked), then anyone placed directly in it
- * as one more column. Sub-departments hang below as further blocks.
+ * A department is one block: people assigned only to the department (no team
+ * here) sit above, lead then member then trainee; teams sit below side by
+ * side. Sub-departments hang under the block as further nodes.
  */
 function DepartmentNode({ department }: { department: StructureDepartment }) {
   const hasContents =
@@ -175,17 +175,29 @@ function DepartmentNode({ department }: { department: StructureDepartment }) {
           </span>
         </Link>
         {hasContents && (
-          <div className="mt-3 flex flex-row items-start gap-5">
-            {department.teams.map((team) => (
-              <TeamBlock key={team.id} team={team} className="w-60 shrink-0" />
-            ))}
+          <div className="mt-3 flex flex-col items-stretch gap-3">
             {department.people.length > 0 && (
               <div
                 role="list"
-                className="flex w-60 shrink-0 flex-col items-stretch"
+                data-slot="department-people"
+                className="flex flex-col items-stretch"
               >
                 {department.people.map((person) => (
                   <MemberRow key={person.id} person={person} />
+                ))}
+              </div>
+            )}
+            {department.teams.length > 0 && (
+              <div
+                data-slot="department-teams"
+                className="flex flex-row items-start gap-5"
+              >
+                {department.teams.map((team) => (
+                  <TeamBlock
+                    key={team.id}
+                    team={team}
+                    className="w-60 shrink-0"
+                  />
                 ))}
               </div>
             )}

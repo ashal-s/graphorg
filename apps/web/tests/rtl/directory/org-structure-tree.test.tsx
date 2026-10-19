@@ -63,7 +63,7 @@ describe("OrgStructureTree", () => {
     expect(screen.getByRole("link", { name: /Cy Direct/ })).toBeInTheDocument();
   });
 
-  it("puts a department's teams and direct people inside its block", () => {
+  it("puts a department's direct people above its teams inside its block", () => {
     const { container } = render(<OrgStructureTree structure={structure} />);
 
     const blocks = container.querySelectorAll('[data-slot="department-block"]');
@@ -77,11 +77,15 @@ describe("OrgStructureTree", () => {
     expect(
       within(platform).getByRole("link", { name: /Cy Direct/ }),
     ).toBeInTheDocument();
-    // Teams sit side by side in the department; people stack in the team.
-    const row = within(platform)
-      .getByRole("link", { name: "Payments" })
-      .closest('[data-slot="team-block"]')!.parentElement!;
-    expect(row).toHaveClass("flex-row");
+
+    const directPeople = platform.querySelector(
+      '[data-slot="department-people"]',
+    )!;
+    const teamsRow = platform.querySelector('[data-slot="department-teams"]')!;
+    expect(directPeople.compareDocumentPosition(teamsRow)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(teamsRow).toHaveClass("flex-row");
     const team = within(platform)
       .getByRole("link", { name: "Payments" })
       .closest('[data-slot="team-block"]')!;

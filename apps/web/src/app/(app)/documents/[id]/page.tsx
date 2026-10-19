@@ -12,18 +12,12 @@ import { Button } from "@/components/ui/button";
 import { getDb } from "@/db";
 import { documentFolders, documents } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
+import { documentTypeLabel } from "@/lib/documents/types";
 import { folderPath } from "@/lib/documents/tree";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
-
-const TYPE_LABELS: Record<string, string> = {
-  runbook: "Runbook",
-  adr: "Decision record",
-  spec: "Spec",
-  policy: "Policy",
-};
 
 export default async function DocumentPage({ params }: PageProps) {
   const session = await requireSession();
@@ -82,8 +76,10 @@ export default async function DocumentPage({ params }: PageProps) {
             <h1 className="min-w-0 truncate text-2xl font-semibold tracking-tight">
               {document.title}
             </h1>
-            {TYPE_LABELS[document.type] && (
-              <Badge variant="outline">{TYPE_LABELS[document.type]}</Badge>
+            {document.type !== "other" && (
+              <Badge variant="outline">
+                {documentTypeLabel(document.type)}
+              </Badge>
             )}
           </div>
         </div>

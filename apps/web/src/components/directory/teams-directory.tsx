@@ -7,6 +7,8 @@ import { Building2, ChevronRight, UserRound, Users2 } from "lucide-react";
 import { AvatarStack } from "@/components/shared/avatar-stack";
 import { LiveSearch } from "@/components/shared/live-search";
 import { EmptyState } from "@/components/states/empty-state";
+import { joinNames } from "@/lib/join-names";
+import type { MembershipLevel } from "@/lib/membership-levels";
 import { matchesSearch } from "@/lib/text-search";
 
 export interface DirectoryTeam {
@@ -21,13 +23,8 @@ export interface DirectoryTeam {
     name: string;
     photoSrc?: string | null;
     tone?: number;
-    teamRole: "lead" | "member" | "trainee";
+    teamRole: MembershipLevel;
   }[];
-}
-
-function joinNames(names: string[]) {
-  if (names.length <= 1) return names[0] ?? "";
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
 /** The teams list: cards with who is on each, filtered as you type. */

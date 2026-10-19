@@ -55,10 +55,14 @@ import {
   updateStep,
   type WorkflowStepDraft,
 } from "@/components/workflows/step-list-editor";
+import { messageFromApiError } from "@/lib/api/client-error";
 import { cn } from "@/lib/utils";
-
-type TriggerType = "manual" | "entity_created" | "entity_updated" | "scheduled";
-type WorkflowStatus = "draft" | "active" | "archived";
+import {
+  WORKFLOW_STATUS_OPTIONS,
+  WORKFLOW_TRIGGER_LABELS,
+  type WorkflowStatus,
+  type WorkflowTriggerType,
+} from "@/lib/workflows/labels";
 
 type Selection =
   | { kind: "trigger" }
@@ -71,7 +75,7 @@ export interface WorkflowDetail {
   id: string;
   name: string;
   description: string | null;
-  triggerType: TriggerType;
+  triggerType: WorkflowTriggerType;
   triggerConfig: Record<string, unknown>;
   status: WorkflowStatus;
   steps: {
@@ -88,7 +92,7 @@ export interface WorkflowDetail {
 }
 
 const TRIGGER_OPTIONS: {
-  value: TriggerType;
+  value: WorkflowTriggerType;
   label: string;
   description: string;
   category: string;
@@ -96,40 +100,33 @@ const TRIGGER_OPTIONS: {
 }[] = [
   {
     value: "manual",
-    label: "Run manually",
-    description: "Start this workflow yourself when you need it.",
-    category: "Automation",
+    label: WORKFLOW_TRIGGER_LABELS.manual,
+    description: "Someone starts this process by hand when they need it.",
+    category: "Process",
     icon: Hand,
   },
   {
     value: "scheduled",
-    label: "Scheduled",
-    description: "Run on a cron schedule.",
-    category: "Automation",
+    label: WORKFLOW_TRIGGER_LABELS.scheduled,
+    description: "Documented to run on a cron schedule (not executed yet).",
+    category: "Process",
     icon: Clock,
   },
   {
     value: "entity_created",
-    label: "Entity created",
+    label: WORKFLOW_TRIGGER_LABELS.entity_created,
     description: "When a catalog entity is created.",
     category: "Catalog",
     icon: Sparkles,
   },
   {
     value: "entity_updated",
-    label: "Entity updated",
+    label: WORKFLOW_TRIGGER_LABELS.entity_updated,
     description: "When a catalog entity is updated.",
     category: "Catalog",
     icon: Pencil,
   },
 ];
-
-const TRIGGER_LABELS: Record<TriggerType, string> = {
-  manual: "Run manually",
-  entity_created: "When an entity is created",
-  entity_updated: "When an entity is updated",
-  scheduled: "On a schedule",
-};
 
 const ENTITY_TYPES = [
   { value: "service", label: "Service" },
@@ -138,11 +135,7 @@ const ENTITY_TYPES = [
   { value: "document", label: "Document" },
 ];
 
-const STATUS_OPTIONS: { value: WorkflowStatus; label: string }[] = [
-  { value: "draft", label: "Draft" },
-  { value: "active", label: "Active" },
-  { value: "archived", label: "Archived" },
-];
+const STATUS_OPTIONS = WORKFLOW_STATUS_OPTIONS;
 
 const TYPE_LABELS: Record<"condition" | "action", Record<string, string>> = {
   condition: {
@@ -190,7 +183,7 @@ const STEP_KIND_OPTIONS: {
   {
     kind: "action",
     label: "Action",
-    description: "Do something when the flow reaches this step.",
+    description: "What should happen when the flow reaches this step.",
   },
 ];
 
@@ -308,7 +301,7 @@ export function WorkflowBuilder({
 
   const [name, setName] = useState(workflow?.name ?? "");
   const [description, setDescription] = useState(workflow?.description ?? "");
-  const [triggerType, setTriggerType] = useState<TriggerType>(
+  const [triggerType, setTriggerType] = useState<WorkflowTriggerType>(
     workflow?.triggerType ?? "manual",
   );
   const [triggerChosen, setTriggerChosen] = useState(mode === "edit");
@@ -452,11 +445,7 @@ export function WorkflowBuilder({
 
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      setError(
-        typeof body?.error === "string"
-          ? body.error
-          : "Something went wrong. Please try again.",
-      );
+      setError(messageFromApiError(body));
       setSaving(false);
       return;
     }
@@ -684,7 +673,9 @@ export function WorkflowBuilder({
               }
               iconClassName="bg-emerald-600 text-white"
               title={
-                triggerChosen ? TRIGGER_LABELS[triggerType] : "Add a trigger"
+                triggerChosen
+                  ? WORKFLOW_TRIGGER_LABELS[triggerType]
+                  : "Add a trigger"
               }
               subtitle={
                 triggerChosen
@@ -858,10 +849,10 @@ export function WorkflowBuilder({
                   <Select
                     value={triggerType}
                     onValueChange={(value) => {
-                      if (value) setTriggerType(value as TriggerType);
+                      if (value) setTriggerType(value as WorkflowTriggerType);
                     }}
                     disabled={readOnly}
-                    items={Object.entries(TRIGGER_LABELS).map(
+                    items={Object.entries(WORKFLOW_TRIGGER_LABELS).map(
                       ([value, label]) => ({ value, label }),
                     )}
                   >
@@ -873,11 +864,13 @@ export function WorkflowBuilder({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
+                      {Object.entries(WORKFLOW_TRIGGER_LABELS).map(
+                        ([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ),
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

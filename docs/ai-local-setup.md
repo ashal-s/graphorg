@@ -56,8 +56,9 @@ docker compose up -d redis
 
 ## 3. The AI worker
 
-The worker is the Python service that builds the prompt and talks to the
-model. Run it from `services/ai-worker`.
+The worker is the Python FastAPI service that builds the prompt and talks to
+the model (`POST /chat`, `GET /health`). Run it from `services/ai-worker`
+(also summarized in that folder's README).
 
 First time only:
 
@@ -106,7 +107,8 @@ Run its tests with `python -m pytest`.
 
 ## 4. The web app
 
-Add to `apps/web/.env.local`:
+`apps/web/.env.local` must already have `DATABASE_URL`, `REDIS_URL` and
+`AUTH_SECRET` (see the root README). Add:
 
 ```
 AI_WORKER_URL=http://localhost:8001
@@ -116,9 +118,9 @@ AI_WORKER_SECRET=<same value as INTERNAL_SECRET above>
 Optional: `AI_RATE_LIMIT_PER_MINUTE=20` (see below). Restart the dev server
 after editing `.env.local`, since Next only reads it at startup.
 
-Then sign in, open any page and click the sparkle icon beside the copy
-button. The badge beside "Ask AI" says whether a local or hosted model
-answered.
+Then sign in (seeded demo: workspace `acme`, password `acme-demo-password`),
+open any page and click the sparkle icon beside the copy button. The badge
+beside "Ask AI" says whether a local or hosted model answered.
 
 ## Costs and limits
 

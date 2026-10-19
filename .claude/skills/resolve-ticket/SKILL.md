@@ -460,6 +460,19 @@ Use `create-pr` when work is already done and the user only wants a PR opened or
 
 ---
 
+## GraphOrg override: migrations are Drizzle, not Supabase
+
+This repo does **not** use `supabase/migrations/` or the Supabase MCP `apply_migration` flow in Step 6. Schema lives in `apps/web/src/db/schema/`; SQL migrations are committed under `apps/web/drizzle/`.
+
+When a ticket changes the schema:
+
+1. Edit `apps/web/src/db/schema/*.ts`.
+2. Generate (and commit) a migration: `npm run db:generate --workspace=apps/web` (or a hand-authored custom migration — see `apps/web/src/db/README.md`).
+3. Apply locally against Docker Postgres: `npm run db:migrate --workspace=apps/web` (needs `apps/web/.env.local`).
+4. On Vercel/Neon, set `DATABASE_URL` to the pooled URL and `DATABASE_URL_UNPOOLED` to the direct URL so drizzle-kit DDL works; apply pending migrations in the usual deploy/ops path for this project — do **not** call Supabase MCP.
+
+If no `apps/web/drizzle/` files changed, skip migration steps entirely.
+
 ## GraphOrg override: branch per Linear milestone
 
 This repo (no Jira, no `development` branch, no Supabase) uses a milestone-branch model instead of the standalone/parent-sub-task models above:

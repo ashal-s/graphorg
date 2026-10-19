@@ -28,8 +28,18 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { GENERIC_ERROR } from "@/lib/api/client-error";
+import { joinNames } from "@/lib/join-names";
+import {
+  MEMBERSHIP_LEVEL_ACCENT,
+  MEMBERSHIP_LEVEL_DOT,
+  MEMBERSHIP_LEVEL_LABELS,
+  MEMBERSHIP_LEVEL_RANK,
+  MEMBERSHIP_LEVELS,
+  type MembershipLevel,
+} from "@/lib/membership-levels";
 
-export type TeamRole = "lead" | "member" | "trainee";
+export type TeamRole = MembershipLevel;
 
 export interface TeamMember {
   id: string;
@@ -65,36 +75,10 @@ const GROUP_COPY: Record<
   },
 };
 
-const LEVEL_LABELS: Record<TeamRole, string> = {
-  lead: "Lead",
-  member: "Member",
-  trainee: "Trainee",
-};
-
-/** Leads are peers at the top; trainees come last. */
-const LEVEL_RANK: Record<TeamRole, number> = {
-  lead: 0,
-  member: 1,
-  trainee: 2,
-};
-
-/** The coloured line along the top of a card; also used by the legend. */
-const LEVEL_ACCENT: Record<TeamRole, string> = {
-  lead: "border-t-amber-500",
-  member: "border-t-primary",
-  trainee: "border-t-emerald-500",
-};
-
-const LEVEL_DOT: Record<TeamRole, string> = {
-  lead: "bg-amber-500",
-  member: "bg-primary",
-  trainee: "bg-emerald-500",
-};
-
-function joinNames(names: string[]): string {
-  if (names.length <= 1) return names[0] ?? "";
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-}
+const LEVEL_LABELS = MEMBERSHIP_LEVEL_LABELS;
+const LEVEL_RANK = MEMBERSHIP_LEVEL_RANK;
+const LEVEL_ACCENT = MEMBERSHIP_LEVEL_ACCENT;
+const LEVEL_DOT = MEMBERSHIP_LEVEL_DOT;
 
 /** Adds the person, or changes their level if they're already in. */
 function putMember(
@@ -131,9 +115,7 @@ async function memberRequest(
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
     throw new Error(
-      typeof payload?.error === "string"
-        ? payload.error
-        : "Something went wrong. Please try again.",
+      typeof payload?.error === "string" ? payload.error : GENERIC_ERROR,
     );
   }
 }
@@ -157,7 +139,7 @@ function LevelField({
         value={level}
         onChange={(event) => onLevel(event.target.value as TeamRole)}
       >
-        {(Object.keys(LEVEL_LABELS) as TeamRole[]).map((value) => (
+        {MEMBERSHIP_LEVELS.map((value) => (
           <option key={value} value={value}>
             {LEVEL_LABELS[value]}
           </option>
@@ -395,7 +377,7 @@ export function TeamMembers({
               aria-label="Levels"
               className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"
             >
-              {(Object.keys(LEVEL_LABELS) as TeamRole[]).map((level) => (
+              {MEMBERSHIP_LEVELS.map((level) => (
                 <li key={level} className="flex items-center gap-1.5">
                   <span
                     aria-hidden="true"

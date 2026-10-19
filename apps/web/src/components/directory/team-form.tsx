@@ -4,7 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  effectivePrimary,
+  PrimarySelect,
+} from "@/components/directory/primary-select";
+import {
+  EntityFormShell,
+  FormField,
+} from "@/components/shared/entity-form-shell";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,14 +20,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  effectivePrimary,
-  PrimarySelect,
-} from "@/components/directory/primary-select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { SearchableMultiSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
+import { messageFromApiError } from "@/lib/api/client-error";
 
 export interface TeamDetail {
   id: string;
@@ -97,11 +100,7 @@ export function TeamForm({
 
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      setError(
-        typeof body?.error === "string"
-          ? body.error
-          : "Something went wrong. Please try again.",
-      );
+      setError(messageFromApiError(body));
       setSaving(false);
       return;
     }
@@ -116,22 +115,45 @@ export function TeamForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      {readOnly && (
-        <Alert>
-          <AlertTitle>View-only</AlertTitle>
-          <AlertDescription>
-            You have viewer access, so this team can be viewed but not changed.
-          </AlertDescription>
-        </Alert>
-      )}
-      {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Couldn&apos;t save</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
+    <EntityFormShell
+      onSubmit={handleSubmit}
+      readOnly={readOnly}
+      readOnlyMessage="You have viewer access, so this team can be viewed but not changed."
+      error={error}
+      actions={
+        <>
+          {!readOnly && (
+            <Button type="submit" disabled={saving}>
+              {saving
+                ? "Saving…"
+                : mode === "create"
+                  ? "Create team"
+                  : "Save changes"}
+            </Button>
+          )}
+          {onCancel ? (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              nativeButton={false}
+              render={
+                <Link
+                  href={
+                    mode === "create" ? "/directory/teams" : `/${team?.slug}`
+                  }
+                />
+              }
+            >
+              {readOnly ? "Back" : "Cancel"}
+            </Button>
+          )}
+        </>
+      }
+    >
       <Card>
         {!onCancel && (
           <CardHeader>
@@ -142,8 +164,7 @@ export function TeamForm({
           </CardHeader>
         )}
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="team-name">Name</Label>
+          <FormField label="Name" htmlFor="team-name">
             <Input
               id="team-name"
               value={name}
@@ -152,9 +173,8 @@ export function TeamForm({
               required
               disabled={readOnly}
             />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="team-description">Description</Label>
+          </FormField>
+          <FormField label="Description" htmlFor="team-description">
             <Textarea
               id="team-description"
               value={description}
@@ -162,11 +182,10 @@ export function TeamForm({
               placeholder="What does this team own?"
               disabled={readOnly}
             />
-          </div>
+          </FormField>
           {departments.length > 0 && (
             <>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="team-departments">Departments</Label>
+              <FormField label="Departments" htmlFor="team-departments">
                 <SearchableMultiSelect
                   id="team-departments"
                   options={departments.map((d) => ({
@@ -179,7 +198,7 @@ export function TeamForm({
                   emptyLabel="No departments match."
                   disabled={readOnly}
                 />
-              </div>
+              </FormField>
               <PrimarySelect
                 id="team-primary-department"
                 label="Primary department"
@@ -193,36 +212,6 @@ export function TeamForm({
           )}
         </CardContent>
       </Card>
-
-      <div className="flex gap-2">
-        {!readOnly && (
-          <Button type="submit" disabled={saving}>
-            {saving
-              ? "Saving…"
-              : mode === "create"
-                ? "Create team"
-                : "Save changes"}
-          </Button>
-        )}
-        {onCancel ? (
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            nativeButton={false}
-            render={
-              <Link
-                href={mode === "create" ? "/directory/teams" : `/${team?.slug}`}
-              />
-            }
-          >
-            {readOnly ? "Back" : "Cancel"}
-          </Button>
-        )}
-      </div>
-    </form>
+    </EntityFormShell>
   );
 }

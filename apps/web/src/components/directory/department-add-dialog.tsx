@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { SearchableMultiSelect } from "@/components/ui/searchable-select";
+import { GENERIC_ERROR } from "@/lib/api/client-error";
 
 type Kind = "teams" | "sub-departments";
 
@@ -76,9 +77,7 @@ export function DepartmentAddDialog({
     if (!response.ok) {
       const payload = await response.json().catch(() => null);
       throw new Error(
-        typeof payload?.error === "string"
-          ? payload.error
-          : "Something went wrong. Please try again.",
+        typeof payload?.error === "string" ? payload.error : GENERIC_ERROR,
       );
     }
   }
@@ -99,11 +98,7 @@ export function DepartmentAddDialog({
       close();
       router.refresh();
     } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Something went wrong. Please try again.",
-      );
+      setError(caught instanceof Error ? caught.message : GENERIC_ERROR);
     } finally {
       setBusy(false);
     }

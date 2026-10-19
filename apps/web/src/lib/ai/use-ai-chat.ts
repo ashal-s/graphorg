@@ -6,6 +6,7 @@ import type { ContextScope } from "@/lib/page-context/types";
 
 import { AI_NOT_CONFIGURED } from "./errors";
 import { createSseParser } from "./parse-sse";
+import { GENERIC_ERROR } from "@/lib/api/client-error";
 
 export interface ChatMessage {
   id: number;
@@ -17,8 +18,6 @@ export interface ChatMessage {
 const MAX_HISTORY = 20;
 
 export type AiProvider = "local" | "hosted";
-
-const GENERIC_ERROR = "Something went wrong. Please try again.";
 
 async function readError(
   response: Response,
