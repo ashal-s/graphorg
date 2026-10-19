@@ -4,7 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { MultiSelectPicker } from "@/components/catalog/multi-select-picker";
+import {
+  EntityFormShell,
+  FormField,
+} from "@/components/shared/entity-form-shell";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,10 +18,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
-import { MultiSelectPicker } from "@/components/catalog/multi-select-picker";
+import { messageFromApiError } from "@/lib/api/client-error";
 import { lowerLabel, type Terminology } from "@/lib/terminology";
 
 export interface ServiceDetail {
@@ -105,11 +108,7 @@ export function ServiceForm({
 
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      setError(
-        typeof body?.error === "string"
-          ? body.error
-          : "Something went wrong. Please try again.",
-      );
+      setError(messageFromApiError(body));
       setSaving(false);
       return;
     }
@@ -120,31 +119,48 @@ export function ServiceForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      {readOnly && (
-        <Alert>
-          <AlertTitle>View-only</AlertTitle>
-          <AlertDescription>
-            You have viewer access, so this {singular} can be viewed but not
-            changed.
-          </AlertDescription>
-        </Alert>
-      )}
-      {error && (
-        <Alert variant="destructive">
-          <AlertTitle>Couldn&apos;t save</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
+    <EntityFormShell
+      onSubmit={handleSubmit}
+      readOnly={readOnly}
+      readOnlyMessage={`You have viewer access, so this ${singular} can be viewed but not changed.`}
+      error={error}
+      actions={
+        <>
+          {!readOnly && (
+            <Button type="submit" disabled={saving}>
+              {saving
+                ? "Saving…"
+                : mode === "create"
+                  ? `Create ${singular}`
+                  : "Save changes"}
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            nativeButton={false}
+            render={
+              <Link
+                href={
+                  mode === "create"
+                    ? "/catalog/services"
+                    : `/catalog/services/${service?.id}`
+                }
+              />
+            }
+          >
+            {readOnly ? "Back" : "Cancel"}
+          </Button>
+        </>
+      }
+    >
       <Card>
         <CardHeader>
           <CardTitle>{serviceTerms.singular} details</CardTitle>
           <CardDescription>{serviceTerms.description}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="service-name">Name</Label>
+          <FormField label="Name" htmlFor="service-name">
             <Input
               id="service-name"
               value={name}
@@ -153,9 +169,8 @@ export function ServiceForm({
               required
               disabled={readOnly}
             />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="service-description">Description</Label>
+          </FormField>
+          <FormField label="Description" htmlFor="service-description">
             <Textarea
               id="service-description"
               value={description}
@@ -163,10 +178,9 @@ export function ServiceForm({
               placeholder={`What is this ${singular} about?`}
               disabled={readOnly}
             />
-          </div>
+          </FormField>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="service-parent">Part of</Label>
+            <FormField label="Part of" htmlFor="service-parent">
               <NativeSelect
                 id="service-parent"
                 value={parentId}
@@ -180,9 +194,8 @@ export function ServiceForm({
                   </option>
                 ))}
               </NativeSelect>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="service-owner-team">Owner team</Label>
+            </FormField>
+            <FormField label="Owner team" htmlFor="service-owner-team">
               <NativeSelect
                 id="service-owner-team"
                 value={ownerTeamId}
@@ -196,7 +209,7 @@ export function ServiceForm({
                   </option>
                 ))}
               </NativeSelect>
-            </div>
+            </FormField>
           </div>
         </CardContent>
       </Card>
@@ -242,34 +255,6 @@ export function ServiceForm({
           />
         </CardContent>
       </Card>
-
-      <div className="flex gap-2">
-        {!readOnly && (
-          <Button type="submit" disabled={saving}>
-            {saving
-              ? "Saving…"
-              : mode === "create"
-                ? `Create ${singular}`
-                : "Save changes"}
-          </Button>
-        )}
-        <Button
-          type="button"
-          variant="outline"
-          nativeButton={false}
-          render={
-            <Link
-              href={
-                mode === "create"
-                  ? "/catalog/services"
-                  : `/catalog/services/${service?.id}`
-              }
-            />
-          }
-        >
-          {readOnly ? "Back" : "Cancel"}
-        </Button>
-      </div>
-    </form>
+    </EntityFormShell>
   );
 }

@@ -15,6 +15,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { messageFromApiError } from "@/lib/api/client-error";
 import {
   DEFAULT_TERMINOLOGY,
   type ConceptTerms,
@@ -104,17 +105,7 @@ export function CatalogTerminologyForm({
 
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      const fieldErrors = body?.details as
-        Record<string, string[] | undefined> | undefined;
-      const firstFieldError = fieldErrors
-        ? Object.values(fieldErrors).flat()[0]
-        : undefined;
-      setError(
-        firstFieldError ??
-          (typeof body?.error === "string"
-            ? body.error
-            : "Something went wrong. Please try again."),
-      );
+      setError(messageFromApiError(body));
       return;
     }
 

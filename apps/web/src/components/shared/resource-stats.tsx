@@ -23,6 +23,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { GENERIC_ERROR } from "@/lib/api/client-error";
 
 /** An API call the stats make on the user's behalf. */
 export interface ResourceRequest {
@@ -117,7 +118,7 @@ export function ResourceStats({ resources }: { resources: Resource[] }) {
       throw new Error(
         typeof payload?.error === "string"
           ? payload.error
-          : "Something went wrong. Please try again.",
+          : GENERIC_ERROR,
       );
     }
   }

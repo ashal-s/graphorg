@@ -100,12 +100,17 @@ describe("buildOrgStructure", () => {
     expect(result.peopleWithoutPlace.map((p) => p.name)).toEqual(["Xena"]);
   });
 
-  it("shows direct department people at their department level", () => {
+  it("shows direct department people at their department level, lead then member then trainee", () => {
     const result = buildOrgStructure(
       input({
         departments: [{ id: "d", name: "D", parentId: null }],
-        people: [person("l", "Lena"), person("m", "Max")],
+        people: [
+          person("t", "Amy"),
+          person("m", "Max"),
+          person("l", "Zoe"),
+        ],
         departmentPeople: [
+          { departmentId: "d", personId: "t", role: "trainee" },
           { departmentId: "d", personId: "m", role: "member" },
           { departmentId: "d", personId: "l", role: "lead" },
         ],
@@ -114,8 +119,9 @@ describe("buildOrgStructure", () => {
     expect(
       result.departments[0]!.people.map((p) => [p.name, p.teamRole]),
     ).toEqual([
-      ["Lena", "lead"],
+      ["Zoe", "lead"],
       ["Max", "member"],
+      ["Amy", "trainee"],
     ]);
   });
 });

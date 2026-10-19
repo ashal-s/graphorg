@@ -1,3 +1,5 @@
+import type { DocumentType } from "./types";
+
 export interface FolderRecord {
   id: string;
   name: string;
@@ -7,7 +9,7 @@ export interface FolderRecord {
 export interface DocumentRecord {
   id: string;
   title: string;
-  type: string;
+  type: DocumentType;
   url: string | null;
   folderId: string | null;
   ownerTeamId: string | null;

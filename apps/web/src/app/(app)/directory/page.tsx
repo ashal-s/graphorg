@@ -1,17 +1,8 @@
 import { eq } from "drizzle-orm";
-import type { LucideIcon } from "lucide-react";
-import Link from "next/link";
-import {
-  ArrowRight,
-  BookUser,
-  Building2,
-  Network,
-  Users,
-  Users2,
-} from "lucide-react";
-import type { ReactNode } from "react";
+import { BookUser, Building2, Network, Users, Users2 } from "lucide-react";
 
 import { AvatarStack } from "@/components/shared/avatar-stack";
+import { HubSectionCard } from "@/components/shared/hub-section-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { TeamChip } from "@/components/shared/team-chip";
 import { getDb } from "@/db";
@@ -20,53 +11,6 @@ import { requireSession } from "@/lib/auth/session";
 import { loadTones } from "@/lib/directory/tones";
 import { personPhotoSrc } from "@/lib/person-photo";
 
-function SectionCard({
-  href,
-  icon: Icon,
-  title,
-  description,
-  stat,
-  children,
-}: {
-  href: string;
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  stat?: string;
-  children?: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex h-full flex-col gap-5 rounded-xl bg-card p-5 ring-1 ring-foreground/10 transition-all hover:-translate-y-px hover:shadow-md hover:ring-primary/40"
-    >
-      <span className="flex items-start justify-between gap-3">
-        <Icon className="size-6 text-muted-foreground" aria-hidden="true" />
-        <ArrowRight
-          className="size-4 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
-          aria-hidden="true"
-        />
-      </span>
-      <span>
-        <span className="flex items-baseline gap-2">
-          <span className="text-lg font-semibold tracking-tight">{title}</span>
-          {stat && (
-            <span className="text-sm font-medium text-muted-foreground">
-              {stat}
-            </span>
-          )}
-        </span>
-        <span className="mt-0.5 block text-sm text-muted-foreground">
-          {description}
-        </span>
-      </span>
-      {children && (
-        <span className="mt-auto border-t border-border pt-4">{children}</span>
-      )}
-    </Link>
-  );
-}
-
 export default async function DirectoryPage() {
   const session = await requireSession();
   const orgId = session.organizationId;
@@ -74,7 +18,12 @@ export default async function DirectoryPage() {
   const [peopleRows, teamRows, departmentRows, tones] = await Promise.all([
     getDb().query.people.findMany({
       where: eq(people.organizationId, orgId),
-      columns: { id: true, name: true, photoUrl: true, updatedAt: true },
+      columns: {
+        id: true,
+        name: true,
+        photoUrl: true,
+        updatedAt: true,
+      },
       orderBy: (row, { asc }) => asc(row.name),
     }),
     getDb().query.teams.findMany({
@@ -84,7 +33,7 @@ export default async function DirectoryPage() {
     }),
     getDb().query.departments.findMany({
       where: eq(departments.organizationId, orgId),
-      columns: { id: true, name: true, parentId: true },
+      columns: { id: true, name: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
     loadTones(orgId),
@@ -100,7 +49,7 @@ export default async function DirectoryPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <SectionCard
+        <HubSectionCard
           href="/directory/departments"
           icon={Building2}
           title="Departments"
@@ -109,26 +58,24 @@ export default async function DirectoryPage() {
         >
           {departmentRows.length > 0 ? (
             <span className="flex flex-wrap gap-1.5">
-              {departmentRows
-                .filter((department) => !department.parentId)
-                .slice(0, 4)
-                .map((department) => (
-                  <span
-                    key={department.id}
-                    className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium"
-                  >
-                    {department.name}
-                  </span>
-                ))}
+              {departmentRows.map((department) => (
+                <TeamChip
+                  key={department.id}
+                  team={{
+                    ...department,
+                    tone: tones.departments[department.id],
+                  }}
+                />
+              ))}
             </span>
           ) : (
             <span className="text-xs text-muted-foreground">
               No departments have been created yet.
             </span>
           )}
-        </SectionCard>
+        </HubSectionCard>
 
-        <SectionCard
+        <HubSectionCard
           href="/directory/teams"
           icon={Users2}
           title="Teams"
@@ -154,9 +101,9 @@ export default async function DirectoryPage() {
               No teams have been created yet.
             </span>
           )}
-        </SectionCard>
+        </HubSectionCard>
 
-        <SectionCard
+        <HubSectionCard
           href="/directory/people"
           icon={Users}
           title="People"
@@ -178,9 +125,9 @@ export default async function DirectoryPage() {
               No one has been added yet.
             </span>
           )}
-        </SectionCard>
+        </HubSectionCard>
 
-        <SectionCard
+        <HubSectionCard
           href="/org-chart"
           icon={Network}
           title="Org chart"

@@ -1,9 +1,11 @@
 import { eq } from "drizzle-orm";
-import Link from "next/link";
-import { ArrowRight, Layers, Wrench } from "lucide-react";
+import { Layers, Wrench } from "lucide-react";
 
+import {
+  HubChipList,
+  HubSectionCard,
+} from "@/components/shared/hub-section-card";
 import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDb } from "@/db";
 import { services, tools } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
@@ -18,59 +20,72 @@ export default async function CatalogPage() {
     getTerminology(orgId),
     getDb().query.services.findMany({
       where: eq(services.organizationId, orgId),
-      columns: { id: true },
+      columns: { id: true, name: true, parentId: true },
+      orderBy: (row, { asc }) => asc(row.name),
     }),
     getDb().query.tools.findMany({
       where: eq(tools.organizationId, orgId),
-      columns: { id: true },
+      columns: { id: true, name: true, category: true },
+      orderBy: (row, { asc }) => asc(row.name),
     }),
   ]);
 
-  const sections = [
-    {
-      href: "/catalog/services",
-      icon: Layers,
-      terms: terminology.services,
-      count: serviceRows.length,
-    },
-    {
-      href: "/catalog/tools",
-      icon: Wrench,
-      terms: terminology.tools,
-      count: toolRows.length,
-    },
-  ];
+  const serviceTerms = terminology.services;
+  const toolTerms = terminology.tools;
+  // Prefer top-level platforms for the preview chips.
+  const previewServices = serviceRows.filter((row) => !row.parentId);
+  const serviceChips =
+    previewServices.length > 0 ? previewServices : serviceRows;
+
+  const categoryChips = Object.entries(
+    toolRows.reduce<Record<string, number>>((acc, tool) => {
+      acc[tool.category] = (acc[tool.category] ?? 0) + 1;
+      return acc;
+    }, {}),
+  )
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([category]) => ({
+      id: category,
+      name: category.replaceAll("_", " "),
+    }));
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         context={{ kind: "catalog" }}
         title="Catalog"
-        description={`${terminology.services.plural} and ${lowerLabel(terminology.tools.plural)} across your organization.`}
+        description={`${serviceTerms.plural} and ${lowerLabel(toolTerms.plural)} across your organization.`}
       />
       <div className="grid gap-4 sm:grid-cols-2">
-        {sections.map(({ href, icon: Icon, terms, count }) => (
-          <Link key={href} href={href}>
-            <Card className="h-full transition-colors hover:bg-muted/50">
-              <CardHeader>
-                <Icon
-                  className="h-6 w-6 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <CardTitle className="flex items-center justify-between">
-                  {terms.plural}
-                  <ArrowRight
-                    className="h-4 w-4 text-muted-foreground"
-                    aria-hidden="true"
-                  />
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {count} {count === 1 ? terms.singular : terms.plural}
-                </p>
-              </CardHeader>
-            </Card>
-          </Link>
-        ))}
+        <HubSectionCard
+          href="/catalog/services"
+          icon={Layers}
+          title={serviceTerms.plural}
+          stat={String(serviceRows.length)}
+          description={serviceTerms.description}
+        >
+          <HubChipList
+            items={serviceChips}
+            empty={`No ${lowerLabel(serviceTerms.plural)} have been added yet.`}
+          />
+        </HubSectionCard>
+
+        <HubSectionCard
+          href="/catalog/tools"
+          icon={Wrench}
+          title={toolTerms.plural}
+          stat={String(toolRows.length)}
+          description={toolTerms.description}
+        >
+          <HubChipList
+            items={
+              categoryChips.length > 0
+                ? categoryChips
+                : toolRows.map((tool) => ({ id: tool.id, name: tool.name }))
+            }
+            empty={`No ${lowerLabel(toolTerms.plural)} have been added yet.`}
+          />
+        </HubSectionCard>
       </div>
     </div>
   );

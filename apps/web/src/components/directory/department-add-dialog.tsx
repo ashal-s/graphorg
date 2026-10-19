@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { SearchableMultiSelect } from "@/components/ui/searchable-select";
+import { GENERIC_ERROR } from "@/lib/api/client-error";
 
 type Kind = "teams" | "sub-departments";
 
@@ -78,7 +79,7 @@ export function DepartmentAddDialog({
       throw new Error(
         typeof payload?.error === "string"
           ? payload.error
-          : "Something went wrong. Please try again.",
+          : GENERIC_ERROR,
       );
     }
   }
@@ -102,7 +103,7 @@ export function DepartmentAddDialog({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Something went wrong. Please try again.",
+          : GENERIC_ERROR,
       );
     } finally {
       setBusy(false);

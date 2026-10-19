@@ -11,19 +11,13 @@ import { getDb } from "@/db";
 import { workflows } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
-
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
-  draft: "outline",
-  active: "default",
-  archived: "secondary",
-};
-
-const TRIGGER_LABELS: Record<string, string> = {
-  manual: "Manual",
-  entity_created: "On entity created",
-  entity_updated: "On entity updated",
-  scheduled: "Scheduled",
-};
+import {
+  WORKFLOW_STATUS_LABELS,
+  WORKFLOW_STATUS_VARIANT,
+  WORKFLOW_TRIGGER_LABELS,
+  type WorkflowStatus,
+  type WorkflowTriggerType,
+} from "@/lib/workflows/labels";
 
 export default async function WorkflowsPage() {
   const session = await requireSession();
@@ -42,7 +36,7 @@ export default async function WorkflowsPage() {
       <PageHeader
         context={{ kind: "workflows" }}
         title="Workflows"
-        description="Triggers, conditions and actions your organisation runs by hand or on a schedule."
+        description="Document the triggers, steps and owners for processes your organisation follows. Nothing runs automatically yet."
         actions={
           canEdit && (
             <Button
@@ -88,19 +82,21 @@ export default async function WorkflowsPage() {
             const owners = workflow.people.filter(
               (assignment) => assignment.role === "owner",
             );
+            const status = workflow.status as WorkflowStatus;
+            const triggerType = workflow.triggerType as WorkflowTriggerType;
             return (
               <EntityRow
                 key={workflow.id}
                 href={`/workflows/${workflow.id}`}
                 title={workflow.name}
                 titleBadge={
-                  <Badge variant={STATUS_VARIANT[workflow.status] ?? "outline"}>
-                    {workflow.status}
+                  <Badge variant={WORKFLOW_STATUS_VARIANT[status] ?? "outline"}>
+                    {WORKFLOW_STATUS_LABELS[status] ?? workflow.status}
                   </Badge>
                 }
                 meta={
                   <>
-                    {TRIGGER_LABELS[workflow.triggerType] ??
+                    {WORKFLOW_TRIGGER_LABELS[triggerType] ??
                       workflow.triggerType}
                     {owners.length > 0 &&
                       ` · Owned by ${owners.map((assignment) => assignment.person.name).join(", ")}`}

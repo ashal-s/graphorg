@@ -1,7 +1,7 @@
 /**
- * Cross-cutting types shared by GraphOrg's Next.js app and, later, its
- * Python worker's typed request contracts. Domain entities (people, teams,
- * services, ...) land here once the relational model (WEB-130) exists.
+ * Cross-cutting types shared by GraphOrg's Next.js app (and later, typed
+ * request contracts for the Python AI worker). Domain entities live in
+ * `apps/web/src/db/schema`; this package holds API envelope helpers only.
  */
 
 export type ApiResult<T> =

@@ -2,6 +2,8 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import {
   ArrowUpRight,
+  Building2,
+  FileText,
   Layers,
   LayoutDashboard,
   Users,
@@ -25,6 +27,8 @@ import {
 } from "@/components/ui/card";
 import { getDb } from "@/db";
 import {
+  departments,
+  documents,
   organizations,
   people,
   services,
@@ -75,9 +79,11 @@ export default async function OverviewPage() {
     organization,
     peopleRows,
     teamRows,
+    departmentRows,
     serviceRows,
     workflowRows,
     toolRows,
+    documentRows,
   ] = await Promise.all([
     getTerminology(orgId),
     getDb().query.organizations.findFirst({
@@ -90,6 +96,10 @@ export default async function OverviewPage() {
     }),
     getDb().query.teams.findMany({
       where: eq(teams.organizationId, orgId),
+      columns: { id: true },
+    }),
+    getDb().query.departments.findMany({
+      where: eq(departments.organizationId, orgId),
       columns: { id: true },
     }),
     getDb().query.services.findMany({
@@ -108,6 +118,10 @@ export default async function OverviewPage() {
     getDb().query.tools.findMany({
       where: eq(tools.organizationId, orgId),
       columns: { id: true, category: true },
+    }),
+    getDb().query.documents.findMany({
+      where: eq(documents.organizationId, orgId),
+      columns: { id: true },
     }),
   ]);
 
@@ -133,22 +147,34 @@ export default async function OverviewPage() {
       href: "/directory/teams",
     },
     {
+      label: "Departments",
+      count: departmentRows.length,
+      icon: Building2,
+      href: "/directory/departments",
+    },
+    {
       label: serviceTerms.plural,
       count: serviceRows.length,
       icon: Layers,
       href: "/catalog/services",
     },
     {
-      label: "Workflows",
-      count: workflowRows.length,
-      icon: WorkflowIcon,
-      href: "/workflows",
-    },
-    {
       label: toolTerms.plural,
       count: toolRows.length,
       icon: Wrench,
       href: "/catalog/tools",
+    },
+    {
+      label: "Documents",
+      count: documentRows.length,
+      icon: FileText,
+      href: "/documents",
+    },
+    {
+      label: "Workflows",
+      count: workflowRows.length,
+      icon: WorkflowIcon,
+      href: "/workflows",
     },
   ];
 
@@ -174,7 +200,7 @@ export default async function OverviewPage() {
             />
           }
           title="No context yet"
-          description={`People, teams, ${lowerLabel(serviceTerms.plural)} and ${lowerLabel(toolTerms.plural)} you add will summarize here.`}
+          description={`People, teams, departments, ${lowerLabel(serviceTerms.plural)}, ${lowerLabel(toolTerms.plural)}, documents and workflows you add will summarize here.`}
         />
       </div>
     );

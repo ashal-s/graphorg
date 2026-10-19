@@ -16,15 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { messageFromApiError } from "@/lib/api/client-error";
+import { DOCUMENT_TYPES, type DocumentType } from "@/lib/documents/types";
 import type { DocumentRecord } from "@/lib/documents/tree";
-
-const TYPES = [
-  { value: "other", label: "Document" },
-  { value: "runbook", label: "Runbook" },
-  { value: "adr", label: "Decision record" },
-  { value: "spec", label: "Spec" },
-  { value: "policy", label: "Policy" },
-];
 
 /**
  * Add a document (a name and a link), file it in a folder and assign it to a
@@ -70,7 +64,7 @@ function DocumentForm({
 
   const [title, setTitle] = useState(document?.title ?? "");
   const [url, setUrl] = useState(document?.url ?? "");
-  const [type, setType] = useState(document?.type ?? "other");
+  const [type, setType] = useState<DocumentType>(document?.type ?? "other");
   const [folder, setFolder] = useState(
     document ? (document.folderId ?? "") : (folderId ?? ""),
   );
@@ -107,17 +101,7 @@ function DocumentForm({
 
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      const fieldErrors = body?.details as
-        Record<string, string[] | undefined> | undefined;
-      const firstFieldError = fieldErrors
-        ? Object.values(fieldErrors).flat()[0]
-        : undefined;
-      setError(
-        firstFieldError ??
-          (typeof body?.error === "string"
-            ? body.error
-            : "Something went wrong. Please try again."),
-      );
+      setError(messageFromApiError(body));
       return;
     }
 
@@ -167,9 +151,9 @@ function DocumentForm({
             <NativeSelect
               id="doc-type"
               value={type}
-              onChange={(event) => setType(event.target.value)}
+              onChange={(event) => setType(event.target.value as DocumentType)}
             >
-              {TYPES.map((option) => (
+              {DOCUMENT_TYPES.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

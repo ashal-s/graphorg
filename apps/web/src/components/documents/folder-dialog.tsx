@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { folderAndDescendantIds } from "@/lib/documents/tree";
+import { messageFromApiError } from "@/lib/api/client-error";
 
 /**
  * Create a folder, or rename / move one. `folder` is set when editing;
@@ -99,9 +100,7 @@ function FolderForm({
     if (!response.ok) {
       const body = await response.json().catch(() => null);
       setError(
-        typeof body?.error === "string"
-          ? body.error
-          : "Something went wrong. Please try again.",
+        messageFromApiError(body),
       );
       return;
     }

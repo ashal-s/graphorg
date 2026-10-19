@@ -18,6 +18,7 @@ import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/states/empty-state";
+import { documentTypeLabel } from "@/lib/documents/types";
 import { buildDocumentTree, folderPath } from "@/lib/documents/tree";
 
 /**
@@ -170,7 +171,9 @@ export function FolderView({ folderId }: { folderId: string | null }) {
                   {document.title}
                 </span>
                 {document.type !== "other" && (
-                  <Badge variant="outline">{document.type}</Badge>
+                  <Badge variant="outline">
+                    {documentTypeLabel(document.type)}
+                  </Badge>
                 )}
                 {document.ownerTeamId && teamName.get(document.ownerTeamId) && (
                   <Badge variant="secondary">

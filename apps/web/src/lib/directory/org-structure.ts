@@ -1,3 +1,8 @@
+import {
+  MEMBERSHIP_LEVEL_RANK,
+  type MembershipLevel,
+} from "@/lib/membership-levels";
+
 import { buildDepartmentTree, type DepartmentNode } from "./departments";
 
 export interface StructurePerson {
@@ -7,7 +12,7 @@ export interface StructurePerson {
   title: string | null;
   photoUrl: string | null;
   /** Their level on the team they are shown under. */
-  teamRole?: "lead" | "member" | "trainee";
+  teamRole?: MembershipLevel;
 }
 
 export interface StructureTeam {
@@ -46,16 +51,16 @@ export interface OrgStructureInput {
   departmentPeople: {
     departmentId: string;
     personId: string;
-    role: "lead" | "member" | "trainee";
+    role: MembershipLevel;
   }[];
   teamMembers: {
     teamId: string;
     personId: string;
-    teamRole: "lead" | "member" | "trainee";
+    teamRole: MembershipLevel;
   }[];
 }
 
-const ROLE_RANK = { lead: 0, member: 1, trainee: 2 } as const;
+const ROLE_RANK = MEMBERSHIP_LEVEL_RANK;
 
 const byName = <T extends { name: string }>(a: T, b: T) =>
   a.name.localeCompare(b.name);
@@ -122,7 +127,11 @@ export function buildOrgStructure(input: OrgStructureInput): OrgStructure {
           const person = personById.get(link.personId);
           return person ? [{ ...person, teamRole: link.role }] : [];
         })
-        .sort(byName);
+        .sort(
+          (a, b) =>
+            ROLE_RANK[a.teamRole ?? "member"] -
+              ROLE_RANK[b.teamRole ?? "member"] || a.name.localeCompare(b.name),
+        );
       return { ...department, teams, people };
     },
   );

@@ -24,6 +24,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { messageFromApiError } from "@/lib/api/client-error";
 
 export interface DepartmentDialogValues {
   id: string;
@@ -120,9 +121,7 @@ export function DepartmentDialog({
     if (!response.ok) {
       const body = await response.json().catch(() => null);
       setError(
-        typeof body?.error === "string"
-          ? body.error
-          : "Something went wrong. Please try again.",
+        messageFromApiError(body),
       );
       return;
     }
