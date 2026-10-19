@@ -116,9 +116,7 @@ export function ResourceStats({ resources }: { resources: Resource[] }) {
     if (!response.ok) {
       const payload = await response.json().catch(() => null);
       throw new Error(
-        typeof payload?.error === "string"
-          ? payload.error
-          : GENERIC_ERROR,
+        typeof payload?.error === "string" ? payload.error : GENERIC_ERROR,
       );
     }
   }

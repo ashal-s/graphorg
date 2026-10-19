@@ -28,6 +28,7 @@ docs/                 Repo-local reference docs (e.g. local AI setup)
    npm install
    ```
 2. Create `apps/web/.env.local` (gitignored — this is the only env file for the web app; nothing is committed):
+
    ```bash
    cat > apps/web/.env.local <<EOF
    DATABASE_URL=postgresql://graphorg:graphorg@localhost:5433/graphorg

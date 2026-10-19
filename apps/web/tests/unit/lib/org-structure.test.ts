@@ -104,11 +104,7 @@ describe("buildOrgStructure", () => {
     const result = buildOrgStructure(
       input({
         departments: [{ id: "d", name: "D", parentId: null }],
-        people: [
-          person("t", "Amy"),
-          person("m", "Max"),
-          person("l", "Zoe"),
-        ],
+        people: [person("t", "Amy"), person("m", "Max"), person("l", "Zoe")],
         departmentPeople: [
           { departmentId: "d", personId: "t", role: "trainee" },
           { departmentId: "d", personId: "m", role: "member" },

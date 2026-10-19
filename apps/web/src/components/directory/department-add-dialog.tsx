@@ -77,9 +77,7 @@ export function DepartmentAddDialog({
     if (!response.ok) {
       const payload = await response.json().catch(() => null);
       throw new Error(
-        typeof payload?.error === "string"
-          ? payload.error
-          : GENERIC_ERROR,
+        typeof payload?.error === "string" ? payload.error : GENERIC_ERROR,
       );
     }
   }
@@ -100,11 +98,7 @@ export function DepartmentAddDialog({
       close();
       router.refresh();
     } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : GENERIC_ERROR,
-      );
+      setError(caught instanceof Error ? caught.message : GENERIC_ERROR);
     } finally {
       setBusy(false);
     }

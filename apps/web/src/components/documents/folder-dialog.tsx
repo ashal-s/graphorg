@@ -99,9 +99,7 @@ function FolderForm({
 
     if (!response.ok) {
       const body = await response.json().catch(() => null);
-      setError(
-        messageFromApiError(body),
-      );
+      setError(messageFromApiError(body));
       return;
     }
 

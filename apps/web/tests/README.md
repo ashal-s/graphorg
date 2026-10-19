@@ -36,19 +36,19 @@ Import the thing under test with the `@/` alias (e.g. `@/components/shell/sideba
 
 ## Notable coverage
 
-| Area | Where | What it guards |
-| ---- | ----- | -------------- |
-| Schema structure | `unit/db/schema.test.ts` | Table exports, tenant `organization_id` on core tables, service self-dependency check, workflow join shape — no live DB |
-| Env validation | `unit/lib/env.test.ts` | `DATABASE_URL`, `REDIS_URL`, `AUTH_SECRET` (≥32 chars), optional AI worker settings and rate-limit default |
-| Auth helpers | `unit/lib/auth/` | Login resolution, roles, IP rate limits, user-management rules |
-| Ask AI | `unit/lib/ai/`, `unit/api/ai-chat.test.ts` | Context/history budgets, SSE parsing, rate limit, route behaviour |
-| Page context | `unit/lib/page-context/` | Builders + `coverage.test.ts` (every `(app)` page has a copy button or an explicit `NO_CONTEXT` entry) |
-| Shell | `rtl/shell/` | Nav items (Overview, Directory, Org chart, Catalog, Documents, Workflows, Settings), workspace breadcrumb switching |
-| Shared UI states | `rtl/states/` | Empty / loading / error / permission-denied |
+| Area             | Where                                      | What it guards                                                                                                          |
+| ---------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Schema structure | `unit/db/schema.test.ts`                   | Table exports, tenant `organization_id` on core tables, service self-dependency check, workflow join shape — no live DB |
+| Env validation   | `unit/lib/env.test.ts`                     | `DATABASE_URL`, `REDIS_URL`, `AUTH_SECRET` (≥32 chars), optional AI worker settings and rate-limit default              |
+| Auth helpers     | `unit/lib/auth/`                           | Login resolution, roles, IP rate limits, user-management rules                                                          |
+| Ask AI           | `unit/lib/ai/`, `unit/api/ai-chat.test.ts` | Context/history budgets, SSE parsing, rate limit, route behaviour                                                       |
+| Page context     | `unit/lib/page-context/`                   | Builders + `coverage.test.ts` (every `(app)` page has a copy button or an explicit `NO_CONTEXT` entry)                  |
+| Shell            | `rtl/shell/`                               | Nav items (Overview, Directory, Org chart, Catalog, Documents, Workflows, Settings), workspace breadcrumb switching     |
+| Shared UI states | `rtl/states/`                              | Empty / loading / error / permission-denied                                                                             |
 
 API route and feature-area tests under `unit/api/` and `rtl/{directory,catalog,documents,workflows,settings}/` follow the same patterns — prefer reading those files over duplicating tables here.
 
-`unit/db/schema.test.ts` is structural only: it does not prove constraint *behavior* against real data (that's verified manually against a live Postgres instance; see the WEB-130 Linear comment). Live-DB integration tests are WEB-135.
+`unit/db/schema.test.ts` is structural only: it does not prove constraint _behavior_ against real data (that's verified manually against a live Postgres instance; see the WEB-130 Linear comment). Live-DB integration tests are WEB-135.
 
 ## Running
 
