@@ -4,21 +4,21 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 
 **Anti-overlap:** only the CI trio may share a job (GitHub Actions ↔ Jenkins ↔ Buildkite). Everything else is single-owner.
 
-| Tool | Unique job |
-|------|------------|
-| **CodeRabbit** | AI pull-request review |
-| Mintlify | Public docs site |
-| GitHub Actions / Jenkins / Buildkite | CI (allowed overlap) |
-| Playwright | Browser E2E |
-| Pino | Structured app logger API |
-| Better Stack | Uptime heartbeats only |
-| Resend | Transactional email |
-| Sentry | Exceptions only (no APM / replay) |
-| PostHog | Product analytics + session replay (flags off) |
-| LaunchDarkly | Feature flags only |
-| OpenTelemetry | Emit traces / metrics / logs |
-| Grafana | Dashboards on OTel |
-| Databricks Free Edition | Offline analytics on exported events (not Neon) |
+| Tool                                 | Unique job                                      |
+| ------------------------------------ | ----------------------------------------------- |
+| **CodeRabbit**                       | AI pull-request review                          |
+| Mintlify                             | Public docs site                                |
+| GitHub Actions / Jenkins / Buildkite | CI (allowed overlap)                            |
+| Playwright                           | Browser E2E                                     |
+| Pino                                 | Structured app logger API                       |
+| Better Stack                         | Uptime heartbeats only                          |
+| Resend                               | Transactional email                             |
+| Sentry                               | Exceptions only (no APM / replay)               |
+| PostHog                              | Product analytics + session replay (flags off)  |
+| LaunchDarkly                         | Feature flags only                              |
+| OpenTelemetry                        | Emit traces / metrics / logs                    |
+| Grafana                              | Dashboards on OTel                              |
+| Databricks Free Edition              | Offline analytics on exported events (not Neon) |
 
 Neon/Postgres remains the app OLTP database.
 
