@@ -1,3 +1,8 @@
+---
+title: Phase 2 tooling
+description: Free-tier tooling role map — CodeRabbit, Mintlify, CI, observability, and SaaS lanes.
+---
+
 # Phase 2 tooling
 
 Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool has one job. Missing SaaS keys should no-op so local `npm run dev` still works.
@@ -46,3 +51,38 @@ Optional checks:
 - Prefer leaving `enable_free_tier: true` in `.coderabbit.yaml` so free-tier features stay on for users not on a paid plan.
 
 **Not required:** any Next.js SDK, env vars, or secrets in the app. Config is GitHub App + YAML only.
+
+---
+
+## Mintlify (public docs site)
+
+**Role:** browsable public documentation only. Not the product UI. Architecture ADRs stay in Linear; this site seeds runbooks from `docs/` and links out to architecture.
+
+**Repo config:** [`docs/docs.json`](docs.json) plus MD/MDX pages in `docs/` (`index.mdx`, `architecture.mdx`, `ai-local-setup.md`, `tooling.md`).
+
+**Free tier:** [Mintlify Starter](https://www.mintlify.com/pricing) (formerly Hobby) — free, no credit card, Git sync, custom domain options. Stay on Starter for scaffolding.
+
+### Local preview
+
+From the repo root (Node 20.17+):
+
+```bash
+npm run docs:dev
+```
+
+That `cd`s into `docs/` and runs `npx mint@latest dev` on port **3333** so it does not clash with `apps/web` on 3000. Open [http://localhost:3333](http://localhost:3333).
+
+Or:
+
+```bash
+cd docs && npx mint@latest dev --port 3333
+```
+
+### Publish (Starter)
+
+1. Go to [mintlify.com/start](https://mintlify.com/start) and create a project (no card required).
+2. Connect this GitHub repo. In Git settings, enable **docs.json is in a subdirectory** and set the path to `/docs` (no trailing slash). See [Monorepo setup](https://www.mintlify.com/docs/deploy/monorepo).
+3. Install the Mintlify GitHub App so pushes to the connected branch deploy automatically.
+4. Use the project’s `*.mintlify.app` / `*.mintlify.site` URL for the live site; add a custom domain later if needed.
+
+**Not required:** any Next.js SDK or app env vars. Docs are static MD/MDX + `docs.json` only.

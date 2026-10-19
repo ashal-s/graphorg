@@ -1,0 +1,44 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "GraphOrg",
+  "theme": "mint",
+  "description": "Developer and ops documentation for the GraphOrg monorepo.",
+  "colors": {
+    "primary": "#4F46E5",
+    "light": "#818CF8",
+    "dark": "#4338CA"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get started",
+        "pages": ["index", "architecture"]
+      },
+      {
+        "group": "Local development",
+        "pages": ["ai-local-setup"]
+      },
+      {
+        "group": "Phase 2 tooling",
+        "pages": ["tooling"]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Architecture (Linear)",
+        "href": "https://linear.app/webifex/document/graphorg-architecture-44d635b43cc2"
+      },
+      {
+        "label": "GitHub",
+        "href": "https://github.com/ashal-s/graphorg"
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/ashal-s/graphorg"
+    }
+  }
+}

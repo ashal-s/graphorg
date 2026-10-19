@@ -11,7 +11,7 @@ apps/web              Next.js app — UI + Route Handlers (primary backend)
 packages/             Shared TypeScript packages (@graphorg/types, @graphorg/tsconfig)
 services/ai-worker    Python FastAPI worker — Ask AI chat (prompt + LLM streaming)
 infra/                Terraform/Helm/Ansible (Post-MVP — Cloud, CI/CD & Observability)
-docs/                 Repo-local reference docs (e.g. local AI setup)
+docs/                 Mintlify docs source (local AI setup, tooling) — npm run docs:dev
 ```
 
 ## Prerequisites

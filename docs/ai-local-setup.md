@@ -1,3 +1,8 @@
+---
+title: Local AI setup
+description: Run Ask AI locally with Ollama, Redis, the AI worker, and the web app.
+---
+
 # Local AI setup
 
 The "Ask AI" panel on each page sends the page's context to a model and
