@@ -1,0 +1,55 @@
+# CodeRabbit — AI PR review only (Phase 2 tooling).
+# Docs: https://docs.coderabbit.ai/getting-started/yaml-configuration
+# Schema: https://docs.coderabbit.ai/reference/configuration
+#
+# Config on the feature branch under review is what CodeRabbit uses.
+
+language: en-US
+tone_instructions: >
+  Be concise and professional. Prefer actionable findings over style nits.
+  Call out security, auth, data-leak, and migration risks clearly.
+
+enable_free_tier: true
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: true
+  review_status: true
+  review_details: false
+  auto_review:
+    enabled: true
+    drafts: false
+  # Exclusions only — do not add bare includes (those restrict review to an allowlist).
+  # Lockfiles / .next / node_modules are already ignored by CodeRabbit defaults.
+  path_filters:
+    - "!**/coverage/**"
+    - "!**/*.tsbuildinfo"
+    - "!**/analytics/exports/**"
+    - "!**/*.pem"
+    - "!infra/**/*.tfstate"
+    - "!infra/**/*.tfstate.*"
+  path_instructions:
+    - path: "apps/web/**"
+      instructions: |
+        Next.js App Router monorepo app (apps/web). Prefer Server Components;
+        flag unnecessary 'use client'. Watch Auth.js session handling, env
+        validation, and anything that could leak emails, credentials, or
+        photo URLs in APIs or page-context JSON.
+    - path: "apps/web/src/db/**"
+      instructions: |
+        Drizzle schema and migrations. Flag destructive or irreversible
+        migrations, missing down-paths where relevant, and RLS/tenant
+        isolation mistakes.
+    - path: "services/ai-worker/**"
+      instructions: |
+        Python FastAPI AI worker. Flag prompt-injection risks, missing auth
+        on worker endpoints, and secrets in logs or responses.
+    - path: "docs/**"
+      instructions: |
+        Documentation only — prefer factual accuracy and broken links over
+        prose style.
+
+chat:
+  auto_reply: true

@@ -7,5 +7,6 @@ This folder holds repo-local reference material that belongs next to the code:
 | Doc                                    | What it covers                                                              |
 | -------------------------------------- | --------------------------------------------------------------------------- |
 | [ai-local-setup.md](ai-local-setup.md) | Running Ask AI locally (Ollama, Redis, AI worker, web app env, rate limits) |
+| [tooling.md](tooling.md)               | Phase 2 free-tier tooling (CodeRabbit, CI, observability, SaaS role map)    |
 
 For schema and migrations see `apps/web/src/db/README.md`. For the test layout see `apps/web/tests/README.md`. For provisioning (still empty in MVP) see `infra/README.md`.
