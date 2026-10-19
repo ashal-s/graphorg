@@ -33,7 +33,7 @@ Neon/Postgres remains the app OLTP database.
 
 **Role:** reviews pull requests on GitHub. Does **not** run CI, host docs, or collect telemetry.
 
-**Repo config:** [`.coderabbit.yaml`](../.coderabbit.yaml) at the monorepo root (path filters, chill profile, path-specific guidance). CodeRabbit reads the YAML from the **feature branch** under review.
+**Repo config:** [`.coderabbit.yaml`](https://github.com/ashal-s/graphorg/blob/development/.coderabbit.yaml) at the monorepo root (path filters, chill profile, path-specific guidance). CodeRabbit reads the YAML from the **feature branch** under review.
 
 **Free tier:** free for public repos and limited private use for learning. No credit card required to start. Paid plans apply for heavier private-team usage — stay on free for scaffolding.
 
