@@ -1,6 +1,6 @@
 # Database
 
-The relational context model: organisations, users, teams, people, tools, services, documents and workflows, in PostgreSQL via [Drizzle ORM](https://orm.drizzle.team).
+The relational context model: organisations, users, teams, people, departments, tools, services, documents and workflows, in PostgreSQL via [Drizzle ORM](https://orm.drizzle.team).
 
 ## Layout
 
@@ -8,7 +8,7 @@ The relational context model: organisations, users, teams, people, tools, servic
 drizzle.config.ts              drizzle-kit config (schema path, migrations out dir, db credentials)
 drizzle/                       generated + hand-authored SQL migrations, committed to git
 src/db/
-├── index.ts                   the query client (getDb())
+├── index.ts                   the query client (getDb()) — pg Pool, Neon-friendly on Vercel
 └── schema/
     ├── _columns.ts             shared column helpers: id(), timestamps(), organizationId()
     ├── organizations.ts        tenant root
@@ -16,6 +16,9 @@ src/db/
     ├── teams.ts
     ├── people.ts                directory entries; optionally linked to a user; self-referential manager
     ├── team-members.ts          join table: which teams a person is on, and their level on each
+    ├── departments.ts           nestable departments (parent_id)
+    ├── department-teams.ts      join table: which departments a team is in (optional primary)
+    ├── department-people.ts     join table: people in a department directly, with role + optional primary
     ├── tools.ts                 what the org uses to do its work: software, platforms, equipment (free-text category)
     ├── services.ts               what the org delivers or runs: optional parent service, owner team
     ├── service-tools.ts          join table: the tools a service uses
@@ -32,8 +35,9 @@ scripts/seed.ts                 populates the "Acme Corp" demo organisation
 
 ## Design
 
-- **Tenant boundary**: every table except `organizations` has a required `organization_id` column (`references organizations.id, onDelete: cascade`), via the shared `organizationId()` helper. Deleting an organization removes every row that belongs to it.
+- **Tenant boundary**: every table except `organizations` and the join tables scoped via a parent FK (`team_members`, `department_*`, `service_*`, `workflow_steps`/`workflow_people`, …) has a required `organization_id` column (`references organizations.id, onDelete: cascade`), via the shared `organizationId()` helper. Deleting an organization removes every row that belongs to it.
 - **Ownership**: modeled as direct `owner_team_id` foreign keys (nullable, `onDelete: set null`) on `services` and `documents` — not a generic polymorphic ownership table. `team_members` (a person can be on any number of teams, with a level of lead, member or trainee on each) and `people.manager_id` (self-referential) round out the org chart.
+- **Departments**: `departments` nest via `parent_id` (`onDelete: set null`, so deleting a parent leaves children top-level). Membership is many-to-many: `department_teams` and `department_people` (no own `organization_id`; scoped via the department/team/person FKs). A team or person can sit in several departments; at most one row per team/person is marked `is_primary`. On `department_people`, `role` is lead/member/trainee (leads are the department's heads).
 - **Dependencies**: `service_dependencies` is a self-referential many-to-many join on `services`, with a `CHECK` constraint that a service can't depend on itself.
 - **Hierarchy**: `services.parent_id` is a self-reference (`onDelete: set null`), so a service can sit under another one; a "system" is just a service with children. The API rejects a parent that would create a loop.
 - **Documents**: `document_folders` nest through a self-referencing `parent_id`; deleting a folder moves its subfolders and documents up a level (done in the API). A document has an optional `folder_id`, `owner_team_id` and `owner_person_id`, so it can be assigned to a team, a person or both.
@@ -43,12 +47,14 @@ scripts/seed.ts                 populates the "Acme Corp" demo organisation
 - **Wording**: `organizations` carries optional `services_label_*`/`tools_label_*` and `*_description` columns. Null means "use the default" (see `src/lib/terminology.ts`); the app reads them wherever it names a service or tool.
 - **Workflows**: a `workflows` row holds a trigger (`trigger_type` + flexible `trigger_config` jsonb), a `name`/`description` and a `status` — a documentation record of what the workflow is, not something anything in the MVP executes. Its ordered condition/action chain lives in `workflow_steps` (`step_order`, `kind`, a flexible `type` + `config` jsonb — one row per step, not a wide table); `step_order` is intentionally _not_ unique per workflow, since this only documents a process and different teams may record it differently, including steps that tie. Who's involved is `workflow_people`, one row per `(workflow, person, role)` with `role` one of `owner`, `creator` or `worker` — a single join table rather than three, since a workflow can have more than one owner, more than one creator and more than one worker, and one person can hold more than one role on the same workflow. Only `workflows` itself carries `organization_id`; `workflow_steps` and `workflow_people` are scoped indirectly via `workflow_id`, the same pattern `service_tools`/`service_dependencies` use via `service_id`. See the GraphOrg Architecture document for the "Workflow builder" concept this models.
 - **Timestamps**: every table has `created_at`/`updated_at`. `updated_at` is kept correct at the database level by a `set_updated_at()` trigger (see `drizzle/0001_set_updated_at_triggers.sql`), not just by application code, so it stays right regardless of what writes the row.
-- **Constraints**: per-organization `UNIQUE` constraints on natural keys (e.g. `(organization_id, name)` on `teams`, `(organization_id, email)` on `users`, `(organization_id, name)` on `workflows`), `CHECK` constraints on categorical fields (`users.role`, `team_members.team_role`, `documents.type`, `workflows.trigger_type`, `workflows.status`, `workflow_steps.kind`, `workflow_people.role`), and on `service_dependencies` (no self-reference).
+- **Constraints**: per-organization `UNIQUE` constraints on natural keys (e.g. `(organization_id, name)` on `teams`, `(organization_id, email)` on `users`, `(organization_id, name)` on `workflows`), `CHECK` constraints on categorical fields (`users.role`, `team_members.team_role`, `documents.type`, `workflows.trigger_type`, `workflows.status`, `workflow_steps.kind`, `workflow_people.role`, `department_people.role`), and on `service_dependencies` (no self-reference).
 - **Indexes**: every `organization_id` column is indexed, along with every other foreign key that isn't already the leading column of a unique constraint.
 
 ## Workflow
 
 All commands run from `apps/web` (or the repo root with `--workspace=apps/web`), and need `apps/web/.env.local` to exist (see the root README's Getting Started) since `drizzle-kit`/`tsx` don't load Next's env files themselves — the `db:*` scripts source it via `dotenv-cli`.
+
+`drizzle.config.ts` prefers `DATABASE_URL_UNPOOLED` when set (Neon's direct URL), otherwise `DATABASE_URL`. App queries always use `DATABASE_URL` (pooled on Vercel).
 
 ```bash
 npm run db:generate       # after changing schema/*.ts: generate a new SQL migration
@@ -63,10 +69,12 @@ To add a hand-authored migration (e.g. a trigger, like `0001_set_updated_at_trig
 
 `scripts/seed.ts` is safely re-runnable: it looks up the demo org by `slug = "acme"`, deletes it if found (the `organization_id` cascade removes every child row), then inserts a fresh copy. It creates:
 
-- 5 teams, 9 people with a manager hierarchy, 4 of them linked to product accounts (`users`, one of each role)
+- 5 teams, 9 people with a manager hierarchy, 4 of them linked to product accounts (`users`, one of each role) — log in with workspace **acme**, any of those emails, password **`acme-demo-password`**
 - 14 tools (languages, databases, infrastructure and work tools; one flat catalog)
 - 3 platform services and 5 services — each service has an owner team, a parent platform, the tools it uses (`service_tools`) and dependencies on other services (`service_dependencies`)
-- 3 documents (an ADR, a runbook, an onboarding doc)
+- 3 document folders (Engineering, People, and Runbooks under Engineering) and 3 documents (an ADR, a runbook, an onboarding doc)
 - 2 workflows, each with one condition step, one action step, one or more owners, one or more creators and two workers (one workflow has two owners; the other has the same person as both an owner and a creator)
+
+Departments are in the schema and UI but are **not** seeded yet — create them in the Directory after signing in.
 
 Verified manually against a live Postgres instance (not just "the script exits 0"): re-running `db:seed` twice produces identical row counts; a duplicate `(organization_id, name)` insert, an out-of-enum `role`, an out-of-enum `workflow_steps.kind`, and a self-referencing `service_dependencies` row are all rejected by the database; two `workflow_steps` on the same workflow can share a `step_order` without error; deleting an organization cascades through `workflows` to `workflow_steps`/`workflow_people`; updating a row moves its `updated_at` via the trigger, not the application. See the WEB-130 and WEB-169 Linear comments for the exact queries.

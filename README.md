@@ -1,17 +1,17 @@
 # GraphOrg
 
-GraphOrg is a single company-context product that maps people, teams, tools, technologies, repositories, services, infrastructure, documentation, ownership and dependencies. New employees, consultants and approved AI agents use it to understand the organisation before working, reviewing or advising.
+GraphOrg is a single company-context product that maps people, teams, departments, tools, technologies, services, infrastructure, documentation, ownership and dependencies. New employees, consultants and approved AI agents use it to understand the organisation before working, reviewing or advising.
 
 **MVP scope:** company context is entered and maintained manually through the product's own forms and APIs — there is no "connect a tool" option yet. Connectors and the Databricks data platform are deferred to a later Post-MVP phase. See the [GraphOrg Architecture](https://linear.app/webifex/document/graphorg-architecture-44d635b43cc2) document (WEB-127) for the full picture.
 
 ## Monorepo layout
 
 ```
-apps/web            Next.js app — UI + Route Handlers (primary backend)
-packages/            Shared TypeScript packages (@graphorg/types, @graphorg/tsconfig)
-services/ai-worker    Python AI worker — embeddings/retrieval/eval (scaffolded now, built out in Days 10-12)
-infra/                Terraform/Helm/Ansible (Days 4-6)
-docs/                 Repo-local reference docs
+apps/web              Next.js app — UI + Route Handlers (primary backend)
+packages/             Shared TypeScript packages (@graphorg/types, @graphorg/tsconfig)
+services/ai-worker    Python FastAPI worker — Ask AI chat (prompt + LLM streaming)
+infra/                Terraform/Helm/Ansible (Post-MVP — Cloud, CI/CD & Observability)
+docs/                 Repo-local reference docs (e.g. local AI setup)
 ```
 
 ## Prerequisites
@@ -19,6 +19,7 @@ docs/                 Repo-local reference docs
 - Node.js 20+ and npm 10+
 - Python 3.12+
 - Docker (for local Postgres/Redis)
+- Optional for Ask AI: [Ollama](https://ollama.com) — see [docs/ai-local-setup.md](docs/ai-local-setup.md)
 
 ## Getting started
 
@@ -26,13 +27,19 @@ docs/                 Repo-local reference docs
    ```bash
    npm install
    ```
-2. Create `apps/web/.env.local` (gitignored — this is the only env file in the repo; nothing is committed):
+2. Create `apps/web/.env.local` (gitignored — this is the only env file for the web app; nothing is committed):
    ```bash
-   cat > apps/web/.env.local <<'EOF'
+   cat > apps/web/.env.local <<EOF
    DATABASE_URL=postgresql://graphorg:graphorg@localhost:5433/graphorg
    REDIS_URL=redis://localhost:6379
+   AUTH_SECRET=$(openssl rand -base64 32)
    EOF
    ```
+
+   `AUTH_SECRET` must be at least 32 characters (Auth.js session signing). For Ask AI, also set `AI_WORKER_URL` and `AI_WORKER_SECRET` as in [docs/ai-local-setup.md](docs/ai-local-setup.md).
+
+   On Vercel/Neon, use the **pooled** connection string for `DATABASE_URL` (host contains `-pooler`) and set `DATABASE_URL_UNPOOLED` to the **direct** URL so `drizzle-kit` migrations work. Locally with Docker Postgres you only need `DATABASE_URL`.
+
 3. Start local services (needs Docker Desktop running):
 
    ```bash
@@ -50,7 +57,7 @@ docs/                 Repo-local reference docs
    npm run db:seed --workspace=apps/web
    ```
 
-   See `apps/web/src/db/README.md` for the schema and migration workflow.
+   See `apps/web/src/db/README.md` for the schema and migration workflow. After seeding, sign in at `/login` with workspace **acme**, any seeded user email (e.g. `priya@acme.example`), and password **`acme-demo-password`**.
 
 5. Start the web app:
 
@@ -60,7 +67,7 @@ docs/                 Repo-local reference docs
 
    → http://localhost:3000, health check at http://localhost:3000/api/health
 
-6. In a separate terminal, start the Python AI worker:
+6. In a separate terminal, start the Python AI worker (needed for Ask AI):
 
    ```bash
    cd services/ai-worker
@@ -73,22 +80,30 @@ docs/                 Repo-local reference docs
    → health check at http://localhost:8001/health
 
    Port 8001 is what the web app expects (`AI_WORKER_URL`). The worker's
-   `/health` runs without a model, but "Ask AI" needs Ollama and a few
-   environment variables: [docs/ai-local-setup.md](docs/ai-local-setup.md)
-   walks through them.
+   `/health` runs without a model, but Ask AI needs Ollama (or a hosted
+   model) and a few environment variables:
+   [docs/ai-local-setup.md](docs/ai-local-setup.md) walks through them.
 
 ## Common commands
 
 Run from the repo root:
 
 ```bash
-npm run lint          # eslint (apps/web)
-npm run typecheck      # tsc --noEmit across all workspaces
-npm run test            # jest + React Testing Library (apps/web)
-npm run test:watch       # same, in watch mode
-npm run format            # prettier --write
-npm run format:check        # prettier --check
-npm run build                 # next build
+npm run lint                          # eslint (apps/web)
+npm run typecheck                     # tsc --noEmit across all workspaces
+npm run test                          # jest + React Testing Library (apps/web)
+npm run test:watch --workspace=apps/web   # same, in watch mode
+npm run format                        # prettier --write
+npm run format:check                  # prettier --check
+npm run build                         # next build
+```
+
+Database (from repo root, or from `apps/web`):
+
+```bash
+npm run db:migrate --workspace=apps/web
+npm run db:seed --workspace=apps/web
+npm run db:studio --workspace=apps/web
 ```
 
 For the Python worker (from `services/ai-worker`, with the virtualenv active):
@@ -99,4 +114,4 @@ pytest
 
 ## CI
 
-`.github/workflows/ci.yml` installs dependencies, checks formatting, lints, type-checks and builds `apps/web`, and separately installs and tests `services/ai-worker`, on every push and pull request.
+`.github/workflows/ci.yml` installs dependencies, checks formatting, lints, type-checks, tests and builds `apps/web`, and separately installs and tests `services/ai-worker`, on every push to `main` and on every pull request.
