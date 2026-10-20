@@ -19,6 +19,13 @@ export const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["trace", "debug", "info", "warn", "error", "fatal"])
     .optional(),
+  /** Resend API key. Omit locally — mailer no-ops without it. */
+  RESEND_API_KEY: z.string().min(1).optional(),
+  /**
+   * From address for transactional mail. Friendly name form allowed
+   * (`GraphOrg <onboarding@resend.dev>`). Defaults in the mailer when unset.
+   */
+  EMAIL_FROM: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

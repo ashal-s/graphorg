@@ -133,4 +133,26 @@ describe("envSchema", () => {
       envSchema.safeParse({ ...base, LOG_LEVEL: "verbose" }).success,
     ).toBe(false);
   });
+
+  it("treats Resend settings as optional", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    const withKey = envSchema.safeParse({
+      ...base,
+      RESEND_API_KEY: "re_test",
+      EMAIL_FROM: "GraphOrg <onboarding@resend.dev>",
+    });
+    expect(withKey.success).toBe(true);
+    if (withKey.success) {
+      expect(withKey.data.RESEND_API_KEY).toBe("re_test");
+      expect(withKey.data.EMAIL_FROM).toBe(
+        "GraphOrg <onboarding@resend.dev>",
+      );
+    }
+  });
 });

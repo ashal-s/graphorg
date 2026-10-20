@@ -37,7 +37,7 @@ docs/                 Mintlify docs source (local AI setup, tooling) — npm run
    EOF
    ```
 
-   `AUTH_SECRET` must be at least 32 characters (Auth.js session signing). For Ask AI, also set `AI_WORKER_URL` and `AI_WORKER_SECRET` as in [docs/ai-local-setup.md](docs/ai-local-setup.md).
+   `AUTH_SECRET` must be at least 32 characters (Auth.js session signing). For Ask AI, also set `AI_WORKER_URL` and `AI_WORKER_SECRET` as in [docs/ai-local-setup.md](docs/ai-local-setup.md). Optional Resend vars (`RESEND_API_KEY`, `EMAIL_FROM`) are documented in [docs/tooling.md](docs/tooling.md#resend-transactional-email) — the app boots without them.
 
    On Vercel/Neon, use the **pooled** connection string for `DATABASE_URL` (host contains `-pooler`) and set `DATABASE_URL_UNPOOLED` to the **direct** URL so `drizzle-kit` migrations work. Locally with Docker Postgres you only need `DATABASE_URL`.
 

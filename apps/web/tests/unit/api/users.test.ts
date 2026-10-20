@@ -73,6 +73,11 @@ jest.mock("../../../src/lib/auth/session", () => ({
   getSession: () => getSessionMock(),
 }));
 
+const notifyMemberAddedMock = jest.fn();
+jest.mock("../../../src/lib/email/resend", () => ({
+  notifyMemberAdded: (...args: unknown[]) => notifyMemberAddedMock(...args),
+}));
+
 type Role = "owner" | "admin" | "editor" | "viewer";
 
 const session = (role: Role, userId = SELF) => ({
@@ -106,6 +111,10 @@ beforeEach(() => {
   personInsertMock.mockReset();
   personUpdateWhereMock.mockReset();
   getSessionMock.mockReset();
+  notifyMemberAddedMock.mockReset().mockResolvedValue({
+    status: "skipped",
+    reason: "not_configured",
+  });
 });
 
 describe("GET /api/users", () => {
@@ -158,6 +167,12 @@ describe("POST /api/users", () => {
     expect(values.passwordHash).toEqual(expect.any(String));
     expect(values.passwordHash).not.toBe("password1");
     expect(values).not.toHaveProperty("password");
+    expect(notifyMemberAddedMock).toHaveBeenCalledWith({
+      to: "n@x.io",
+      memberName: "N",
+      organizationName: "Org A",
+      userId: ID,
+    });
   });
 
   it("rejects a weak password", async () => {

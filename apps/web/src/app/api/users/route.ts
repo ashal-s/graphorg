@@ -13,6 +13,7 @@ import {
   USER_MANAGEMENT_ROLE,
 } from "@/lib/auth/user-management";
 
+import { notifyMemberAdded } from "@/lib/email/resend";
 import { uniqueSlug } from "@/lib/slugs";
 
 import { publicUserColumns } from "./columns";
@@ -123,6 +124,16 @@ export async function POST(request: NextRequest) {
       }
       return created;
     });
+
+    // Scaffold notify only — never include the password; failures must not
+    // roll back the member row (invite email is a later product feature).
+    await notifyMemberAdded({
+      to: user.email,
+      memberName: user.name,
+      organizationName: session.organizationName,
+      userId: user.id,
+    });
+
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
     if (isUniqueViolation(error)) {

@@ -17,7 +17,7 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 | **Playwright**                       | Browser E2E                                     |
 | **Pino**                             | Structured app logger API                       |
 | **Better Stack**                     | Uptime heartbeats only                          |
-| Resend                               | Transactional email                             |
+| **Resend**                           | Transactional email                             |
 | Sentry                               | Exceptions only (no APM / replay)               |
 | PostHog                              | Product analytics + session replay (flags off)  |
 | LaunchDarkly                         | Feature flags only                              |
@@ -174,3 +174,34 @@ Optional env (also validated in `env.ts` when set):
 Defaults: `debug` outside production, `info` in production. Development uses `pino-pretty`; production and tests emit JSON lines.
 
 **Not required:** any external account or API key. Do **not** install a Better Stack logging SDK for this lane.
+
+---
+
+## Resend (transactional email)
+
+**Role:** transactional email only (member-added notice, future invites). **Not** a marketing platform and **not** the auth provider (Auth.js + credentials stay).
+
+**Repo config:** [`apps/web/src/lib/email/resend.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/lib/email/resend.ts). `sendEmail` / `notifyMemberAdded` no-op when `RESEND_API_KEY` is unset so `npm run dev` works without Resend. Creating a member (`POST /api/users`) calls `notifyMemberAdded` (never includes the password).
+
+**Free tier:** [Resend free](https://resend.com/pricing) monthly send quota. No credit card to start. Stay on free for scaffolding.
+
+### What you do (one-time)
+
+1. Sign up at [resend.com](https://resend.com) and create an API key.
+2. Add to `apps/web/.env.local`:
+
+```bash
+RESEND_API_KEY=re_...
+# optional; defaults to GraphOrg <onboarding@resend.dev>
+EMAIL_FROM="GraphOrg <onboarding@resend.dev>"
+```
+
+3. Smoke-test (until a domain is verified, Resend only delivers from `onboarding@resend.dev` to **your** Resend account email):
+
+```bash
+npm run email:test --workspace=apps/web -- you@example.com
+```
+
+4. For production, [verify a domain](https://resend.com/domains) and set `EMAIL_FROM` to an address on that domain.
+
+**Not required** for local app boot: Resend account or env vars. Missing key → mailer skips and logs at debug.
