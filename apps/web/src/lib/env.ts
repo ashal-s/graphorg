@@ -32,6 +32,13 @@ export const envSchema = z.object({
    */
   SENTRY_DSN: z.string().url().optional(),
   NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+  /**
+   * PostHog project API key (client). Omit locally — analytics/replay no-op.
+   * Feature flags stay disabled in SDK options (LaunchDarkly owns flags).
+   */
+  NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
+  /** PostHog ingest host. Defaults to US cloud when unset. */
+  NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

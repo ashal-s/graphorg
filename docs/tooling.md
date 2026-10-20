@@ -19,7 +19,7 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 | **Better Stack**                     | Uptime heartbeats only                          |
 | **Resend**                           | Transactional email                             |
 | **Sentry**                           | Exceptions only (no APM / replay)               |
-| PostHog                              | Product analytics + session replay (flags off)  |
+| **PostHog**                          | Product analytics + session replay (flags off)  |
 | LaunchDarkly                         | Feature flags only                              |
 | OpenTelemetry                        | Emit traces / metrics / logs                    |
 | Grafana                              | Dashboards on OTel                              |
@@ -257,3 +257,34 @@ SENTRY_AUTH_TOKEN=sntrys_...
 4. Restart `npm run dev`, trigger an error in the UI (or throw from a route), and confirm it appears under **Issues** in Sentry.
 
 **Not required** for local boot: any Sentry env vars. Missing DSN → SDK initializes with no DSN and sends nothing.
+
+---
+
+## PostHog (analytics + session replay)
+
+**Role:** product **analytics** and **session replay** only (“what did users do?”). **Not** exceptions (Sentry), **not** uptime (Better Stack), **not** feature flags (LaunchDarkly — WEB-220). PostHog flag evaluation is disabled in the SDK.
+
+**Repo config:**
+
+- Init: `apps/web/src/instrumentation-client.ts` via `posthog-js` (same file as Sentry client)
+- Identify: `PostHogIdentify` in `AppShell` — `userId` + org group only (**no** email)
+- Reset on logout in `UserMenu`
+- Shared options: [`apps/web/src/lib/posthog/config.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/lib/posthog/config.ts) — `advanced_disable_feature_flags`, session replay on with `maskAllInputs`
+
+**Free tier:** [PostHog Cloud](https://posthog.com/pricing) free/generous tier. No credit card to start. Stay on free for scaffolding.
+
+### What you do (one-time)
+
+1. Create a PostHog project (US or EU cloud).
+2. Add to `apps/web/.env.local`:
+
+```bash
+NEXT_PUBLIC_POSTHOG_KEY=phc_...
+# optional — defaults to US; use EU host if your project is there
+# NEXT_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
+```
+
+3. In the PostHog project settings, leave **feature flags** unused (or ignore them) — the SDK opts out with `advanced_disable_feature_flags`. Enable **session replay** if the project wizard asks.
+4. Restart `npm run dev`, sign in, click around, and confirm events / a replay appear in PostHog.
+
+**Not required** for local boot: any PostHog env vars. Missing key → init is skipped (no-op).

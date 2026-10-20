@@ -173,4 +173,26 @@ describe("envSchema", () => {
       envSchema.safeParse({ ...base, SENTRY_DSN: "not-a-url" }).success,
     ).toBe(false);
   });
+
+  it("treats PostHog settings as optional", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    const withKey = envSchema.safeParse({
+      ...base,
+      NEXT_PUBLIC_POSTHOG_KEY: "phc_test",
+      NEXT_PUBLIC_POSTHOG_HOST: "https://eu.i.posthog.com",
+    });
+    expect(withKey.success).toBe(true);
+    expect(
+      envSchema.safeParse({
+        ...base,
+        NEXT_PUBLIC_POSTHOG_HOST: "not-a-url",
+      }).success,
+    ).toBe(false);
+  });
 });
