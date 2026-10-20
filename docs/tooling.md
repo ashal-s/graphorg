@@ -15,7 +15,7 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 | Mintlify                             | Public docs site                                |
 | GitHub Actions / Jenkins / Buildkite | CI (allowed overlap)                            |
 | **Playwright**                       | Browser E2E                                     |
-| Pino                                 | Structured app logger API                       |
+| **Pino**                             | Structured app logger API                       |
 | **Better Stack**                     | Uptime heartbeats only                          |
 | Resend                               | Transactional email                             |
 | Sentry                               | Exceptions only (no APM / replay)               |
@@ -145,3 +145,32 @@ npx playwright show-report path/to/playwright-report   # or playwright-report.zi
 GitHub Actions job `e2e` in [`.github/workflows/ci.yml`](https://github.com/ashal-s/graphorg/blob/development/.github/workflows/ci.yml) installs Chromium, builds, runs `npm run test:e2e`, and uploads the HTML report artifact.
 
 Jenkins (WEB-222) and Buildkite (WEB-221) should **mirror the same** `test:e2e` command when those pipelines land — do not invent a second E2E suite.
+
+---
+
+## Pino (structured app logging)
+
+**Role:** in-process structured logger (`info` / `warn` / `error` with fields) for server code. Writes JSON to stdout/stderr. **Not** a SaaS product and **not** a Better Stack / Sentry / Logtail drain — those tools keep their own lanes (uptime, exceptions). OpenTelemetry may bridge logs later (WEB-223).
+
+**Repo config:** [`apps/web/src/lib/logger.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/lib/logger.ts). Used from auth failures, AI rate-limit fail-open, and `instrumentation.ts` env validation. Client components (e.g. `error.tsx`) keep `console.*`.
+
+**Free tier:** OSS (`pino`, `pino-pretty` in development).
+
+### Usage
+
+```ts
+import { logger } from "@/lib/logger";
+
+logger.info({ userId }, "session started");
+logger.error({ err }, "sign-in failed");
+```
+
+Optional env (also validated in `env.ts` when set):
+
+| Variable    | Effect                                                                  |
+| ----------- | ----------------------------------------------------------------------- |
+| `LOG_LEVEL` | `trace` \| `debug` \| `info` \| `warn` \| `error` \| `fatal` (optional) |
+
+Defaults: `debug` outside production, `info` in production. Development uses `pino-pretty`; production and tests emit JSON lines.
+
+**Not required:** any external account or API key. Do **not** install a Better Stack logging SDK for this lane.

@@ -15,6 +15,10 @@ export const envSchema = z.object({
   AI_WORKER_URL: z.string().url().default("http://localhost:8001"),
   AI_WORKER_SECRET: z.string().min(1).optional(),
   AI_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(20),
+  /** Optional Pino level override (trace|debug|info|warn|error|fatal). */
+  LOG_LEVEL: z
+    .enum(["trace", "debug", "info", "warn", "error", "fatal"])
+    .optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

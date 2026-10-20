@@ -7,6 +7,7 @@ import { MAX_CONTEXT_CHARS, historyBudget, trimHistory } from "@/lib/ai/limits";
 import { checkRateLimit } from "@/lib/ai/rate-limit";
 import { getSession } from "@/lib/auth/session";
 import { getEnv } from "@/lib/env";
+import { logger } from "@/lib/logger";
 import { buildPageContext, wrapContext } from "@/lib/page-context/build";
 import { contextScopeSchema } from "@/lib/page-context/types";
 
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     // Redis down: let the request through. The provider's spend cap is the backstop.
-    console.warn("[ai] rate limiter unavailable, allowing request", error);
+    logger.warn({ err: error }, "ai rate limiter unavailable, allowing request");
   }
 
   // 3. validate the body

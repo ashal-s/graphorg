@@ -117,4 +117,20 @@ describe("envSchema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("accepts an optional LOG_LEVEL and rejects unknown values", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    expect(
+      envSchema.safeParse({ ...base, LOG_LEVEL: "debug" }).success,
+    ).toBe(true);
+    expect(
+      envSchema.safeParse({ ...base, LOG_LEVEL: "verbose" }).success,
+    ).toBe(false);
+  });
 });
