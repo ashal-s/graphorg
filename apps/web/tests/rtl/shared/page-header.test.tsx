@@ -12,7 +12,9 @@ jest.mock("../../../src/lib/page-context/actions", () => ({
 jest.mock("../../../src/components/shared/ai-chat-gate", () => ({
   AiChatGate: ({ scope }: { scope: unknown }) => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { AiChatButton } = require("../../../src/components/shared/ai-chat-button");
+    const {
+      AiChatButton,
+    } = require("../../../src/components/shared/ai-chat-button");
     return <AiChatButton scope={scope} />;
   },
 }));

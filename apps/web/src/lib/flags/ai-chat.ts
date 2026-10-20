@@ -1,11 +1,5 @@
-import {
-  FLAG_AI_CHAT_DEFAULT,
-  FLAG_AI_CHAT_ENABLED,
-} from "@/lib/flags/keys";
-import {
-  sessionFlagContext,
-  variation,
-} from "@/lib/flags/launchdarkly";
+import { FLAG_AI_CHAT_DEFAULT, FLAG_AI_CHAT_ENABLED } from "@/lib/flags/keys";
+import { sessionFlagContext, variation } from "@/lib/flags/launchdarkly";
 
 /**
  * Whether Ask AI / `/api/ai/chat` is allowed for this session.

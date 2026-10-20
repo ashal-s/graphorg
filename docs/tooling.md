@@ -9,21 +9,21 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 
 **Anti-overlap:** only the CI trio may share a job (GitHub Actions ↔ Jenkins ↔ Buildkite). Everything else is single-owner.
 
-| Tool                                 | Unique job                                      |
-| ------------------------------------ | ----------------------------------------------- |
-| **CodeRabbit**                       | AI pull-request review                          |
-| Mintlify                             | Public docs site                                |
-| **GitHub Actions** / Jenkins / Buildkite | CI (allowed overlap; GHA is primary)        |
-| **Playwright**                       | Browser E2E                                     |
-| **Pino**                             | Structured app logger API                       |
-| **Better Stack**                     | Uptime heartbeats only                          |
-| **Resend**                           | Transactional email                             |
-| **Sentry**                           | Exceptions only (no APM / replay)               |
-| **PostHog**                          | Product analytics + session replay (flags off)  |
-| **LaunchDarkly**                     | Feature flags only                              |
-| **OpenTelemetry**                    | Emit traces / metrics / logs                    |
-| **Grafana**                          | Dashboards on OTel                              |
-| Databricks Free Edition              | Offline analytics on exported events (not Neon) |
+| Tool                                     | Unique job                                      |
+| ---------------------------------------- | ----------------------------------------------- |
+| **CodeRabbit**                           | AI pull-request review                          |
+| Mintlify                                 | Public docs site                                |
+| **GitHub Actions** / Jenkins / Buildkite | CI (allowed overlap; GHA is primary)            |
+| **Playwright**                           | Browser E2E                                     |
+| **Pino**                                 | Structured app logger API                       |
+| **Better Stack**                         | Uptime heartbeats only                          |
+| **Resend**                               | Transactional email                             |
+| **Sentry**                               | Exceptions only (no APM / replay)               |
+| **PostHog**                              | Product analytics + session replay (flags off)  |
+| **LaunchDarkly**                         | Feature flags only                              |
+| **OpenTelemetry**                        | Emit traces / metrics / logs                    |
+| **Grafana**                              | Dashboards on OTel                              |
+| Databricks Free Edition                  | Offline analytics on exported events (not Neon) |
 
 Neon/Postgres remains the app OLTP database.
 
@@ -101,11 +101,11 @@ cd docs && npx mint@latest dev --port 3333
 
 ### Jobs (current gates)
 
-| Job | What it runs | Needs live Postgres/Redis? |
-| --- | --- | --- |
-| `web` | Prettier, ESLint, `tsc`, Jest, `next build` | No (placeholder URLs + `AUTH_SECRET` only) |
-| `e2e` | Playwright Chromium smoke (`/welcome`, `/login`) | No (health + public pages) |
-| `ai-worker` | `pytest` | No |
+| Job         | What it runs                                     | Needs live Postgres/Redis?                 |
+| ----------- | ------------------------------------------------ | ------------------------------------------ |
+| `web`       | Prettier, ESLint, `tsc`, Jest, `next build`      | No (placeholder URLs + `AUTH_SECRET` only) |
+| `e2e`       | Playwright Chromium smoke (`/welcome`, `/login`) | No (health + public pages)                 |
+| `ai-worker` | `pytest`                                         | No                                         |
 
 CI **does not** set Sentry, PostHog, Resend, LaunchDarkly, or `OTEL_EXPORTER_OTLP_ENDPOINT`. Those paths no-op without keys, and CI should keep proving that.
 
@@ -121,14 +121,14 @@ E2E also sets `AUTH_TRUST_HOST=true` and `AUTH_URL=http://127.0.0.1:3000`. Downl
 
 ### Not gated yet (and why)
 
-| Idea | Verdict |
-| --- | --- |
-| Ruff / type check on `ai-worker` | Worth adding once a Ruff config exists. Pytest is the only Python gate today. |
-| Postgres + Redis service containers | Not needed for current Jest/Playwright. Add when a test actually opens the DB. |
-| `npm audit` as a failing gate | Noisy on this tree (known transitive advisories). Dependabot PRs are the lighter signal. |
-| Secret scanning in the workflow | Use GitHub’s own **secret scanning + push protection** (repo Settings → Code security). Don’t commit `.env.local`. |
-| CodeQL | Optional later; overlaps CodeRabbit for review, not for compile/test. |
-| OTel / Grafana / Sentry / PostHog in CI | Out of lane — those are runtime observability, not PR gates. |
+| Idea                                    | Verdict                                                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Ruff / type check on `ai-worker`        | Worth adding once a Ruff config exists. Pytest is the only Python gate today.                                      |
+| Postgres + Redis service containers     | Not needed for current Jest/Playwright. Add when a test actually opens the DB.                                     |
+| `npm audit` as a failing gate           | Noisy on this tree (known transitive advisories). Dependabot PRs are the lighter signal.                           |
+| Secret scanning in the workflow         | Use GitHub’s own **secret scanning + push protection** (repo Settings → Code security). Don’t commit `.env.local`. |
+| CodeQL                                  | Optional later; overlaps CodeRabbit for review, not for compile/test.                                              |
+| OTel / Grafana / Sentry / PostHog in CI | Out of lane — those are runtime observability, not PR gates.                                                       |
 
 **Not required:** GitHub secrets for local SaaS keys. CI stays green without them.
 
@@ -415,13 +415,13 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 
 **Ports (host):**
 
-| Service        | Port  | Notes                                      |
-| -------------- | ----- | ------------------------------------------ |
-| Grafana        | 3001  | UI (Next.js keeps 3000)                    |
-| Prometheus     | 9090  | Metrics UI / API                           |
-| Tempo          | 3200  | Trace query API                            |
-| OTel collector | 4318  | OTLP HTTP (apps point here)                |
-| OTel collector | 4317  | OTLP gRPC                                  |
+| Service        | Port | Notes                       |
+| -------------- | ---- | --------------------------- |
+| Grafana        | 3001 | UI (Next.js keeps 3000)     |
+| Prometheus     | 9090 | Metrics UI / API            |
+| Tempo          | 3200 | Trace query API             |
+| OTel collector | 4318 | OTLP HTTP (apps point here) |
+| OTel collector | 4317 | OTLP gRPC                   |
 
 **Free tier:** Grafana OSS + Tempo + Prometheus in Docker Compose — fully free, no cloud account.
 

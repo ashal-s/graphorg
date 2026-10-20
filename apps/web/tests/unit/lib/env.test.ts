@@ -126,12 +126,12 @@ describe("envSchema", () => {
     };
 
     expect(envSchema.safeParse(base).success).toBe(true);
-    expect(
-      envSchema.safeParse({ ...base, LOG_LEVEL: "debug" }).success,
-    ).toBe(true);
-    expect(
-      envSchema.safeParse({ ...base, LOG_LEVEL: "verbose" }).success,
-    ).toBe(false);
+    expect(envSchema.safeParse({ ...base, LOG_LEVEL: "debug" }).success).toBe(
+      true,
+    );
+    expect(envSchema.safeParse({ ...base, LOG_LEVEL: "verbose" }).success).toBe(
+      false,
+    );
   });
 
   it("treats Resend settings as optional", () => {
@@ -150,9 +150,7 @@ describe("envSchema", () => {
     expect(withKey.success).toBe(true);
     if (withKey.success) {
       expect(withKey.data.RESEND_API_KEY).toBe("re_test");
-      expect(withKey.data.EMAIL_FROM).toBe(
-        "GraphOrg <onboarding@resend.dev>",
-      );
+      expect(withKey.data.EMAIL_FROM).toBe("GraphOrg <onboarding@resend.dev>");
     }
   });
 

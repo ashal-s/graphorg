@@ -46,7 +46,10 @@ async function enforce(
     return { allowed: true };
   } catch (error) {
     // Redis down: fail open so a cache outage does not block every sign-in.
-    logger.warn({ err: error }, "auth rate limiter unavailable, allowing request");
+    logger.warn(
+      { err: error },
+      "auth rate limiter unavailable, allowing request",
+    );
     return { allowed: true };
   }
 }

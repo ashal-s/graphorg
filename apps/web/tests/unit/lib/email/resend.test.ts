@@ -109,9 +109,7 @@ describe("email/resend", () => {
   it("notifyMemberAdded never includes a password", async () => {
     getEnvMock.mockReturnValue({ RESEND_API_KEY: "re_test" });
     sendMock.mockResolvedValue({ data: { id: "email_2" }, error: null });
-    renderMock.mockResolvedValue(
-      "<p>Hi Alex &lt;script&gt;</p><p>Acme</p>",
-    );
+    renderMock.mockResolvedValue("<p>Hi Alex &lt;script&gt;</p><p>Acme</p>");
     toPlainTextMock.mockReturnValue("Hi Alex <script>\nAcme");
 
     await notifyMemberAdded({

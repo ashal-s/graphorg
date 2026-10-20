@@ -127,10 +127,7 @@ export async function login(
       // Anything else (database down, missing AUTH_SECRET, ...) is our
       // fault, not the user's. Say so, and leave the cause in the logs
       // instead of blaming their password.
-      logger.error(
-        { err: error.cause, type: error.type },
-        "sign-in failed",
-      );
+      logger.error({ err: error.cause, type: error.type }, "sign-in failed");
       return {
         message: "Sign-in is unavailable right now. Please try again later.",
         ...retainWorkspaceUi(prevState),

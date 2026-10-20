@@ -70,7 +70,10 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     // Redis down: let the request through. The provider's spend cap is the backstop.
-    logger.warn({ err: error }, "ai rate limiter unavailable, allowing request");
+    logger.warn(
+      { err: error },
+      "ai rate limiter unavailable, allowing request",
+    );
   }
 
   // 3. validate the body

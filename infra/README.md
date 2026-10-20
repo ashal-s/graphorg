@@ -2,12 +2,12 @@
 
 Local observability lives under [`observability/`](./observability/):
 
-| Path | Purpose |
-| ---- | ------- |
-| `otel-collector-config.yaml` | OTLP receive → Tempo + Prometheus |
-| `tempo.yaml` | Local Tempo single-binary |
-| `prometheus.yml` | Scrapes collector `:8889` |
-| `grafana/` | Datasource + dashboard provisioning |
+| Path                         | Purpose                             |
+| ---------------------------- | ----------------------------------- |
+| `otel-collector-config.yaml` | OTLP receive → Tempo + Prometheus   |
+| `tempo.yaml`                 | Local Tempo single-binary           |
+| `prometheus.yml`             | Scrapes collector `:8889`           |
+| `grafana/`                   | Datasource + dashboard provisioning |
 
 Compose services (repo root `docker-compose.yml`): `otel-collector`, `tempo`, `prometheus`, `grafana` (UI on **http://localhost:3001**). See [docs/tooling.md](../docs/tooling.md).
 
