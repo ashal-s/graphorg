@@ -13,7 +13,7 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 | ------------------------------------ | ----------------------------------------------- |
 | **CodeRabbit**                       | AI pull-request review                          |
 | Mintlify                             | Public docs site                                |
-| GitHub Actions / Jenkins / Buildkite | CI (allowed overlap)                            |
+| **GitHub Actions** / Jenkins / Buildkite | CI (allowed overlap; GHA is primary)        |
 | **Playwright**                       | Browser E2E                                     |
 | **Pino**                             | Structured app logger API                       |
 | **Better Stack**                     | Uptime heartbeats only                          |
@@ -89,6 +89,51 @@ cd docs && npx mint@latest dev --port 3333
 
 ---
 
+## GitHub Actions (primary CI)
+
+**Role:** primary CI on push and pull request. **Allowed overlap** with Jenkins and Buildkite — those should run the **same** checks later. Do not remove this workflow when the other two land.
+
+**Repo config:** [`.github/workflows/ci.yml`](https://github.com/ashal-s/graphorg/blob/development/.github/workflows/ci.yml). Dependabot: [`.github/dependabot.yml`](https://github.com/ashal-s/graphorg/blob/development/.github/dependabot.yml) (weekly PRs, not a required check).
+
+**Free tier:** included with GitHub. Private repos have a monthly Actions minutes quota — three jobs (web, e2e, ai-worker) on every push adds up; the workflow cancels in-progress runs on the same ref.
+
+**Triggers:** push to `main` and `development`, and every pull request.
+
+### Jobs (current gates)
+
+| Job | What it runs | Needs live Postgres/Redis? |
+| --- | --- | --- |
+| `web` | Prettier, ESLint, `tsc`, Jest, `next build` | No (placeholder URLs + `AUTH_SECRET` only) |
+| `e2e` | Playwright Chromium smoke (`/welcome`, `/login`) | No (health + public pages) |
+| `ai-worker` | `pytest` | No |
+
+CI **does not** set Sentry, PostHog, Resend, LaunchDarkly, or `OTEL_EXPORTER_OTLP_ENDPOINT`. Those paths no-op without keys, and CI should keep proving that.
+
+Placeholder env on the `web` / `e2e` jobs:
+
+```bash
+DATABASE_URL=postgresql://graphorg:graphorg@127.0.0.1:5433/graphorg
+REDIS_URL=redis://127.0.0.1:6379
+AUTH_SECRET=ci-web-auth-secret-at-least-32-chars   # e2e uses its own 32+ char value
+```
+
+E2E also sets `AUTH_TRUST_HOST=true` and `AUTH_URL=http://127.0.0.1:3000`. Download the `playwright-report` artifact from a run to inspect failures.
+
+### Not gated yet (and why)
+
+| Idea | Verdict |
+| --- | --- |
+| Ruff / type check on `ai-worker` | Worth adding once a Ruff config exists. Pytest is the only Python gate today. |
+| Postgres + Redis service containers | Not needed for current Jest/Playwright. Add when a test actually opens the DB. |
+| `npm audit` as a failing gate | Noisy on this tree (known transitive advisories). Dependabot PRs are the lighter signal. |
+| Secret scanning in the workflow | Use GitHub’s own **secret scanning + push protection** (repo Settings → Code security). Don’t commit `.env.local`. |
+| CodeQL | Optional later; overlaps CodeRabbit for review, not for compile/test. |
+| OTel / Grafana / Sentry / PostHog in CI | Out of lane — those are runtime observability, not PR gates. |
+
+**Not required:** GitHub secrets for local SaaS keys. CI stays green without them.
+
+---
+
 ## Better Stack (uptime heartbeats)
 
 **Role:** external uptime checks only (“is the service alive?”). **Not** an app log drain — Pino / OpenTelemetry / Grafana own logs. Do **not** install a Better Stack (Logtail) logging SDK in the app.
@@ -142,7 +187,7 @@ npx playwright show-report path/to/playwright-report   # or playwright-report.zi
 
 ### CI
 
-GitHub Actions job `e2e` in [`.github/workflows/ci.yml`](https://github.com/ashal-s/graphorg/blob/development/.github/workflows/ci.yml) installs Chromium, builds, runs `npm run test:e2e`, and uploads the HTML report artifact.
+The `e2e` job in GitHub Actions installs Chromium, builds, runs `npm run test:e2e`, and uploads the HTML report artifact. See [GitHub Actions](#github-actions-primary-ci) for the full gate list.
 
 Jenkins (WEB-222) and Buildkite (WEB-221) should **mirror the same** `test:e2e` command when those pipelines land — do not invent a second E2E suite.
 
