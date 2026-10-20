@@ -19,10 +19,11 @@
     "email:dev": "npm run email:dev --workspace=apps/web"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "prettier": "^3.4.2",
     "typescript": "^5"
   },
   "overrides": {
-    "esbuild": ">=0.25.12"
+    "esbuild": "0.28.2"
   }
 }
