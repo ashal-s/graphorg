@@ -14,7 +14,7 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 | **CodeRabbit**                       | AI pull-request review                          |
 | Mintlify                             | Public docs site                                |
 | GitHub Actions / Jenkins / Buildkite | CI (allowed overlap)                            |
-| Playwright                           | Browser E2E                                     |
+| **Playwright**                       | Browser E2E                                     |
 | Pino                                 | Structured app logger API                       |
 | **Better Stack**                     | Uptime heartbeats only                          |
 | Resend                               | Transactional email                             |
@@ -113,3 +113,28 @@ curl -sS http://localhost:3000/api/health
 ```
 
 **Not required:** Better Stack API keys or SDKs in `apps/web`. The monitor only needs a public URL.
+
+---
+
+## Playwright (browser E2E)
+
+**Role:** browser end-to-end smoke tests only. Jest + RTL stay for unit/component tests (`apps/web/tests/unit`, `tests/rtl`).
+
+**Repo config:** [`apps/web/playwright.config.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/playwright.config.ts) + specs under `apps/web/tests/e2e/`. Chromium only for now.
+
+**Free tier:** OSS (`@playwright/test`).
+
+### Local
+
+```bash
+npm run test:e2e:install --workspace=apps/web   # once per machine
+npm run test:e2e --workspace=apps/web           # builds, starts next, runs smoke
+```
+
+Smoke covers `/welcome` and `/login`. The config starts `next start` with placeholder `DATABASE_URL` / `REDIS_URL` / `AUTH_SECRET` if unset (pages under test do not need a live DB).
+
+### CI
+
+GitHub Actions job `e2e` in [`.github/workflows/ci.yml`](https://github.com/ashal-s/graphorg/blob/development/.github/workflows/ci.yml) installs Chromium, builds, and runs `npm run test:e2e`.
+
+Jenkins (WEB-222) and Buildkite (WEB-221) should **mirror the same** `test:e2e` command when those pipelines land — do not invent a second E2E suite.
