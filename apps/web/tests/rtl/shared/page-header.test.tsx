@@ -9,15 +9,19 @@ jest.mock("../../../src/lib/page-context/actions", () => ({
 }));
 
 // AiChatGate is an async server component; stub it as the client button.
-jest.mock("../../../src/components/shared/ai-chat-gate", () => ({
-  AiChatGate: ({ scope }: { scope: unknown }) => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const {
-      AiChatButton,
-    } = require("../../../src/components/shared/ai-chat-button");
-    return <AiChatButton scope={scope} />;
-  },
-}));
+jest.mock("../../../src/components/shared/ai-chat-gate", () => {
+  const { AiChatButton } = jest.requireActual(
+    "../../../src/components/shared/ai-chat-button",
+  ) as typeof import("../../../src/components/shared/ai-chat-button");
+
+  return {
+    AiChatGate: ({
+      scope,
+    }: {
+      scope: import("@/lib/page-context/types").ContextScope;
+    }) => <AiChatButton scope={scope} />,
+  };
+});
 
 describe("PageHeader", () => {
   it("renders the title, description and actions", () => {
