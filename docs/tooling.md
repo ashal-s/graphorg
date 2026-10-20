@@ -16,7 +16,7 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 | GitHub Actions / Jenkins / Buildkite | CI (allowed overlap)                            |
 | Playwright                           | Browser E2E                                     |
 | Pino                                 | Structured app logger API                       |
-| Better Stack                         | Uptime heartbeats only                          |
+| **Better Stack**                     | Uptime heartbeats only                          |
 | Resend                               | Transactional email                             |
 | Sentry                               | Exceptions only (no APM / replay)               |
 | PostHog                              | Product analytics + session replay (flags off)  |
@@ -86,3 +86,30 @@ cd docs && npx mint@latest dev --port 3333
 4. Use the project’s `*.mintlify.app` / `*.mintlify.site` URL for the live site; add a custom domain later if needed.
 
 **Not required:** any Next.js SDK or app env vars. Docs are static MD/MDX + `docs.json` only.
+
+---
+
+## Better Stack (uptime heartbeats)
+
+**Role:** external uptime checks only (“is the service alive?”). **Not** an app log drain — Pino / OpenTelemetry / Grafana own logs. Do **not** install a Better Stack (Logtail) logging SDK in the app.
+
+**App endpoint:** [`GET /api/health`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/app/api/health/route.ts) returns `200` with `{ "ok": true, "data": { "status": "ok" } }`. It is unauthenticated (`proxy.ts` excludes `/api` from the auth redirect matcher). Optional DB ping is deferred.
+
+**Free tier:** [Better Stack free](https://betterstack.com/pricing) — personal projects, up to **10 monitors & heartbeats**, ~**3-minute** check interval, email/Slack alerts. No credit card to start. Stay on free for scaffolding (do not enable log ingest for this lane).
+
+### What you do (one-time monitor)
+
+1. Sign up at [betterstack.com](https://betterstack.com) (free).
+2. Open **Uptime → Monitors → Create monitor**.
+3. Set the URL to your deployed health endpoint, e.g. `https://graphorg.com/api/health` (or a tunnel URL for local demos).
+4. Keep HTTP status monitoring (expect **2xx**). Optionally require the keyword `ok` in the body.
+5. Choose email and/or Slack for alerts; create the monitor.
+
+Verify locally when the web app is running:
+
+```bash
+curl -sS http://localhost:3000/api/health
+# {"ok":true,"data":{"status":"ok"}}
+```
+
+**Not required:** Better Stack API keys or SDKs in `apps/web`. The monitor only needs a public URL.
