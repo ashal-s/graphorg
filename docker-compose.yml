@@ -85,9 +85,24 @@ services:
       - tempo
       - prometheus
 
+  # Jenkins OSS (WEB-222). Same checks as GitHub Actions, run locally.
+  # UI on http://localhost:8080. Tools live in the image — the Docker socket
+  # is not mounted (see docs/tooling.md, Docker Desktop on Mac).
+  jenkins:
+    build:
+      context: ./infra/jenkins
+    image: graphorg-jenkins:local
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - graphorg-jenkins:/var/jenkins_home
+
 volumes:
   graphorg-postgres:
   graphorg-redis:
   graphorg-tempo:
   graphorg-prometheus:
   graphorg-grafana:
+  graphorg-jenkins:

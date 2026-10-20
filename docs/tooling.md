@@ -9,21 +9,21 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 
 **Anti-overlap:** only the CI trio may share a job (GitHub Actions ↔ Jenkins ↔ Buildkite). Everything else is single-owner.
 
-| Tool                                     | Unique job                                      |
-| ---------------------------------------- | ----------------------------------------------- |
-| **CodeRabbit**                           | AI pull-request review                          |
-| Mintlify                                 | Public docs site                                |
-| **GitHub Actions** / Jenkins / Buildkite | CI (allowed overlap; GHA is primary)            |
-| **Playwright**                           | Browser E2E                                     |
-| **Pino**                                 | Structured app logger API                       |
-| **Better Stack**                         | Uptime heartbeats only                          |
-| **Resend**                               | Transactional email                             |
-| **Sentry**                               | Exceptions only (no APM / replay)               |
-| **PostHog**                              | Product analytics + session replay (flags off)  |
-| **LaunchDarkly**                         | Feature flags only                              |
-| **OpenTelemetry**                        | Emit traces / metrics / logs                    |
-| **Grafana**                              | Dashboards on OTel                              |
-| Databricks Free Edition                  | Offline analytics on exported events (not Neon) |
+| Tool                                         | Unique job                                      |
+| -------------------------------------------- | ----------------------------------------------- |
+| **CodeRabbit**                               | AI pull-request review                          |
+| Mintlify                                     | Public docs site                                |
+| **GitHub Actions** / **Jenkins** / Buildkite | CI (allowed overlap; GHA is primary)            |
+| **Playwright**                               | Browser E2E                                     |
+| **Pino**                                     | Structured app logger API                       |
+| **Better Stack**                             | Uptime heartbeats only                          |
+| **Resend**                                   | Transactional email                             |
+| **Sentry**                                   | Exceptions only (no APM / replay)               |
+| **PostHog**                                  | Product analytics + session replay (flags off)  |
+| **LaunchDarkly**                             | Feature flags only                              |
+| **OpenTelemetry**                            | Emit traces / metrics / logs                    |
+| **Grafana**                                  | Dashboards on OTel                              |
+| Databricks Free Edition                      | Offline analytics on exported events (not Neon) |
 
 Neon/Postgres remains the app OLTP database.
 
@@ -134,6 +134,44 @@ E2E also sets `AUTH_TRUST_HOST=true` and `AUTH_URL=http://127.0.0.1:3000`. Downl
 
 ---
 
+## Jenkins (local CI)
+
+**Role:** the **same checks** as GitHub Actions, run on your machine. GitHub Actions stays primary. Buildkite (WEB-221) should mirror this set too.
+
+**Repo config:** [`Jenkinsfile`](https://github.com/ashal-s/graphorg/blob/development/Jenkinsfile) (web → Playwright e2e → ai-worker pytest) and the Compose service built from [`infra/jenkins/Dockerfile`](https://github.com/ashal-s/graphorg/blob/development/infra/jenkins/Dockerfile).
+
+**Free tier:** Jenkins OSS. You host it; the software is free.
+
+### Start
+
+```bash
+docker compose up -d --build jenkins
+```
+
+UI: [http://localhost:8080](http://localhost:8080). Agent port **50000** is published for a future inbound agent; the built-in controller runs the Jenkinsfile, so you do not need it for the local job.
+
+First launch:
+
+1. Unlock with the initial admin password:
+
+```bash
+docker compose exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+2. Install the **suggested** plugins and create the admin user.
+3. New Item → **Pipeline** → Definition: **Pipeline script from SCM** → Git. Repository URL: `https://github.com/ashal-s/graphorg.git`, branch `*/development`, script path `Jenkinsfile`.
+4. Build now. The run uses placeholder `DATABASE_URL` / `REDIS_URL` / `AUTH_SECRET` and does **not** need Postgres, Redis, or any SaaS key. The Playwright HTML report is archived on the build.
+
+### Docker Desktop on Mac
+
+Checks run **inside the Jenkins container** (Node 20, uv/Python 3.12, Playwright’s Chromium libraries are in the image). The Docker socket is **not** mounted.
+
+Do not switch this to Docker-in-Docker or `agent { docker { ... } }` on a Mac without reading this: Docker Desktop’s daemon lives in a Linux VM. `/var/run/docker.sock` on the Mac is a proxy into that VM. A sibling container can see host paths under `/Users`, but it **cannot** see `/var/jenkins_home` from inside the Jenkins container. Pipelines that `docker run -v $WORKSPACE` then fail with empty directories. That is why the socket stays off.
+
+**Not required** for `npm run dev` or for GitHub Actions. Jenkins is optional local CI.
+
+---
+
 ## Better Stack (uptime heartbeats)
 
 **Role:** external uptime checks only (“is the service alive?”). **Not** an app log drain — Pino / OpenTelemetry / Grafana own logs. Do **not** install a Better Stack (Logtail) logging SDK in the app.
@@ -189,7 +227,7 @@ npx playwright show-report path/to/playwright-report   # or playwright-report.zi
 
 The `e2e` job in GitHub Actions installs Chromium, builds, runs `npm run test:e2e`, and uploads the HTML report artifact. See [GitHub Actions](#github-actions-primary-ci) for the full gate list.
 
-Jenkins (WEB-222) and Buildkite (WEB-221) should **mirror the same** `test:e2e` command when those pipelines land — do not invent a second E2E suite.
+The root [`Jenkinsfile`](https://github.com/ashal-s/graphorg/blob/development/Jenkinsfile) runs the same `npm run test:e2e`. Buildkite (WEB-221) should mirror that command too — do not invent a second E2E suite.
 
 ---
 

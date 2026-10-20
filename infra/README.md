@@ -9,7 +9,7 @@ Local observability lives under [`observability/`](./observability/):
 | `prometheus.yml`             | Scrapes collector `:8889`           |
 | `grafana/`                   | Datasource + dashboard provisioning |
 
-Compose services (repo root `docker-compose.yml`): `otel-collector`, `tempo`, `prometheus`, `grafana` (UI on **http://localhost:3001**). See [docs/tooling.md](../docs/tooling.md).
+Compose services (repo root `docker-compose.yml`): `otel-collector`, `tempo`, `prometheus`, `grafana` (UI on **http://localhost:3001**), `jenkins` (UI on **http://localhost:8080**, image from [`jenkins/`](./jenkins/)). See [docs/tooling.md](../docs/tooling.md).
 
 Terraform / Helm / Ansible for AWS land here in **Post-MVP — Cloud, CI/CD & Observability** (WEB-147, WEB-148). Branch: `cloud-cicd-observability`.
 
