@@ -12,6 +12,7 @@
     "test:watch": "jest --watchAll",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
+    "test:e2e:report": "playwright show-report playwright-report",
     "db:generate": "dotenv -e .env.local -- drizzle-kit generate",
     "postdb:generate": "prettier --write drizzle",
     "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",

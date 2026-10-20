@@ -129,12 +129,19 @@ curl -sS http://localhost:3000/api/health
 ```bash
 npm run test:e2e:install --workspace=apps/web   # once per machine
 npm run test:e2e --workspace=apps/web           # builds, starts next, runs smoke
+npm run test:e2e:report --workspace=apps/web    # open HTML report dashboard
 ```
 
 Smoke covers `/welcome` and `/login`. The config starts `next start` with placeholder `DATABASE_URL` / `REDIS_URL` / `AUTH_SECRET` if unset (pages under test do not need a live DB).
 
+**HTML dashboard:** every run writes `apps/web/playwright-report/`. Locally the report opens automatically on failure; otherwise run `test:e2e:report`. On CI, download the `playwright-report` artifact from the workflow run, then:
+
+```bash
+npx playwright show-report path/to/playwright-report   # or playwright-report.zip
+```
+
 ### CI
 
-GitHub Actions job `e2e` in [`.github/workflows/ci.yml`](https://github.com/ashal-s/graphorg/blob/development/.github/workflows/ci.yml) installs Chromium, builds, and runs `npm run test:e2e`.
+GitHub Actions job `e2e` in [`.github/workflows/ci.yml`](https://github.com/ashal-s/graphorg/blob/development/.github/workflows/ci.yml) installs Chromium, builds, runs `npm run test:e2e`, and uploads the HTML report artifact.
 
 Jenkins (WEB-222) and Buildkite (WEB-221) should **mirror the same** `test:e2e` command when those pipelines land — do not invent a second E2E suite.

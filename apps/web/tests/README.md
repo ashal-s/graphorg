@@ -62,6 +62,7 @@ npm run test                              # Jest once (from root: runs apps/web)
 npm run test:watch --workspace=apps/web   # Jest watch mode
 npm run test:e2e:install --workspace=apps/web   # Playwright Chromium (once)
 npm run test:e2e --workspace=apps/web           # Playwright smoke (builds + next start)
+npm run test:e2e:report --workspace=apps/web    # HTML report dashboard (after a run)
 ```
 
 `test:watch` uses `--watchAll`, not Jest's default `--watch`: `--watch` only re-runs tests related to files changed since the last commit, so on a clean working tree it finds nothing to run. `--watchAll` always runs the full suite first.

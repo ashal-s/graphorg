@@ -11,10 +11,20 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? "github" : "list",
+  // HTML report → `npm run test:e2e:report` (or CI artifact playwright-report/).
+  reporter: process.env.CI
+    ? [
+        ["github"],
+        ["html", { open: "never", outputFolder: "playwright-report" }],
+      ]
+    : [
+        ["list"],
+        ["html", { open: "on-failure", outputFolder: "playwright-report" }],
+      ],
   use: {
     baseURL,
     trace: "on-first-retry",
+    screenshot: "only-on-failure",
   },
   projects: [
     {
