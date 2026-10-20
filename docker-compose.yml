@@ -93,6 +93,11 @@ services:
       context: ./infra/jenkins
     image: graphorg-jenkins:local
     restart: unless-stopped
+    # Cookies are per host, not per port, so the browser sends every
+    # localhost cookie to :8080. Jetty's default 8KB header limit then
+    # returns 431. 256KB covers the other local apps on this machine.
+    environment:
+      JENKINS_OPTS: "--requestHeaderSize=262144"
     ports:
       - "8080:8080"
       - "50000:50000"

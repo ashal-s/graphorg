@@ -148,7 +148,7 @@ E2E also sets `AUTH_TRUST_HOST=true` and `AUTH_URL=http://127.0.0.1:3000`. Downl
 docker compose up -d --build jenkins
 ```
 
-UI: [http://localhost:8080](http://localhost:8080). Agent port **50000** is published for a future inbound agent; the built-in controller runs the Jenkinsfile, so you do not need it for the local job.
+UI: [http://localhost:8080](http://localhost:8080). Agent port **50000** is published for a future inbound agent; the built-in controller runs the Jenkinsfile, so you do not need it for the local job. The Compose service raises Jetty's request-header limit (`JENKINS_OPTS=--requestHeaderSize=262144`) because cookies set by other apps on `localhost` are sent to this port too, and the 8KB default returns HTTP 431.
 
 First launch:
 
