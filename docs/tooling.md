@@ -18,7 +18,7 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 | **Pino**                             | Structured app logger API                       |
 | **Better Stack**                     | Uptime heartbeats only                          |
 | **Resend**                           | Transactional email                             |
-| Sentry                               | Exceptions only (no APM / replay)               |
+| **Sentry**                           | Exceptions only (no APM / replay)               |
 | PostHog                              | Product analytics + session replay (flags off)  |
 | LaunchDarkly                         | Feature flags only                              |
 | OpenTelemetry                        | Emit traces / metrics / logs                    |
@@ -218,3 +218,42 @@ npm run email:test --workspace=apps/web -- ashal.syed@gmail.com
 4. For production, [verify a domain](https://resend.com/domains) and set `EMAIL_FROM` to an address on that domain.
 
 **Not required** for local app boot or the email preview dashboard: Resend account or env vars. Missing key → mailer skips and logs at debug.
+
+---
+
+## Sentry (exceptions only)
+
+**Role:** application **exceptions / error events** only (“is something broken?”). **Not** APM / performance (OpenTelemetry → Grafana), **not** session replay (PostHog), **not** uptime (Better Stack).
+
+**Repo config:**
+
+- Init: `apps/web/src/instrumentation-client.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` via `instrumentation.ts`
+- Capture: `app/error.tsx`, `app/global-error.tsx`, `onRequestError`
+- Build: `withSentryConfig` in `next.config.ts` (source maps upload only when `SENTRY_AUTH_TOKEN` is set)
+- Shared options: [`apps/web/src/lib/sentry/options.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/lib/sentry/options.ts) — **no** `tracesSampleRate`, **no** `replayIntegration`
+
+**Free tier:** [Sentry Developer](https://sentry.io/pricing/) free plan. No credit card to start. Stay on free for scaffolding.
+
+### What you do (one-time)
+
+1. Create a Sentry project (Next.js) in your org.
+2. Add to `apps/web/.env.local`:
+
+```bash
+# Prefer the public DSN so client + server share one value
+NEXT_PUBLIC_SENTRY_DSN=https://...@o....ingest.sentry.io/...
+# optional server-only alias if you prefer not to expose the DSN on the client name
+# SENTRY_DSN=...
+```
+
+3. Optional for readable production stack traces (CI / Vercel):
+
+```bash
+SENTRY_ORG=your-org-slug
+SENTRY_PROJECT=your-project-slug
+SENTRY_AUTH_TOKEN=sntrys_...
+```
+
+4. Restart `npm run dev`, trigger an error in the UI (or throw from a route), and confirm it appears under **Issues** in Sentry.
+
+**Not required** for local boot: any Sentry env vars. Missing DSN → SDK initializes with no DSN and sends nothing.

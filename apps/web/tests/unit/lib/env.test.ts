@@ -155,4 +155,22 @@ describe("envSchema", () => {
       );
     }
   });
+
+  it("treats Sentry DSN settings as optional", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    const withDsn = envSchema.safeParse({
+      ...base,
+      NEXT_PUBLIC_SENTRY_DSN: "https://abc@o1.ingest.sentry.io/1",
+    });
+    expect(withDsn.success).toBe(true);
+    expect(
+      envSchema.safeParse({ ...base, SENTRY_DSN: "not-a-url" }).success,
+    ).toBe(false);
+  });
 });

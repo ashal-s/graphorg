@@ -1,5 +1,8 @@
+import * as Sentry from "@sentry/nextjs";
+
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    await import("./sentry.server.config");
     const { logger } = await import("./lib/logger");
     try {
       const { getEnv } = await import("./lib/env");
@@ -20,4 +23,11 @@ export async function register() {
       process.exit(1);
     }
   }
+
+  if (process.env.NEXT_RUNTIME === "edge") {
+    await import("./sentry.edge.config");
+  }
 }
+
+/** Capture errors from Server Components, proxy, and nested RSC. */
+export const onRequestError = Sentry.captureRequestError;

@@ -26,6 +26,12 @@ export const envSchema = z.object({
    * (`GraphOrg <onboarding@resend.dev>`). Defaults in the mailer when unset.
    */
   EMAIL_FROM: z.string().min(1).optional(),
+  /**
+   * Sentry DSN. Prefer `NEXT_PUBLIC_SENTRY_DSN` so client + server share one
+   * value; `SENTRY_DSN` is a server-only fallback. Omit locally — SDK no-ops.
+   */
+  SENTRY_DSN: z.string().url().optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
