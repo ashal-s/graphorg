@@ -28,10 +28,19 @@ jest.mock("resend", () => ({
   })),
 }));
 
+const renderMock = jest.fn();
+const toPlainTextMock = jest.fn();
+jest.mock("react-email", () => ({
+  render: (...args: unknown[]) => renderMock(...args),
+  toPlainText: (...args: unknown[]) => toPlainTextMock(...args),
+}));
+
 describe("email/resend", () => {
   beforeEach(() => {
     getEnvMock.mockReset();
     sendMock.mockReset();
+    renderMock.mockReset();
+    toPlainTextMock.mockReset();
   });
 
   it("reports not configured when RESEND_API_KEY is missing", () => {
@@ -100,6 +109,10 @@ describe("email/resend", () => {
   it("notifyMemberAdded never includes a password", async () => {
     getEnvMock.mockReturnValue({ RESEND_API_KEY: "re_test" });
     sendMock.mockResolvedValue({ data: { id: "email_2" }, error: null });
+    renderMock.mockResolvedValue(
+      "<p>Hi Alex &lt;script&gt;</p><p>Acme</p>",
+    );
+    toPlainTextMock.mockReturnValue("Hi Alex <script>\nAcme");
 
     await notifyMemberAdded({
       to: "new@example.com",
@@ -108,6 +121,7 @@ describe("email/resend", () => {
       userId: "user-1",
     });
 
+    expect(renderMock).toHaveBeenCalled();
     const payload = sendMock.mock.calls[0]![0] as {
       text: string;
       html: string;
@@ -115,6 +129,7 @@ describe("email/resend", () => {
     };
     expect(payload.text).not.toMatch(/password/i);
     expect(payload.html).toContain("Alex &lt;script&gt;");
+    expect(payload.html).toContain("Acme");
     expect(payload.idempotencyKey).toBe("member-added/user-1");
   });
 });

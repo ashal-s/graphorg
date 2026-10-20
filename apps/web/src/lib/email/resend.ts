@@ -1,5 +1,8 @@
+import { createElement } from "react";
 import { Resend } from "resend";
+import { render, toPlainText } from "react-email";
 
+import MemberAddedEmail from "../../../emails/member-added";
 import { getEnv } from "@/lib/env";
 import { logger } from "@/lib/logger";
 
@@ -82,22 +85,13 @@ export async function notifyMemberAdded(opts: {
   userId: string;
 }): Promise<SendEmailResult> {
   const subject = `You've been added to ${opts.organizationName} on GraphOrg`;
-  const text = [
-    `Hi ${opts.memberName},`,
-    "",
-    `You've been added as a member of ${opts.organizationName} on GraphOrg.`,
-    "Your administrator will share sign-in details with you (there is no invite link yet).",
-    "",
-    "— GraphOrg",
-  ].join("\n");
-  const safeName = escapeHtml(opts.memberName);
-  const safeOrg = escapeHtml(opts.organizationName);
-  const html = [
-    `<p>Hi ${safeName},</p>`,
-    `<p>You've been added as a member of <strong>${safeOrg}</strong> on GraphOrg.</p>`,
-    `<p>Your administrator will share sign-in details with you (there is no invite link yet).</p>`,
-    `<p>— GraphOrg</p>`,
-  ].join("\n");
+  const html = await render(
+    createElement(MemberAddedEmail, {
+      memberName: opts.memberName,
+      organizationName: opts.organizationName,
+    }),
+  );
+  const text = toPlainText(html);
 
   return sendEmail({
     to: opts.to,
@@ -107,12 +101,4 @@ export async function notifyMemberAdded(opts: {
     tags: [{ name: "kind", value: "member_added" }],
     idempotencyKey: `member-added/${opts.userId}`,
   });
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
 }

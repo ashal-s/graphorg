@@ -181,11 +181,24 @@ Defaults: `debug` outside production, `info` in production. Development uses `pi
 
 **Role:** transactional email only (member-added notice, future invites). **Not** a marketing platform and **not** the auth provider (Auth.js + credentials stay).
 
-**Repo config:** [`apps/web/src/lib/email/resend.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/lib/email/resend.ts). `sendEmail` / `notifyMemberAdded` no-op when `RESEND_API_KEY` is unset so `npm run dev` works without Resend. Creating a member (`POST /api/users`) calls `notifyMemberAdded` (never includes the password).
+**Repo config:**
+
+- Mailer: [`apps/web/src/lib/email/resend.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/lib/email/resend.ts) — `sendEmail` / `notifyMemberAdded` no-op when `RESEND_API_KEY` is unset.
+- Templates (React Email): [`apps/web/emails/`](https://github.com/ashal-s/graphorg/blob/development/apps/web/emails) — `member-added`, `welcome`, `invite`.
+
+Creating a member (`POST /api/users`) renders `member-added` and sends it (never includes the password). `welcome` / `invite` are scaffolded for preview; invite is not wired to send yet.
 
 **Free tier:** [Resend free](https://resend.com/pricing) monthly send quota. No credit card to start. Stay on free for scaffolding.
 
-### What you do (one-time)
+### Preview templates (React Email dashboard)
+
+```bash
+npm run email:dev --workspace=apps/web
+```
+
+Opens the React Email preview UI on [http://localhost:3334](http://localhost:3334) (port chosen to avoid Next on 3000 and Mintlify on 3333). Pick a template in the sidebar; hot-reload as you edit.
+
+### What you do (one-time send setup)
 
 1. Sign up at [resend.com](https://resend.com) and create an API key.
 2. Add to `apps/web/.env.local`:
@@ -196,12 +209,12 @@ RESEND_API_KEY=re_...
 EMAIL_FROM="GraphOrg <onboarding@resend.dev>"
 ```
 
-3. Smoke-test (until a domain is verified, Resend only delivers from `onboarding@resend.dev` to **your** Resend account email):
+3. Smoke-test (until a domain is verified, use `onboarding@resend.dev` as from, and send only to **your** Resend account email or `delivered@resend.dev`):
 
 ```bash
-npm run email:test --workspace=apps/web -- you@example.com
+npm run email:test --workspace=apps/web -- ashal.syed@gmail.com
 ```
 
 4. For production, [verify a domain](https://resend.com/domains) and set `EMAIL_FROM` to an address on that domain.
 
-**Not required** for local app boot: Resend account or env vars. Missing key → mailer skips and logs at debug.
+**Not required** for local app boot or the email preview dashboard: Resend account or env vars. Missing key → mailer skips and logs at debug.

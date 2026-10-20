@@ -15,7 +15,8 @@
     "test": "npm run test --workspace=apps/web",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "docs:dev": "cd docs && npx --yes mint@latest dev --port 3333"
+    "docs:dev": "cd docs && npx --yes mint@latest dev --port 3333",
+    "email:dev": "npm run email:dev --workspace=apps/web"
   },
   "devDependencies": {
     "prettier": "^3.4.2",
