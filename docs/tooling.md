@@ -21,7 +21,7 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 | **Sentry**                           | Exceptions only (no APM / replay)               |
 | **PostHog**                          | Product analytics + session replay (flags off)  |
 | **LaunchDarkly**                     | Feature flags only                              |
-| OpenTelemetry                        | Emit traces / metrics / logs                    |
+| **OpenTelemetry**                    | Emit traces / metrics / logs                    |
 | Grafana                              | Dashboards on OTel                              |
 | Databricks Free Edition              | Offline analytics on exported events (not Neon) |
 
@@ -319,3 +319,41 @@ LAUNCHDARKLY_SDK_KEY=sdk-...
 5. Restart `npm run dev`. Toggle the flag in the LD dashboard and confirm Ask AI appears/disappears after a refresh (and that `/api/ai/chat` returns 403 when off).
 
 **Not required** for local boot: any LaunchDarkly env vars. Missing key → `variation(...)` returns the caller’s default (`ai-chat-enabled` → `true`).
+
+---
+
+## OpenTelemetry (traces + metrics)
+
+**Role:** **instrumentation standard** — emit traces and metrics from `apps/web` and `services/ai-worker` over OTLP. **Not** a UI (Grafana — WEB-224), **not** exceptions (Sentry), **not** uptime (Better Stack), **not** session replay (PostHog).
+
+**Repo config:**
+
+- Web: `NodeSDK` in [`apps/web/src/instrumentation.node.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/instrumentation.node.ts), loaded from `instrumentation.ts` when `OTEL_EXPORTER_OTLP_ENDPOINT` is set
+- AI worker: [`services/ai-worker/src/ai_worker/otel.py`](https://github.com/ashal-s/graphorg/blob/development/services/ai-worker/src/ai_worker/otel.py) + FastAPI instrumentation
+- Trace context: `POST /api/ai/chat` injects W3C `traceparent` on the upstream worker fetch
+- Collector: Compose service `otel-collector` (ports **4317** gRPC / **4318** HTTP) with config at [`infra/observability/otel-collector-config.yaml`](https://github.com/ashal-s/graphorg/blob/development/infra/observability/otel-collector-config.yaml) — logs to stdout until Tempo/Grafana (WEB-224)
+- Pino → OTel log bridge: not wired yet (optional follow-up)
+
+**Free tier:** OSS OpenTelemetry SDKs + OSS collector image. No SaaS required.
+
+### What you do (local)
+
+1. Start the collector with the rest of Compose:
+
+```bash
+docker compose up -d otel-collector
+# or: docker compose up -d
+```
+
+2. Add to `apps/web/.env.local` (and `services/ai-worker/.env` if you run the worker):
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+# optional
+# OTEL_SERVICE_NAME=graphorg-web
+```
+
+3. Restart `npm run dev` and (if used) the AI worker. Hit a few pages / Ask AI.
+4. Watch collector logs: `docker compose logs -f otel-collector` — you should see received spans/metrics (debug exporter).
+
+**Not required** for local boot: any OTel env vars. Missing endpoint → SDK is not started (safe no-op even if the collector is down).

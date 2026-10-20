@@ -211,4 +211,26 @@ describe("envSchema", () => {
     });
     expect(withLd.success).toBe(true);
   });
+
+  it("treats OpenTelemetry settings as optional", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    const withOtel = envSchema.safeParse({
+      ...base,
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost:4318",
+      OTEL_SERVICE_NAME: "graphorg-web",
+    });
+    expect(withOtel.success).toBe(true);
+    expect(
+      envSchema.safeParse({
+        ...base,
+        OTEL_EXPORTER_OTLP_ENDPOINT: "not-a-url",
+      }).success,
+    ).toBe(false);
+  });
 });

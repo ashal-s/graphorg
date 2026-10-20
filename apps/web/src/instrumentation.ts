@@ -22,6 +22,17 @@ export async function register() {
       );
       process.exit(1);
     }
+
+    // OpenTelemetry NodeSDK (traces + metrics → OTLP). No-op when
+    // OTEL_EXPORTER_OTLP_ENDPOINT is unset — see lib/otel/config.ts.
+    const { isOtelConfigured } = await import("./lib/otel/config");
+    if (isOtelConfigured()) {
+      await import("./instrumentation.node");
+      logger.info(
+        { endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT },
+        "opentelemetry sdk started",
+      );
+    }
   }
 
   if (process.env.NEXT_RUNTIME === "edge") {

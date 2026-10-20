@@ -45,6 +45,13 @@ export const envSchema = z.object({
    */
   LAUNCHDARKLY_SDK_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_LAUNCHDARKLY_CLIENT_ID: z.string().min(1).optional(),
+  /**
+   * OTLP HTTP base URL (e.g. `http://localhost:4318`). Omit locally —
+   * OpenTelemetry SDK is not started. Compose collector listens on 4318.
+   */
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+  /** Overrides the default service name `graphorg-web`. */
+  OTEL_SERVICE_NAME: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

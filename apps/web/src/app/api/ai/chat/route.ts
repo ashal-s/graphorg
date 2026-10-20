@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
+import { context as otelContext, propagation } from "@opentelemetry/api";
+
 import { AI_DISABLED_BY_FLAG, AI_NOT_CONFIGURED } from "@/lib/ai/errors";
 import { MAX_CONTEXT_CHARS, historyBudget, trimHistory } from "@/lib/ai/limits"; // new
 import { checkRateLimit } from "@/lib/ai/rate-limit";
@@ -94,15 +96,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 5. forward to the worker
+  // 5. forward to the worker (inject W3C trace context when OTel is on)
   let upstream: Response;
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "X-Internal-Secret": env.AI_WORKER_SECRET!,
+    };
+    propagation.inject(otelContext.active(), headers);
+
     upstream = await fetch(`${env.AI_WORKER_URL}/chat`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Internal-Secret": env.AI_WORKER_SECRET,
-      },
+      headers,
       body: JSON.stringify({
         question,
         page_context: pageContext,

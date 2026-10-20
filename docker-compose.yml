@@ -22,6 +22,18 @@ services:
     volumes:
       - graphorg-redis:/data
 
+  # OpenTelemetry Collector (WEB-223). Receives OTLP HTTP/gRPC from apps/web
+  # and services/ai-worker; logs to stdout until Grafana/Tempo (WEB-224).
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.128.0
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./infra/observability/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+
 volumes:
   graphorg-postgres:
   graphorg-redis:
