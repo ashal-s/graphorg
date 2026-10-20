@@ -22,7 +22,7 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 | **PostHog**                          | Product analytics + session replay (flags off)  |
 | **LaunchDarkly**                     | Feature flags only                              |
 | **OpenTelemetry**                    | Emit traces / metrics / logs                    |
-| Grafana                              | Dashboards on OTel                              |
+| **Grafana**                          | Dashboards on OTel                              |
 | Databricks Free Edition              | Offline analytics on exported events (not Neon) |
 
 Neon/Postgres remains the app OLTP database.
@@ -331,18 +331,17 @@ LAUNCHDARKLY_SDK_KEY=sdk-...
 - Web: `NodeSDK` in [`apps/web/src/instrumentation.node.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/instrumentation.node.ts), loaded from `instrumentation.ts` when `OTEL_EXPORTER_OTLP_ENDPOINT` is set
 - AI worker: [`services/ai-worker/src/ai_worker/otel.py`](https://github.com/ashal-s/graphorg/blob/development/services/ai-worker/src/ai_worker/otel.py) + FastAPI instrumentation
 - Trace context: `POST /api/ai/chat` injects W3C `traceparent` on the upstream worker fetch
-- Collector: Compose service `otel-collector` (ports **4317** gRPC / **4318** HTTP) with config at [`infra/observability/otel-collector-config.yaml`](https://github.com/ashal-s/graphorg/blob/development/infra/observability/otel-collector-config.yaml) — logs to stdout until Tempo/Grafana (WEB-224)
+- Collector: Compose service `otel-collector` (ports **4317** gRPC / **4318** HTTP) with config at [`infra/observability/otel-collector-config.yaml`](https://github.com/ashal-s/graphorg/blob/development/infra/observability/otel-collector-config.yaml) — forwards to Tempo + Prometheus (see Grafana below)
 - Pino → OTel log bridge: not wired yet (optional follow-up)
 
 **Free tier:** OSS OpenTelemetry SDKs + OSS collector image. No SaaS required.
 
 ### What you do (local)
 
-1. Start the collector with the rest of Compose:
+1. Start the observability stack (or full Compose):
 
 ```bash
-docker compose up -d otel-collector
-# or: docker compose up -d
+docker compose up -d otel-collector tempo prometheus grafana
 ```
 
 2. Add to `apps/web/.env.local` (and `services/ai-worker/.env` if you run the worker):
@@ -354,6 +353,40 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 ```
 
 3. Restart `npm run dev` and (if used) the AI worker. Hit a few pages / Ask AI.
-4. Watch collector logs: `docker compose logs -f otel-collector` — you should see received spans/metrics (debug exporter).
+4. Open Grafana at [http://localhost:3001](http://localhost:3001) (anonymous admin) — see the Grafana section below.
 
 **Not required** for local boot: any OTel env vars. Missing endpoint → SDK is not started (safe no-op even if the collector is down).
+
+---
+
+## Grafana (OTel dashboards)
+
+**Role:** dashboards / Explore UI on **OpenTelemetry** system telemetry (Tempo traces + Prometheus metrics) — “how is the system performing?”. **Not** uptime (Better Stack), **not** exceptions (Sentry), **not** session replay / product analytics (PostHog).
+
+**Repo config:**
+
+- Compose: `tempo`, `prometheus`, `grafana`, `otel-collector` in [`docker-compose.yml`](https://github.com/ashal-s/graphorg/blob/development/docker-compose.yml)
+- Provisioning + starter dashboard under [`infra/observability/`](https://github.com/ashal-s/graphorg/blob/development/infra/observability/)
+
+**Ports (host):**
+
+| Service        | Port  | Notes                                      |
+| -------------- | ----- | ------------------------------------------ |
+| Grafana        | 3001  | UI (Next.js keeps 3000)                    |
+| Prometheus     | 9090  | Metrics UI / API                           |
+| Tempo          | 3200  | Trace query API                            |
+| OTel collector | 4318  | OTLP HTTP (apps point here)                |
+| OTel collector | 4317  | OTLP gRPC                                  |
+
+**Free tier:** Grafana OSS + Tempo + Prometheus in Docker Compose — fully free, no cloud account.
+
+### What you do (local)
+
+1. `docker compose up -d otel-collector tempo prometheus grafana`
+2. Ensure `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` and restart the app; click around.
+3. Open **http://localhost:3001** — login optional (anonymous Admin). Default admin/admin if you prefer login.
+4. Confirm **Connections → Data sources** lists **Prometheus** and **Tempo**.
+5. Open dashboard **GraphOrg → GraphOrg OTel overview** (or Dashboards → search `OTel`).
+6. **Explore → Tempo** → search service `graphorg-web` for traces.
+
+**Not required** for `npm run dev`: Grafana stack. Apps boot without OTel; Grafana is optional local tooling.

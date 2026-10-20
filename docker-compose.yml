@@ -22,8 +22,8 @@ services:
     volumes:
       - graphorg-redis:/data
 
-  # OpenTelemetry Collector (WEB-223). Receives OTLP HTTP/gRPC from apps/web
-  # and services/ai-worker; logs to stdout until Grafana/Tempo (WEB-224).
+  # OpenTelemetry Collector (WEB-223). Receives OTLP from apps/web +
+  # ai-worker; forwards traces → Tempo, metrics → Prometheus scrape.
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.128.0
     restart: unless-stopped
@@ -33,7 +33,61 @@ services:
     ports:
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP
+    depends_on:
+      - tempo
+
+  # Tempo — trace store (WEB-224). OTLP only on the Docker network.
+  tempo:
+    image: grafana/tempo:2.7.1
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./infra/observability/tempo.yaml:/etc/tempo.yaml:ro
+      - graphorg-tempo:/var/tempo
+    ports:
+      - "3200:3200" # Tempo HTTP API / query
+
+  # Prometheus — scrapes collector :8889 (WEB-224).
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - graphorg-prometheus:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - otel-collector
+
+  # Grafana — dashboards on Tempo + Prometheus (WEB-224). Port 3001 so it
+  # does not collide with Next.js on 3000.
+  grafana:
+    image: grafana/grafana:11.5.2
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_USERS_DEFAULT_THEME: dark
+      GF_SERVER_ROOT_URL: http://localhost:3001
+    volumes:
+      - ./infra/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - graphorg-grafana:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - tempo
+      - prometheus
 
 volumes:
   graphorg-postgres:
   graphorg-redis:
+  graphorg-tempo:
+  graphorg-prometheus:
+  graphorg-grafana:

@@ -1,6 +1,5 @@
-# Local OpenTelemetry Collector for GraphOrg (WEB-223).
-# Receives OTLP from apps/web + services/ai-worker and logs to stdout.
-# WEB-224 will add Tempo / Prometheus exporters and Grafana datasources.
+# OpenTelemetry Collector for GraphOrg (WEB-223 / WEB-224).
+# App → OTLP :4317/:4318 → traces to Tempo, metrics scraped by Prometheus.
 
 receivers:
   otlp:
@@ -17,14 +16,23 @@ processors:
 exporters:
   debug:
     verbosity: basic
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    namespace: otel
+    resource_to_telemetry_conversion:
+      enabled: true
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug]
+      exporters: [otlp/tempo, debug]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug]
+      exporters: [prometheus, debug]

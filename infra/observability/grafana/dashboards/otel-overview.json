@@ -1,0 +1,111 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "code": { "language": "markdown", "showLineNumbers": false, "showMiniMap": false },
+        "content": "## GraphOrg — OpenTelemetry overview\n\n**This dashboard:** system traces (Tempo) + metrics (Prometheus) from the local Compose stack.\n\n**Not for:** uptime (Better Stack), app exceptions (Sentry), session replay / product analytics (PostHog), feature flags (LaunchDarkly).\n\nAfter browsing the app with `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`, open **Explore → Tempo** to search traces by service name (`graphorg-web`).",
+        "mode": "markdown"
+      },
+      "title": "Lane split",
+      "type": "text"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "color": "red", "text": "Down" }, "1": { "color": "green", "text": "Up" } }, "type": "value" }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 4 },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "up{job=\"otel-collector\"}",
+          "refId": "A"
+        }
+      ],
+      "title": "OTel collector scrape",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 1,
+            "showPoints": "never"
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 18, "x": 6, "y": 4 },
+      "id": 3,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "count({__name__=~\".+\", job=\"otel-collector\"})",
+          "legendFormat": "metric series",
+          "refId": "A"
+        }
+      ],
+      "title": "Metric series from collector",
+      "type": "timeseries"
+    },
+    {
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 12 },
+      "id": 4,
+      "options": {
+        "code": { "language": "markdown", "showLineNumbers": false, "showMiniMap": false },
+        "content": "### Traces\n\n1. Left nav → **Explore**\n2. Datasource → **Tempo**\n3. Search → Service Name → `graphorg-web` (or `graphorg-ai-worker`)\n4. Run query\n\nGrafana UI: [http://localhost:3001](http://localhost:3001) (anonymous admin for local Compose).",
+        "mode": "markdown"
+      },
+      "title": "How to find traces",
+      "type": "text"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["graphorg", "otel"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "GraphOrg OTel overview",
+  "uid": "graphorg-otel",
+  "version": 1
+}
