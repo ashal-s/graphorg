@@ -39,6 +39,12 @@ export const envSchema = z.object({
   NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
   /** PostHog ingest host. Defaults to US cloud when unset. */
   NEXT_PUBLIC_POSTHOG_HOST: z.string().url().optional(),
+  /**
+   * LaunchDarkly server SDK key. Omit locally — flags use safe defaults
+   * (`ai-chat-enabled` → true). Optional client-side ID reserved for later.
+   */
+  LAUNCHDARKLY_SDK_KEY: z.string().min(1).optional(),
+  NEXT_PUBLIC_LAUNCHDARKLY_CLIENT_ID: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

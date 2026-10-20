@@ -4,3 +4,8 @@
  * a generic error.
  */
 export const AI_NOT_CONFIGURED = "ai_not_configured";
+
+/**
+ * Sent as `code` with the 403 when LaunchDarkly `ai-chat-enabled` is off.
+ */
+export const AI_DISABLED_BY_FLAG = "ai_disabled_by_flag";

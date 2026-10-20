@@ -2,11 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { jsonError, jsonValidationError, readJsonBody } from "@/lib/api/http";
-import { AI_NOT_CONFIGURED } from "@/lib/ai/errors";
+import { AI_DISABLED_BY_FLAG, AI_NOT_CONFIGURED } from "@/lib/ai/errors";
 import { MAX_CONTEXT_CHARS, historyBudget, trimHistory } from "@/lib/ai/limits"; // new
 import { checkRateLimit } from "@/lib/ai/rate-limit";
 import { getSession } from "@/lib/auth/session";
 import { getEnv } from "@/lib/env";
+import { isAiChatEnabled } from "@/lib/flags/ai-chat";
 import { logger } from "@/lib/logger";
 import { buildPageContext, wrapContext } from "@/lib/page-context/build";
 import { contextScopeSchema } from "@/lib/page-context/types";
@@ -29,6 +30,14 @@ export async function POST(request: NextRequest) {
   // 1. who is asking?
   const session = await getSession();
   if (!session) return jsonError(401, "Unauthorized");
+
+  // 1b. feature flag (LaunchDarkly `ai-chat-enabled`; default on without LD)
+  if (!(await isAiChatEnabled(session))) {
+    return NextResponse.json(
+      { error: "Ask AI is disabled", code: AI_DISABLED_BY_FLAG },
+      { status: 403 },
+    );
+  }
 
   // 2. is AI configured?
   const env = getEnv();

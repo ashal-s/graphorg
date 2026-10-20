@@ -20,7 +20,7 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 | **Resend**                           | Transactional email                             |
 | **Sentry**                           | Exceptions only (no APM / replay)               |
 | **PostHog**                          | Product analytics + session replay (flags off)  |
-| LaunchDarkly                         | Feature flags only                              |
+| **LaunchDarkly**                     | Feature flags only                              |
 | OpenTelemetry                        | Emit traces / metrics / logs                    |
 | Grafana                              | Dashboards on OTel                              |
 | Databricks Free Edition              | Offline analytics on exported events (not Neon) |
@@ -288,3 +288,34 @@ NEXT_PUBLIC_POSTHOG_KEY=phc_...
 4. Restart `npm run dev`, sign in, click around, and confirm events / a replay appear in PostHog.
 
 **Not required** for local boot: any PostHog env vars. Missing key → init is skipped (no-op).
+
+---
+
+## LaunchDarkly (feature flags)
+
+**Role:** **feature flags only** (“is this feature on for this user/org?”). **Not** analytics (PostHog), **not** CI, **not** exceptions (Sentry). PostHog flag evaluation stays disabled in the JS SDK.
+
+**Repo config:**
+
+- Server SDK: [`@launchdarkly/node-server-sdk`](https://www.npmjs.com/package/@launchdarkly/node-server-sdk) via [`apps/web/src/lib/flags/launchdarkly.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/lib/flags/launchdarkly.ts)
+- Example flag: `ai-chat-enabled` — gates Ask AI UI (`AiChatGate`) and `POST /api/ai/chat` (default **`true`** when LD is unset)
+- Optional `NEXT_PUBLIC_LAUNCHDARKLY_CLIENT_ID` reserved for a future client SDK (not required for this ticket)
+
+**Free tier:** [LaunchDarkly Developer](https://launchdarkly.com/pricing/) plan. No credit card to start. Stay on free for scaffolding.
+
+### What you do (one-time)
+
+1. Create a LaunchDarkly account / project (Developer plan).
+2. Create a boolean flag with key **`ai-chat-enabled`** (default on is fine).
+3. Copy the **server-side SDK key** (Settings → Projects → … → SDK keys — **not** the client-side ID).
+4. Add to `apps/web/.env.local`:
+
+```bash
+LAUNCHDARKLY_SDK_KEY=sdk-...
+# optional, unused by the server gate today:
+# NEXT_PUBLIC_LAUNCHDARKLY_CLIENT_ID=...
+```
+
+5. Restart `npm run dev`. Toggle the flag in the LD dashboard and confirm Ask AI appears/disappears after a refresh (and that `/api/ai/chat` returns 403 when off).
+
+**Not required** for local boot: any LaunchDarkly env vars. Missing key → `variation(...)` returns the caller’s default (`ai-chat-enabled` → `true`).

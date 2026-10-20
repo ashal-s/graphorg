@@ -195,4 +195,20 @@ describe("envSchema", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("treats LaunchDarkly settings as optional", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    const withLd = envSchema.safeParse({
+      ...base,
+      LAUNCHDARKLY_SDK_KEY: "sdk-test",
+      NEXT_PUBLIC_LAUNCHDARKLY_CLIENT_ID: "client-test",
+    });
+    expect(withLd.success).toBe(true);
+  });
 });

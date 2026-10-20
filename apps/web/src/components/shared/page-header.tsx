@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
-import { AiChatButton } from "@/components/shared/ai-chat-button";
+import { AiChatGate } from "@/components/shared/ai-chat-gate";
 import { CopyContextButton } from "@/components/shared/copy-context-button";
 import type { ContextScope } from "@/lib/page-context/types";
 import { cn } from "@/lib/utils";
@@ -54,7 +54,11 @@ export function PageHeader({
       {(actions || context) && (
         <div className="flex shrink-0 items-center gap-2">
           {actions}
-          {context && <AiChatButton scope={context} />}
+          {context && (
+            <Suspense fallback={null}>
+              <AiChatGate scope={context} />
+            </Suspense>
+          )}
           {context && <CopyContextButton scope={context} />}
         </div>
       )}
