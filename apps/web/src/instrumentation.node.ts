@@ -16,6 +16,7 @@ import {
   getOtelServiceName,
   isOtelConfigured,
 } from "@/lib/otel/config";
+import { createWebInstrumentations } from "@/lib/otel/instrumentations";
 
 if (isOtelConfigured()) {
   const endpoint = getOtelOtlpEndpoint()!;
@@ -38,6 +39,7 @@ if (isOtelConfigured()) {
       }),
       exportIntervalMillis: 15_000,
     }),
+    instrumentations: createWebInstrumentations(endpoint),
   });
 
   sdk.start();

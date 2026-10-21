@@ -444,7 +444,7 @@ LAUNCHDARKLY_SDK_KEY=sdk-...
 
 **Repo config:**
 
-- Web: `NodeSDK` in [`apps/web/src/instrumentation.node.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/instrumentation.node.ts), loaded from `instrumentation.ts` when `OTEL_EXPORTER_OTLP_ENDPOINT` is set
+- Web: `NodeSDK` in [`apps/web/src/instrumentation.node.ts`](https://github.com/ashal-s/graphorg/blob/development/apps/web/src/instrumentation.node.ts), loaded from `instrumentation.ts` when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. It records Node runtime metrics (`nodejs.eventloop.utilization`, `v8js.memory.heap.used`) and HTTP request duration (`http.server.request.duration`) and exports them to Prometheus via the collector.
 - AI worker: [`services/ai-worker/src/ai_worker/otel.py`](https://github.com/ashal-s/graphorg/blob/development/services/ai-worker/src/ai_worker/otel.py) + FastAPI instrumentation
 - Trace context: `POST /api/ai/chat` injects W3C `traceparent` on the upstream worker fetch
 - Collector: Compose service `otel-collector` (ports **4317** gRPC / **4318** HTTP) with config at [`infra/observability/otel-collector-config.yaml`](https://github.com/ashal-s/graphorg/blob/development/infra/observability/otel-collector-config.yaml) — forwards to Tempo + Prometheus (see Grafana below)
