@@ -187,15 +187,17 @@ The agent needs Node.js 20+, Python 3.12 (`python3.12` on `PATH`), and git. On L
 1. Sign up at [buildkite.com/signup](https://buildkite.com/signup). Create an organization. Skip hosted agents.
 2. **New pipeline**. Connect the GitHub app and choose `ashal-s/graphorg`. Leave the steps path as `.buildkite/pipeline.yml`.
 3. Set the pipeline’s default branch to `development` (that is the branch that contains this file until it is on `main`).
-4. Open **Agents → New agent** and reveal the agent token. Keep it out of the repo and out of shell history if you can.
-5. On your Mac, in a terminal you can leave open:
+4. In the cluster sidebar open **Agent Tokens** (not **Secrets**) → **New Token**. Leave **Allowed IP addresses** empty. Copy the token from the creation screen. The list never shows it again. Keep it out of the repo.
+5. **Queues → New Queue**. Key `self-hosted`. Choose **Self-hosted**, not Hosted. The cluster’s existing default queue is hosted, and a Mac agent cannot join it. The pipeline targets `self-hosted`.
+6. On your Mac, in a terminal you can leave open. Homebrew refuses the Buildkite tap until you trust that formula:
 
    ```bash
+   brew trust --formula buildkite/buildkite/buildkite-agent@3
    brew install buildkite/buildkite/buildkite-agent
-   buildkite-agent start --token "paste-token-here"
+   buildkite-agent start --token "paste-token-here" --tags "queue=self-hosted"
    ```
 
-6. On the pipeline page, **New Build**, branch `development`.
+7. On the pipeline page, **New Build**, branch `development`.
 
 The three steps match GitHub Actions. The Playwright HTML report is uploaded as a build artifact. The agent must stay running for the build to be picked up.
 

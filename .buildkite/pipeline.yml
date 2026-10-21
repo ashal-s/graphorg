@@ -10,6 +10,8 @@ env:
 
 steps:
   - label: ":npm: web"
+    agents:
+      queue: self-hosted
     command: |
       npm ci
       npm run format:check
@@ -19,6 +21,8 @@ steps:
       npm run build --workspace=apps/web
 
   - label: ":playwright: e2e"
+    agents:
+      queue: self-hosted
     timeout_in_minutes: 30
     env:
       AUTH_SECRET: e2e-test-auth-secret-at-least-32-chars
@@ -36,6 +40,8 @@ steps:
       - apps/web/playwright-report/**
 
   - label: ":python: ai-worker"
+    agents:
+      queue: self-hosted
     command: |
       cd services/ai-worker
       python3.12 -m venv .venv
