@@ -11,7 +11,7 @@
 
 # COMMAND ----------
 
-EVENTS_PATH = "/Volumes/<catalog>/default/graphorg/events.jsonl"
+EVENTS_PATH = "/Volumes/workspace/default/graphorg/"
 
 # COMMAND ----------
 
