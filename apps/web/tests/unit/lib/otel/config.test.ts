@@ -3,6 +3,7 @@ import {
   getOtelOtlpEndpoint,
   getOtelServiceName,
   isOtelConfigured,
+  otelEndpointOrigin,
 } from "@/lib/otel/config";
 
 describe("otel config", () => {
@@ -35,6 +36,13 @@ describe("otel config", () => {
     expect(isOtelConfigured()).toBe(true);
     expect(getOtelOtlpEndpoint()).toBe(DEFAULT_OTEL_OTLP_ENDPOINT);
     expect(getOtelServiceName()).toBe("graphorg-web");
+  });
+
+  it("logs only the endpoint origin", () => {
+    expect(
+      otelEndpointOrigin("https://user:secret@otel.example.com:4318/v1/traces"),
+    ).toBe("https://otel.example.com:4318");
+    expect(otelEndpointOrigin("not a url")).toBeUndefined();
   });
 
   it("honours an override service name", () => {

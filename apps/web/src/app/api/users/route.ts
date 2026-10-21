@@ -14,6 +14,7 @@ import {
 } from "@/lib/auth/user-management";
 
 import { notifyMemberAdded } from "@/lib/email/resend";
+import { logger } from "@/lib/logger";
 import { uniqueSlug } from "@/lib/slugs";
 
 import { publicUserColumns } from "./columns";
@@ -125,14 +126,24 @@ export async function POST(request: NextRequest) {
       return created;
     });
 
-    // Scaffold notify only — never include the password; failures must not
-    // roll back the member row (invite email is a later product feature).
-    await notifyMemberAdded({
-      to: user.email,
-      memberName: user.name,
-      organizationName: session.organizationName,
-      userId: user.id,
-    });
+    // Scaffold notify only — never include the password. The member row is
+    // already committed; a mail failure must not turn this into a 500.
+    try {
+      await notifyMemberAdded({
+        to: user.email,
+        memberName: user.name,
+        organizationName: session.organizationName,
+        userId: user.id,
+      });
+    } catch (error) {
+      logger.error(
+        {
+          err: error instanceof Error ? error.message : error,
+          userId: user.id,
+        },
+        "member-added email failed",
+      );
+    }
 
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {

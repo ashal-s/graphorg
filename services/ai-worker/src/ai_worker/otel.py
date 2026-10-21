@@ -8,10 +8,20 @@ from __future__ import annotations
 
 import logging
 import os
+from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
 _configured = False
+
+
+def _endpoint_origin(endpoint: str) -> str:
+    """Scheme and host only. Drops userinfo so logs stay free of credentials."""
+    parsed = urlparse(endpoint)
+    if parsed.scheme and parsed.hostname:
+        port = f":{parsed.port}" if parsed.port else ""
+        return f"{parsed.scheme}://{parsed.hostname}{port}"
+    return "configured"
 
 
 def setup_otel() -> None:
@@ -66,7 +76,10 @@ def setup_otel() -> None:
     )
 
     _configured = True
-    logger.info("opentelemetry sdk started endpoint=%s", endpoint)
+    logger.info(
+        "opentelemetry sdk started endpoint_origin=%s",
+        _endpoint_origin(endpoint),
+    )
 
 
 def instrument_app(app: object) -> None:

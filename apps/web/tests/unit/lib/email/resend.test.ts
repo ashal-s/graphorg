@@ -85,9 +85,11 @@ describe("email/resend", () => {
         subject: "Hi",
         text: "Hello",
         html: "<p>Hello</p>",
-        idempotencyKey: "test/1",
       }),
+      { idempotencyKey: "test/1" },
     );
+    const payload = sendMock.mock.calls[0]![0] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty("idempotencyKey");
   });
 
   it("returns failed when Resend reports an error", async () => {
@@ -123,11 +125,27 @@ describe("email/resend", () => {
     const payload = sendMock.mock.calls[0]![0] as {
       text: string;
       html: string;
-      idempotencyKey: string;
     };
     expect(payload.text).not.toMatch(/password/i);
     expect(payload.html).toContain("Alex &lt;script&gt;");
     expect(payload.html).toContain("Acme");
-    expect(payload.idempotencyKey).toBe("member-added/user-1");
+    expect(sendMock.mock.calls[0]![1]).toEqual({
+      idempotencyKey: "member-added/user-1",
+    });
+  });
+
+  it("returns failed when the member-added template cannot render", async () => {
+    getEnvMock.mockReturnValue({ RESEND_API_KEY: "re_test" });
+    renderMock.mockRejectedValue(new Error("render broke"));
+
+    const result = await notifyMemberAdded({
+      to: "new@example.com",
+      memberName: "Alex",
+      organizationName: "Acme",
+      userId: "user-1",
+    });
+
+    expect(result).toEqual({ status: "failed", error: "render broke" });
+    expect(sendMock).not.toHaveBeenCalled();
   });
 });

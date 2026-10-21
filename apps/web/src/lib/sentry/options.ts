@@ -23,5 +23,8 @@ export function sentryInitOptions() {
     // Keep Pino as the app logger; Sentry is for exceptions only.
     enableLogs: false as const,
     sendDefaultPii: false as const,
+    // Next.js defaults this to true, which registers Sentry's tracer provider
+    // and drops spans from the app's NodeSDK. OTel owns traces (WEB-223).
+    enableOpenTelemetrySetup: false as const,
   };
 }

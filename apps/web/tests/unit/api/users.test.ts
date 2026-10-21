@@ -175,6 +175,15 @@ describe("POST /api/users", () => {
     });
   });
 
+  it("still returns the new member when the notification throws", async () => {
+    getSessionMock.mockResolvedValue(session("admin"));
+    notifyMemberAddedMock.mockRejectedValue(new Error("smtp down"));
+
+    const response = await POST(req("POST", body));
+
+    expect(response.status).toBe(201);
+  });
+
   it("rejects a weak password", async () => {
     getSessionMock.mockResolvedValue(session("owner"));
     const response = await POST(req("POST", { ...body, password: "short" }));

@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { logger } from "@/lib/logger";
+import { logger, resolveLogLevel } from "@/lib/logger";
 
 describe("logger", () => {
   it("exposes structured log methods", () => {
@@ -13,6 +13,13 @@ describe("logger", () => {
 
   it("includes the service base field", () => {
     expect(logger.bindings()).toMatchObject({ service: "graphorg-web" });
+  });
+
+  it("falls back when LOG_LEVEL is not a pino level", () => {
+    expect(resolveLogLevel("verbose", "development")).toBe("debug");
+    expect(resolveLogLevel("verbose", "production")).toBe("info");
+    expect(resolveLogLevel("warn", "production")).toBe("warn");
+    expect(resolveLogLevel(undefined, "test")).toBe("debug");
   });
 
   it("creates child loggers with extra bindings", () => {

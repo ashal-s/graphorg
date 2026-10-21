@@ -46,15 +46,17 @@ export async function sendEmail(
 
   const resend = new Resend(env.RESEND_API_KEY);
   const to = Array.isArray(input.to) ? input.to : [input.to];
-  const { data, error } = await resend.emails.send({
-    from: env.EMAIL_FROM ?? DEFAULT_FROM,
-    to,
-    subject: input.subject,
-    text: input.text,
-    html: input.html,
-    tags: input.tags,
-    ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
-  });
+  const { data, error } = await resend.emails.send(
+    {
+      from: env.EMAIL_FROM ?? DEFAULT_FROM,
+      to,
+      subject: input.subject,
+      text: input.text,
+      html: input.html,
+      tags: input.tags,
+    },
+    input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : undefined,
+  );
 
   if (error) {
     logger.error(
@@ -85,13 +87,21 @@ export async function notifyMemberAdded(opts: {
   userId: string;
 }): Promise<SendEmailResult> {
   const subject = `You've been added to ${opts.organizationName} on GraphOrg`;
-  const html = await render(
-    createElement(MemberAddedEmail, {
-      memberName: opts.memberName,
-      organizationName: opts.organizationName,
-    }),
-  );
-  const text = toPlainText(html);
+  let html: string;
+  let text: string;
+  try {
+    html = await render(
+      createElement(MemberAddedEmail, {
+        memberName: opts.memberName,
+        organizationName: opts.organizationName,
+      }),
+    );
+    text = toPlainText(html);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "render failed";
+    logger.error({ err: message }, "member-added email render failed");
+    return { status: "failed", error: message };
+  }
 
   return sendEmail({
     to: opts.to,

@@ -21,3 +21,12 @@ export function isOtelConfigured(): boolean {
 export function getOtelServiceName(): string {
   return process.env.OTEL_SERVICE_NAME?.trim() || "graphorg-web";
 }
+
+/** Scheme and host only. Drops userinfo, path, and query so logs stay free of credentials. */
+export function otelEndpointOrigin(endpoint: string): string | undefined {
+  try {
+    return new URL(endpoint).origin;
+  } catch {
+    return undefined;
+  }
+}

@@ -328,7 +328,7 @@ EMAIL_FROM="GraphOrg <onboarding@resend.dev>"
 3. Smoke-test (until a domain is verified, use `onboarding@resend.dev` as from, and send only to **your** Resend account email or `delivered@resend.dev`):
 
 ```bash
-npm run email:test --workspace=apps/web -- ashal.syed@gmail.com
+npm run email:test --workspace=apps/web -- delivered@resend.dev
 ```
 
 4. For production, [verify a domain](https://resend.com/domains) and set `EMAIL_FROM` to an address on that domain.
@@ -469,7 +469,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 ```
 
 3. Restart `npm run dev` and (if used) the AI worker. Hit a few pages / Ask AI.
-4. Open Grafana at [http://localhost:3001](http://localhost:3001) (anonymous admin) — see the Grafana section below.
+4. Open Grafana at [http://localhost:3001](http://localhost:3001) (anonymous Viewer; sign in as admin/admin to explore) — see the Grafana section below.
 
 **Not required** for local boot: any OTel env vars. Missing endpoint → SDK is not started (safe no-op even if the collector is down).
 
@@ -486,13 +486,13 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 
 **Ports (host):**
 
-| Service        | Port | Notes                       |
-| -------------- | ---- | --------------------------- |
-| Grafana        | 3001 | UI (Next.js keeps 3000)     |
-| Prometheus     | 9090 | Metrics UI / API            |
-| Tempo          | 3200 | Trace query API             |
-| OTel collector | 4318 | OTLP HTTP (apps point here) |
-| OTel collector | 4317 | OTLP gRPC                   |
+| Service        | Port | Notes                                |
+| -------------- | ---- | ------------------------------------ |
+| Grafana        | 3001 | UI on localhost (Next.js keeps 3000) |
+| Prometheus     | 9090 | Metrics UI / API, localhost only     |
+| Tempo          | 3200 | Trace query API                      |
+| OTel collector | 4318 | OTLP HTTP (apps point here)          |
+| OTel collector | 4317 | OTLP gRPC                            |
 
 **Free tier:** Grafana OSS + Tempo + Prometheus in Docker Compose — fully free, no cloud account.
 
@@ -500,7 +500,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 
 1. `docker compose up -d otel-collector tempo prometheus grafana`
 2. Ensure `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` and restart the app; click around.
-3. Open **http://localhost:3001** — login optional (anonymous Admin). Default admin/admin if you prefer login.
+3. Open **http://localhost:3001**. The port is bound to localhost. Anonymous visitors are Viewers and can open dashboards. Sign in as admin/admin for Explore and admin actions.
 4. Confirm **Connections → Data sources** lists **Prometheus** and **Tempo**.
 5. Open dashboard **GraphOrg → GraphOrg OTel overview** (or Dashboards → search `OTel`).
 6. **Explore → Tempo** → search service `graphorg-web` for traces.

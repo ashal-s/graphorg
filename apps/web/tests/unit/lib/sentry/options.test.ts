@@ -49,6 +49,7 @@ describe("sentry/options", () => {
     expect(options.dsn).toBe("https://public@o1.ingest.sentry.io/1");
     expect(options.enableLogs).toBe(false);
     expect(options.sendDefaultPii).toBe(false);
+    expect(options.enableOpenTelemetrySetup).toBe(false);
     expect(options).not.toHaveProperty("tracesSampleRate");
     expect(options).not.toHaveProperty("replaysSessionSampleRate");
   });
