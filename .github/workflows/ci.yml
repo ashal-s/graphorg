@@ -27,7 +27,7 @@ jobs:
       AUTH_SECRET: ci-web-auth-secret-at-least-32-chars
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
@@ -52,7 +52,7 @@ jobs:
       AUTH_URL: http://127.0.0.1:3000
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: npm
