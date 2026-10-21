@@ -44,6 +44,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# analytics sample exports (keep the directory)
+analytics/exports/*
+!analytics/exports/.gitkeep
+
 # python
 __pycache__/
 *.py[cod]

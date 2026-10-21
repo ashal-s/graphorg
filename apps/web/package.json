@@ -18,6 +18,7 @@
     "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
     "db:seed": "dotenv -e .env.local -- tsx scripts/seed.ts",
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
+    "analytics:export": "tsx scripts/export-analytics-sample.ts",
     "email:test": "dotenv -e .env.local -- tsx scripts/send-test-email.ts",
     "email:dev": "email dev --dir emails --port 3334"
   },

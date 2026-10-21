@@ -9,21 +9,21 @@ Free-tier / OSS developer and ops tooling for the GraphOrg monorepo. Each tool h
 
 **Anti-overlap:** only the CI trio may share a job (GitHub Actions ↔ Jenkins ↔ Buildkite). Everything else is single-owner.
 
-| Tool                                         | Unique job                                      |
-| -------------------------------------------- | ----------------------------------------------- |
-| **CodeRabbit**                               | AI pull-request review                          |
-| Mintlify                                     | Public docs site                                |
-| **GitHub Actions** / **Jenkins** / Buildkite | CI (allowed overlap; GHA is primary)            |
-| **Playwright**                               | Browser E2E                                     |
-| **Pino**                                     | Structured app logger API                       |
-| **Better Stack**                             | Uptime heartbeats only                          |
-| **Resend**                                   | Transactional email                             |
-| **Sentry**                                   | Exceptions only (no APM / replay)               |
-| **PostHog**                                  | Product analytics + session replay (flags off)  |
-| **LaunchDarkly**                             | Feature flags only                              |
-| **OpenTelemetry**                            | Emit traces / metrics / logs                    |
-| **Grafana**                                  | Dashboards on OTel                              |
-| Databricks Free Edition                      | Offline analytics on exported events (not Neon) |
+| Tool                                             | Unique job                                      |
+| ------------------------------------------------ | ----------------------------------------------- |
+| **CodeRabbit**                                   | AI pull-request review                          |
+| Mintlify                                         | Public docs site                                |
+| **GitHub Actions** / **Jenkins** / **Buildkite** | CI (allowed overlap; GHA is primary)            |
+| **Playwright**                                   | Browser E2E                                     |
+| **Pino**                                         | Structured app logger API                       |
+| **Better Stack**                                 | Uptime heartbeats only                          |
+| **Resend**                                       | Transactional email                             |
+| **Sentry**                                       | Exceptions only (no APM / replay)               |
+| **PostHog**                                      | Product analytics + session replay (flags off)  |
+| **LaunchDarkly**                                 | Feature flags only                              |
+| **OpenTelemetry**                                | Emit traces / metrics / logs                    |
+| **Grafana**                                      | Dashboards on OTel                              |
+| **Databricks Free Edition**                      | Offline analytics on exported events (not Neon) |
 
 Neon/Postgres remains the app OLTP database.
 
@@ -172,6 +172,37 @@ Do not switch this to Docker-in-Docker or `agent { docker { ... } }` on a Mac wi
 
 ---
 
+## Buildkite (CI pipeline)
+
+**Role:** the **same checks** as GitHub Actions and Jenkins. GitHub Actions stays primary. Do not remove the workflow or the Jenkinsfile when this pipeline exists.
+
+**Repo config:** [`.buildkite/pipeline.yml`](https://github.com/ashal-s/graphorg/blob/development/.buildkite/pipeline.yml) — web (format, lint, typecheck, Jest, build), Playwright e2e, ai-worker pytest. Placeholder `DATABASE_URL` / `REDIS_URL` / `AUTH_SECRET`. No SaaS keys.
+
+**Free tier:** [Buildkite Free](https://buildkite.com/pricing) — up to 5 users and 10 concurrent self-hosted jobs. A new account starts with a 30-day all-access trial and no credit card. After the trial, stay on Free. Jobs in this pipeline are meant to run on an agent on your machine, so they do not spend the hosted-agent vCPU minutes.
+
+The agent needs Node.js 20+, Python 3.12 (`python3.12` on `PATH`), and git. On Linux the e2e step also installs Chromium’s OS libraries. On a Mac it only downloads the browser.
+
+### What you do (one-time)
+
+1. Sign up at [buildkite.com/signup](https://buildkite.com/signup). Create an organization. Skip hosted agents.
+2. **New pipeline**. Connect the GitHub app and choose `ashal-s/graphorg`. Leave the steps path as `.buildkite/pipeline.yml`.
+3. Set the pipeline’s default branch to `development` (that is the branch that contains this file until it is on `main`).
+4. Open **Agents → New agent** and reveal the agent token. Keep it out of the repo and out of shell history if you can.
+5. On your Mac, in a terminal you can leave open:
+
+   ```bash
+   brew install buildkite/buildkite/buildkite-agent
+   buildkite-agent start --token "paste-token-here"
+   ```
+
+6. On the pipeline page, **New Build**, branch `development`.
+
+The three steps match GitHub Actions. The Playwright HTML report is uploaded as a build artifact. The agent must stay running for the build to be picked up.
+
+**Not required** for `npm run dev` or for GitHub Actions. Buildkite is optional local CI.
+
+---
+
 ## Better Stack (uptime heartbeats)
 
 **Role:** external uptime checks only (“is the service alive?”). **Not** an app log drain — Pino / OpenTelemetry / Grafana own logs. Do **not** install a Better Stack (Logtail) logging SDK in the app.
@@ -227,7 +258,7 @@ npx playwright show-report path/to/playwright-report   # or playwright-report.zi
 
 The `e2e` job in GitHub Actions installs Chromium, builds, runs `npm run test:e2e`, and uploads the HTML report artifact. See [GitHub Actions](#github-actions-primary-ci) for the full gate list.
 
-The root [`Jenkinsfile`](https://github.com/ashal-s/graphorg/blob/development/Jenkinsfile) runs the same `npm run test:e2e`. Buildkite (WEB-221) should mirror that command too — do not invent a second E2E suite.
+The root [`Jenkinsfile`](https://github.com/ashal-s/graphorg/blob/development/Jenkinsfile) and [`.buildkite/pipeline.yml`](https://github.com/ashal-s/graphorg/blob/development/.buildkite/pipeline.yml) run the same `npm run test:e2e`. Do not invent a second E2E suite.
 
 ---
 
@@ -473,3 +504,37 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 6. **Explore → Tempo** → search service `graphorg-web` for traces.
 
 **Not required** for `npm run dev`: Grafana stack. Apps boot without OTel; Grafana is optional local tooling.
+
+---
+
+## Databricks Free Edition (analytics export)
+
+**Role:** offline analytics on **exported events**. A learning scaffold for the lakehouse. **Not** the app database — Neon/Postgres stays the source of truth for people, teams, and the rest of the org graph. **Not** product analytics (PostHog) and **not** the commercial Databricks platform deferred to Post-MVP.
+
+**Repo config:**
+
+- Event shapes: [`analytics/events.schema.md`](https://github.com/ashal-s/graphorg/blob/development/analytics/events.schema.md)
+- Sample writer: `npm run analytics:export --workspace=apps/web` → gitignored `analytics/exports/events.jsonl`
+- Notebook: [`analytics/databricks/01_explore_exports.py`](https://github.com/ashal-s/graphorg/blob/development/analytics/databricks/01_explore_exports.py)
+- Steps: [`analytics/README.md`](https://github.com/ashal-s/graphorg/blob/development/analytics/README.md)
+
+**Free tier:** [Databricks Free Edition](https://www.databricks.com/learn/free-edition) (Community Edition is retired). Personal and non-commercial only. Serverless, quota-limited, no SLA. Databricks may pause compute when you hit fair-use limits and may delete an inactive account. Do not point production traffic at it.
+
+### What you do (one-time)
+
+1. Sign up at [databricks.com/learn/free-edition](https://www.databricks.com/learn/free-edition) with Google, Microsoft, or an email code.
+2. Generate the sample (no database, no API key):
+
+   ```bash
+   npm run analytics:export --workspace=apps/web
+   ```
+
+3. In the workspace, **Catalog → default schema → Create volume** named `graphorg`.
+4. **New → Add or upload data → Upload files to a volume**, and upload `analytics/exports/events.jsonl`. Free Edition will not let the notebook download that file.
+5. Copy the volume path (`/Volumes/<catalog>/default/graphorg/events.jsonl`).
+6. **Workspace → Import** `analytics/databricks/01_explore_exports.py`.
+7. Paste the path into `EVENTS_PATH`, attach serverless compute, and **Run all**.
+
+The sample has 5 `page_view` events and 3 `ai_chat_completed` events. No emails, names, or photo URLs.
+
+**Not required** for `npm run dev`. Nothing in the app calls Databricks.

@@ -2,7 +2,7 @@
 
 GraphOrg is a single company-context product that maps people, teams, departments, tools, technologies, services, infrastructure, documentation, ownership and dependencies. New employees, consultants and approved AI agents use it to understand the organisation before working, reviewing or advising.
 
-**MVP scope:** company context is entered and maintained manually through the product's own forms and APIs — there is no "connect a tool" option yet. Connectors and the Databricks data platform are deferred to a later Post-MVP phase. See the [GraphOrg Architecture](https://linear.app/webifex/document/graphorg-architecture-44d635b43cc2) document (WEB-127) for the full picture.
+**MVP scope:** company context is entered and maintained manually through the product's own forms and APIs — there is no "connect a tool" option yet. Connectors and a commercial Databricks lakehouse are deferred to a later Post-MVP phase. The `analytics/` folder is a separate Databricks Free Edition scaffold (sample event export plus a notebook). It is not the app database and it is not for commercial production. See the [GraphOrg Architecture](https://linear.app/webifex/document/graphorg-architecture-44d635b43cc2) document (WEB-127) for the full picture.
 
 ## Monorepo layout
 
@@ -115,4 +115,4 @@ pytest
 
 ## CI
 
-`.github/workflows/ci.yml` installs dependencies, checks formatting, lints, type-checks, tests and builds `apps/web`, and separately installs and tests `services/ai-worker`, on every push to `main` and on every pull request.
+`.github/workflows/ci.yml` is the primary gate. It installs dependencies, checks formatting, lints, type-checks, tests and builds `apps/web`, runs Playwright, and tests `services/ai-worker`, on every push to `main` or `development` and on every pull request. The [`Jenkinsfile`](Jenkinsfile) and [`.buildkite/pipeline.yml`](.buildkite/pipeline.yml) repeat those checks on a machine you run yourself. See [docs/tooling.md](docs/tooling.md).
