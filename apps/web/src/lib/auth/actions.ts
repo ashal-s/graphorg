@@ -21,6 +21,7 @@ import {
   loginSchema,
   signupSchema,
 } from "@/lib/auth/schemas";
+import { logger } from "@/lib/logger";
 import { slugify } from "@/lib/utils";
 
 export interface FormState {
@@ -88,7 +89,7 @@ export async function login(
             "This email is linked to many workspaces. Enter the workspace slug to continue.",
         };
       }
-      console.error("[auth] resolve login workspaces failed", error);
+      logger.error({ err: error }, "resolve login workspaces failed");
       return {
         message: "Sign-in is unavailable right now. Please try again later.",
       };
@@ -126,7 +127,7 @@ export async function login(
       // Anything else (database down, missing AUTH_SECRET, ...) is our
       // fault, not the user's. Say so, and leave the cause in the logs
       // instead of blaming their password.
-      console.error("[auth] sign-in failed", error.type, error.cause);
+      logger.error({ err: error.cause, type: error.type }, "sign-in failed");
       return {
         message: "Sign-in is unavailable right now. Please try again later.",
         ...retainWorkspaceUi(prevState),

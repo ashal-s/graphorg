@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 
 import { checkRateLimit } from "@/lib/ai/rate-limit";
+import { logger } from "@/lib/logger";
 
 const LOGIN_IP_LIMIT = 5;
 const LOGIN_EMAIL_LIMIT = 5;
@@ -45,7 +46,10 @@ async function enforce(
     return { allowed: true };
   } catch (error) {
     // Redis down: fail open so a cache outage does not block every sign-in.
-    console.warn("[auth] rate limiter unavailable, allowing request", error);
+    logger.warn(
+      { err: error },
+      "auth rate limiter unavailable, allowing request",
+    );
     return { allowed: true };
   }
 }

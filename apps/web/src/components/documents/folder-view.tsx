@@ -25,7 +25,14 @@ import { buildDocumentTree, folderPath } from "@/lib/documents/tree";
  * What's inside a folder (or the top level, when `folderId` is null):
  * subfolders then documents, each a link, with add buttons for editors.
  */
-export function FolderView({ folderId }: { folderId: string | null }) {
+export function FolderView({
+  folderId,
+  aiChatEnabled = true,
+}: {
+  folderId: string | null;
+  /** LaunchDarkly `ai-chat-enabled`; defaults on without LD. */
+  aiChatEnabled?: boolean;
+}) {
   const { folders, documents, teams, people, canEdit } = useDocuments();
   const [dialog, setDialog] = useState<"folder" | "document" | null>(null);
 
@@ -112,7 +119,10 @@ export function FolderView({ folderId }: { folderId: string | null }) {
               </Button>
             </>
           )}
-          <AiChatButton scope={{ kind: "folder", id: folderId }} />
+          <AiChatButton
+            scope={{ kind: "folder", id: folderId }}
+            enabled={aiChatEnabled}
+          />
           <CopyContextButton scope={{ kind: "folder", id: folderId }} />
         </div>
       </div>

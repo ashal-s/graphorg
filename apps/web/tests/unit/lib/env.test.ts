@@ -117,4 +117,118 @@ describe("envSchema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("accepts an optional LOG_LEVEL and rejects unknown values", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    expect(envSchema.safeParse({ ...base, LOG_LEVEL: "debug" }).success).toBe(
+      true,
+    );
+    expect(envSchema.safeParse({ ...base, LOG_LEVEL: "verbose" }).success).toBe(
+      false,
+    );
+  });
+
+  it("treats Resend settings as optional", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    const withKey = envSchema.safeParse({
+      ...base,
+      RESEND_API_KEY: "re_test",
+      EMAIL_FROM: "GraphOrg <onboarding@resend.dev>",
+    });
+    expect(withKey.success).toBe(true);
+    if (withKey.success) {
+      expect(withKey.data.RESEND_API_KEY).toBe("re_test");
+      expect(withKey.data.EMAIL_FROM).toBe("GraphOrg <onboarding@resend.dev>");
+    }
+  });
+
+  it("treats Sentry DSN settings as optional", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    const withDsn = envSchema.safeParse({
+      ...base,
+      NEXT_PUBLIC_SENTRY_DSN: "https://abc@o1.ingest.sentry.io/1",
+    });
+    expect(withDsn.success).toBe(true);
+    expect(
+      envSchema.safeParse({ ...base, SENTRY_DSN: "not-a-url" }).success,
+    ).toBe(false);
+  });
+
+  it("treats PostHog settings as optional", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    const withKey = envSchema.safeParse({
+      ...base,
+      NEXT_PUBLIC_POSTHOG_KEY: "phc_test",
+      NEXT_PUBLIC_POSTHOG_HOST: "https://eu.i.posthog.com",
+    });
+    expect(withKey.success).toBe(true);
+    expect(
+      envSchema.safeParse({
+        ...base,
+        NEXT_PUBLIC_POSTHOG_HOST: "not-a-url",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("treats LaunchDarkly settings as optional", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    const withLd = envSchema.safeParse({
+      ...base,
+      LAUNCHDARKLY_SDK_KEY: "sdk-test",
+      NEXT_PUBLIC_LAUNCHDARKLY_CLIENT_ID: "client-test",
+    });
+    expect(withLd.success).toBe(true);
+  });
+
+  it("treats OpenTelemetry settings as optional", () => {
+    const base = {
+      DATABASE_URL: "postgresql://user:pass@localhost:5432/db",
+      REDIS_URL: "redis://localhost:6379",
+      AUTH_SECRET,
+    };
+
+    expect(envSchema.safeParse(base).success).toBe(true);
+    const withOtel = envSchema.safeParse({
+      ...base,
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost:4318",
+      OTEL_SERVICE_NAME: "graphorg-web",
+    });
+    expect(withOtel.success).toBe(true);
+    expect(
+      envSchema.safeParse({
+        ...base,
+        OTEL_EXPORTER_OTLP_ENDPOINT: "not-a-url",
+      }).success,
+    ).toBe(false);
+  });
 });

@@ -12,6 +12,10 @@ node_modules/
 
 # testing
 coverage/
+apps/web/playwright-report/
+apps/web/test-results/
+apps/web/blob-report/
+apps/web/playwright/.cache/
 
 # next.js
 .next/
@@ -39,6 +43,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# analytics sample exports (keep the directory)
+analytics/exports/*
+!analytics/exports/.gitkeep
 
 # python
 __pycache__/

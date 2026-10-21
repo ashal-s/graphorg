@@ -22,7 +22,15 @@ const LABEL = "Ask AI about this page";
  * `PageHeader`. The conversation is kept here, not in the sheet, so closing
  * and reopening it doesn't lose it.
  */
-export function AiChatButton({ scope }: { scope: ContextScope }) {
+export function AiChatButton({
+  scope,
+  enabled = true,
+}: {
+  scope: ContextScope;
+  /** When false (LaunchDarkly `ai-chat-enabled` off), render nothing. */
+  enabled?: boolean;
+}) {
+  if (!enabled) return null;
   // Keyed by scope so a page that changes it without unmounting (the org
   // chart's tabs) starts a fresh conversation instead of sending the old
   // tab's turns as history alongside the new tab's data.

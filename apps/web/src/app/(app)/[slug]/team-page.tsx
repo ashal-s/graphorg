@@ -1,5 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { HighlightSection } from "@/components/shell/highlight-section";
 import { TeamDetails } from "@/components/directory/team-details";
@@ -8,7 +9,7 @@ import {
   ResourceStats,
   type Resource,
 } from "@/components/shared/resource-stats";
-import { AiChatButton } from "@/components/shared/ai-chat-button";
+import { AiChatGate } from "@/components/shared/ai-chat-gate";
 import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { getDb } from "@/db";
@@ -257,7 +258,9 @@ export async function TeamPage({ id }: { id: string }) {
         readOnly={readOnly}
         actions={
           <>
-            <AiChatButton scope={{ kind: "team", id: team.id }} />
+            <Suspense fallback={null}>
+              <AiChatGate scope={{ kind: "team", id: team.id }} />
+            </Suspense>
             <CopyContextButton scope={{ kind: "team", id: team.id }} />
             {!readOnly && (
               <DeleteEntityButton

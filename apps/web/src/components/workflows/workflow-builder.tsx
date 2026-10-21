@@ -287,6 +287,7 @@ export function WorkflowBuilder({
   workflow,
   people,
   readOnly = false,
+  aiChatEnabled = true,
 }: {
   mode: "create" | "edit";
   workflow?: WorkflowDetail;
@@ -296,6 +297,8 @@ export function WorkflowBuilder({
    * form would always get a 403 anyway. Rendering the whole form disabled
    * (rather than blocking the page) still lets a viewer read every field. */
   readOnly?: boolean;
+  /** LaunchDarkly `ai-chat-enabled`; defaults on without LD. */
+  aiChatEnabled?: boolean;
 }) {
   const router = useRouter();
 
@@ -571,7 +574,10 @@ export function WorkflowBuilder({
         <div className="flex shrink-0 items-center gap-1.5">
           {mode === "edit" && workflow?.id && (
             <>
-              <AiChatButton scope={{ kind: "workflow", id: workflow.id }} />
+              <AiChatButton
+                scope={{ kind: "workflow", id: workflow.id }}
+                enabled={aiChatEnabled}
+              />
               <CopyContextButton
                 scope={{ kind: "workflow", id: workflow.id }}
               />

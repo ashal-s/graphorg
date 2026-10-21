@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 
 import { DocumentActions } from "@/components/documents/document-actions";
-import { AiChatButton } from "@/components/shared/ai-chat-button";
+import { AiChatGate } from "@/components/shared/ai-chat-gate";
 import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { documentFolders, documents } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
 import { documentTypeLabel } from "@/lib/documents/types";
 import { folderPath } from "@/lib/documents/tree";
+import { Suspense } from "react";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -84,7 +85,9 @@ export default async function DocumentPage({ params }: PageProps) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <AiChatButton scope={{ kind: "document", id: document.id }} />
+          <Suspense fallback={null}>
+            <AiChatGate scope={{ kind: "document", id: document.id }} />
+          </Suspense>
           <CopyContextButton scope={{ kind: "document", id: document.id }} />
           <DocumentActions documentId={document.id} title={document.title} />
         </div>

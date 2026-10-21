@@ -8,15 +8,16 @@ tests/
 │   ├── api/           Zod schemas and pure helpers used by Route Handlers
 │   ├── db/            Drizzle schema structure (tables, FKs, checks)
 │   └── lib/           env, auth, AI limits, page-context, slugs, …
-└── rtl/      component tests: React Testing Library + jsdom
-    ├── catalog/
-    ├── directory/
-    ├── documents/
-    ├── settings/
-    ├── shared/        PageHeader, AI chat button, entity row, …
-    ├── shell/         sidebar nav, workspace breadcrumb
-    ├── states/        empty / loading / error / permission-denied
-    └── workflows/
+├── rtl/      component tests: React Testing Library + jsdom
+│   ├── catalog/
+│   ├── directory/
+│   ├── documents/
+│   ├── settings/
+│   ├── shared/        PageHeader, AI chat button, entity row, …
+│   ├── shell/         sidebar nav, workspace breadcrumb
+│   ├── states/        empty / loading / error / permission-denied
+│   └── workflows/
+└── e2e/      Playwright browser smoke tests (not Jest)
 ```
 
 The tree grows as features land; mirror `src/` under `unit/` or `rtl/` rather than listing every file here.
@@ -27,6 +28,8 @@ The tree grows as features land; mirror `src/` under `unit/` or `rtl/` rather th
 - **`rtl/`** tests a React component's rendered output and behavior using [`@testing-library/react`](https://testing-library.com/docs/react-testing-library/intro/): render it, query the DOM the way a user or screen reader would (`getByRole`, `getByText`, ...), assert on what's there, and simulate interaction with `@testing-library/user-event`.
 
 If a test file calls `render()`, it belongs in `rtl/`. Otherwise it belongs in `unit/`.
+
+**`e2e/`** is Playwright (real browser). Specs use `*.spec.ts` and are ignored by Jest (`testPathIgnorePatterns`). Do not put Playwright tests under `unit/` or `rtl/`.
 
 ## Structure
 
@@ -55,13 +58,16 @@ API route and feature-area tests under `unit/api/` and `rtl/{directory,catalog,d
 From the repo root, or from `apps/web`:
 
 ```bash
-npm run test                              # run once (from root: runs apps/web)
-npm run test:watch --workspace=apps/web   # watch mode
+npm run test                              # Jest once (from root: runs apps/web)
+npm run test:watch --workspace=apps/web   # Jest watch mode
+npm run test:e2e:install --workspace=apps/web   # Playwright Chromium (once)
+npm run test:e2e --workspace=apps/web           # Playwright smoke (builds + next start)
+npm run test:e2e:report --workspace=apps/web    # HTML report dashboard (after a run)
 ```
 
 `test:watch` uses `--watchAll`, not Jest's default `--watch`: `--watch` only re-runs tests related to files changed since the last commit, so on a clean working tree it finds nothing to run. `--watchAll` always runs the full suite first.
 
-`jest.config.mjs` uses `next/jest`, which discovers every `*.test.ts`/`*.test.tsx` under this folder automatically, no per-file registration needed.
+`jest.config.mjs` uses `next/jest`, which discovers every `*.test.ts`/`*.test.tsx` under this folder automatically, no per-file registration needed. Playwright lives in `tests/e2e/` and is driven by `playwright.config.ts` (see `docs/tooling.md`).
 
 ## Environment
 

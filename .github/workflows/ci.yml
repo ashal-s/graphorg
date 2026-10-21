@@ -1,16 +1,30 @@
 name: CI
 
+# Primary CI (WEB-213). Jenkins and Buildkite should mirror these jobs, not
+# replace them. Optional SaaS keys (Sentry, PostHog, LaunchDarkly, Resend,
+# OTEL) stay unset so CI exercises the no-op paths.
+
 on:
   push:
-    branches: [main]
+    branches: [main, development]
   pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   web:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: postgresql://graphorg:graphorg@localhost:5433/graphorg
-      REDIS_URL: redis://localhost:6379
+      # Placeholders only — unit tests do not open Postgres/Redis.
+      # AUTH_SECRET is required if Next evaluates env during build.
+      DATABASE_URL: postgresql://graphorg:graphorg@127.0.0.1:5433/graphorg
+      REDIS_URL: redis://127.0.0.1:6379
+      AUTH_SECRET: ci-web-auth-secret-at-least-32-chars
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,6 +37,36 @@ jobs:
       - run: npm run typecheck
       - run: npm run test --workspace=apps/web
       - run: npm run build --workspace=apps/web
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: write
+    env:
+      DATABASE_URL: postgresql://graphorg:graphorg@127.0.0.1:5433/graphorg
+      REDIS_URL: redis://127.0.0.1:6379
+      AUTH_SECRET: e2e-test-auth-secret-at-least-32-chars
+      AUTH_TRUST_HOST: "true"
+      AUTH_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - run: npm run build --workspace=apps/web
+      - run: npm run test:e2e --workspace=apps/web
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14
 
   ai-worker:
     runs-on: ubuntu-latest

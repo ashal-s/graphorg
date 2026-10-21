@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import posthog from "posthog-js";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { logout } from "@/lib/auth/actions";
+import { isPostHogConfigured } from "@/lib/posthog/config";
 
 export function UserMenu({ name, email }: { name: string; email: string }) {
   return (
@@ -29,7 +31,14 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => void logout()}>
+        <DropdownMenuItem
+          onClick={() => {
+            if (isPostHogConfigured()) {
+              posthog.reset();
+            }
+            void logout();
+          }}
+        >
           <LogOut aria-hidden="true" />
           Log out
         </DropdownMenuItem>

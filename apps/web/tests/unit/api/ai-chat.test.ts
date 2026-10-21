@@ -18,6 +18,16 @@ jest.mock("../../../src/lib/ai/rate-limit", () => ({
   checkRateLimit: (...args: unknown[]) => checkRateLimitMock(...args),
 }));
 
+const loggerWarn = jest.fn();
+jest.mock("../../../src/lib/logger", () => ({
+  logger: {
+    warn: (...args: unknown[]) => loggerWarn(...args),
+    error: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 const buildPageContextMock = jest.fn();
 jest.mock("../../../src/lib/page-context/build", () => ({
   buildPageContext: (...args: unknown[]) => buildPageContextMock(...args),
@@ -213,14 +223,14 @@ describe("POST /api/ai/chat", () => {
     });
 
     it("still answers when the rate limiter is unavailable", async () => {
-      const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+      loggerWarn.mockClear();
       checkRateLimitMock.mockRejectedValue(new Error("ECONNREFUSED"));
 
       const response = await post(validBody);
 
       expect(response.status).toBe(200);
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      warn.mockRestore();
+      expect(loggerWarn).toHaveBeenCalled();
     });
 
     it("413s a page whose context is too large, before calling the worker", async () => {

@@ -11,6 +11,7 @@ import { getDb } from "@/db";
 import { people } from "@/db/schema";
 import { hasRole } from "@/lib/auth/roles";
 import { requireSession } from "@/lib/auth/session";
+import { isAiChatEnabled } from "@/lib/flags/ai-chat";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -22,13 +23,14 @@ export default async function WorkflowDetailPage({ params }: PageProps) {
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) notFound();
 
-  const [workflow, directory] = await Promise.all([
+  const [workflow, directory, aiChatEnabled] = await Promise.all([
     fetchWorkflowDetail(session.organizationId, id),
     getDb().query.people.findMany({
       where: eq(people.organizationId, session.organizationId),
       columns: { id: true, name: true, email: true, title: true },
       orderBy: (row, { asc }) => asc(row.name),
     }),
+    isAiChatEnabled(session),
   ]);
 
   if (!workflow) notFound();
@@ -39,6 +41,7 @@ export default async function WorkflowDetailPage({ params }: PageProps) {
       workflow={workflow as unknown as WorkflowDetail}
       people={directory}
       readOnly={readOnly}
+      aiChatEnabled={aiChatEnabled}
     />
   );
 }

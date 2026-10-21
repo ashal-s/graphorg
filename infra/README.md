@@ -1,5 +1,16 @@
 # Infra
 
-Terraform modules, Helm charts and Ansible playbooks for provisioning AWS (VPC, EKS, ECS Fargate, RDS, ElastiCache, S3, IAM, ALB, Secrets Manager) land here in **Post-MVP — Cloud, CI/CD & Observability** (WEB-147, WEB-148). Branch for that work: `cloud-cicd-observability`.
+Local observability lives under [`observability/`](./observability/):
 
-Empty on purpose for now — local development uses `docker-compose.yml` at the repo root, and production today is Next.js on Vercel with Neon Postgres and a Redis provider.
+| Path                         | Purpose                             |
+| ---------------------------- | ----------------------------------- |
+| `otel-collector-config.yaml` | OTLP receive → Tempo + Prometheus   |
+| `tempo.yaml`                 | Local Tempo single-binary           |
+| `prometheus.yml`             | Scrapes collector `:8889`           |
+| `grafana/`                   | Datasource + dashboard provisioning |
+
+Compose services (repo root `docker-compose.yml`): `otel-collector`, `tempo`, `prometheus`, `grafana` (UI on **http://localhost:3001**), `jenkins` (UI on **http://localhost:8080**, image from [`jenkins/`](./jenkins/)). See [docs/tooling.md](../docs/tooling.md).
+
+Terraform / Helm / Ansible for AWS land here in **Post-MVP — Cloud, CI/CD & Observability** (WEB-147, WEB-148). Branch: `cloud-cicd-observability`.
+
+Otherwise local dev uses Compose for Postgres, Redis, and the observability stack. Production today is Next.js on Vercel with Neon Postgres and a Redis provider.

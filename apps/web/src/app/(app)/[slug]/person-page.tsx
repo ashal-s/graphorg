@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 
 import { HighlightSection } from "@/components/shell/highlight-section";
 import { PersonDialog } from "@/components/directory/person-dialog";
-import { AiChatButton } from "@/components/shared/ai-chat-button";
+import { AiChatGate } from "@/components/shared/ai-chat-gate";
 import { CopyContextButton } from "@/components/shared/copy-context-button";
 import { DeleteEntityButton } from "@/components/shared/delete-entity-button";
 import { PersonAvatar } from "@/components/shared/person-avatar";
@@ -18,6 +18,7 @@ import { requireSession } from "@/lib/auth/session";
 import { loadPersonProfile } from "@/lib/directory/load-person-profile";
 import { loadTones } from "@/lib/directory/tones";
 import { personPhotoSrc } from "@/lib/person-photo";
+import { Suspense } from "react";
 import { buildPersonResources } from "@/lib/directory/person-resources";
 import { getTerminology } from "@/lib/terminology-server";
 
@@ -206,7 +207,9 @@ export async function PersonPage({ id }: { id: string }) {
         </div>
 
         <div className="flex shrink-0 gap-2">
-          <AiChatButton scope={{ kind: "person", id: person.id }} />
+          <Suspense fallback={null}>
+            <AiChatGate scope={{ kind: "person", id: person.id }} />
+          </Suspense>
           <CopyContextButton scope={{ kind: "person", id: person.id }} />
           {canEdit && (
             <PersonDialog

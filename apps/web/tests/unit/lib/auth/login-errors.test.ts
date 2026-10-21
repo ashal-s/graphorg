@@ -40,6 +40,16 @@ jest.mock("../../../../src/lib/auth/rate-limit", () => ({
 }));
 jest.mock("next/navigation", () => ({ redirect: jest.fn() }));
 
+const loggerError = jest.fn();
+jest.mock("../../../../src/lib/logger", () => ({
+  logger: {
+    error: (...args: unknown[]) => loggerError(...args),
+    warn: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { AuthError } = require("next-auth");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -61,7 +71,7 @@ describe("login", () => {
     resolveLoginWorkspaces.mockReset();
     enforceLoginRateLimit.mockReset();
     enforceLoginRateLimit.mockResolvedValue({ allowed: true });
-    jest.spyOn(console, "error").mockImplementation(() => {});
+    loggerError.mockReset();
   });
 
   it("stops before bcrypt work when the rate limit is hit", async () => {
@@ -167,7 +177,7 @@ describe("login", () => {
     const state = await login(undefined, form({ workspace: "acme" }));
 
     expect(state?.message).toMatch(/unavailable/i);
-    expect(console.error).toHaveBeenCalled();
+    expect(loggerError).toHaveBeenCalled();
   });
 
   it("treats a workspace lookup failure as a server fault", async () => {
@@ -177,7 +187,7 @@ describe("login", () => {
 
     expect(state?.message).toMatch(/unavailable/i);
     expect(signIn).not.toHaveBeenCalled();
-    expect(console.error).toHaveBeenCalled();
+    expect(loggerError).toHaveBeenCalled();
   });
 
   it("asks for a workspace when too many accounts share the email", async () => {

@@ -15,13 +15,15 @@
     "test": "npm run test --workspace=apps/web",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "docs:dev": "cd docs && npx --yes mint@latest dev --port 3333"
+    "docs:dev": "cd docs && npx --yes mint@latest dev --port 3333",
+    "email:dev": "npm run email:dev --workspace=apps/web"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "prettier": "^3.4.2",
     "typescript": "^5"
   },
   "overrides": {
-    "esbuild": ">=0.25.12"
+    "esbuild": "0.28.2"
   }
 }
