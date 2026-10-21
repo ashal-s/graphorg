@@ -1,0 +1,43 @@
+# Same checks as .github/workflows/ci.yml and the Jenkinsfile (WEB-221).
+# GitHub Actions stays the primary gate. Run a self-hosted agent so jobs
+# use your machine instead of Buildkite-hosted minutes.
+# SaaS keys stay unset so the no-op paths are what get tested.
+
+env:
+  DATABASE_URL: postgresql://graphorg:graphorg@127.0.0.1:5433/graphorg
+  REDIS_URL: redis://127.0.0.1:6379
+  AUTH_SECRET: ci-web-auth-secret-at-least-32-chars
+
+steps:
+  - label: ":npm: web"
+    command: |
+      npm ci
+      npm run format:check
+      npm run lint
+      npm run typecheck
+      npm run test --workspace=apps/web
+      npm run build --workspace=apps/web
+
+  - label: ":playwright: e2e"
+    timeout_in_minutes: 30
+    env:
+      AUTH_SECRET: e2e-test-auth-secret-at-least-32-chars
+      AUTH_TRUST_HOST: "true"
+      AUTH_URL: http://127.0.0.1:3000
+    command: |
+      npm ci
+      if [ "$$(uname -s)" = "Linux" ]; then
+        npm exec --workspace=apps/web -- playwright install-deps chromium
+      fi
+      npm exec --workspace=apps/web -- playwright install chromium
+      npm run build --workspace=apps/web
+      npm run test:e2e --workspace=apps/web
+    artifact_paths:
+      - apps/web/playwright-report/**
+
+  - label: ":python: ai-worker"
+    command: |
+      cd services/ai-worker
+      python3.12 -m venv .venv
+      .venv/bin/pip install -e ".[dev]"
+      .venv/bin/pytest
