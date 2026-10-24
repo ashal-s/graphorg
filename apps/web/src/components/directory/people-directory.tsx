@@ -8,7 +8,9 @@ import { LiveSearch } from "@/components/shared/live-search";
 import { PersonAvatar } from "@/components/shared/person-avatar";
 import { TeamChip } from "@/components/shared/team-chip";
 import { EmptyState } from "@/components/states/empty-state";
+import { linkCardClass } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/native-select";
+import { cn } from "@/lib/utils";
 import { buildOrgChart, flattenOrgChart } from "@/lib/directory/org-chart";
 import { matchesSearch } from "@/lib/text-search";
 
@@ -117,7 +119,10 @@ export function PeopleDirectory({
               <li key={person.id}>
                 <Link
                   href={`/${person.slug}`}
-                  className="group flex h-full items-center gap-3 rounded-xl bg-card p-3.5 ring-1 ring-foreground/10 transition-all hover:-translate-y-px hover:shadow-md hover:ring-primary/40"
+                  className={cn(
+                    linkCardClass,
+                    "flex h-full items-center gap-3 rounded-xl p-3.5",
+                  )}
                 >
                   <PersonAvatar
                     name={person.name}

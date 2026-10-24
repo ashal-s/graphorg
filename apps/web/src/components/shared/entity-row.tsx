@@ -38,8 +38,11 @@ export function EntityRow({
   const LinkComponent = external ? "a" : Link;
 
   return (
-    <LinkComponent {...linkProps}>
-      <Card className="transition-colors hover:bg-muted/50 hover:shadow-md">
+    <LinkComponent
+      {...linkProps}
+      className="group block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <Card className="transition-colors duration-(--duration-enter) ease-(--ease-standard) group-hover:bg-muted/40 motion-reduce:transition-none">
         <CardContent className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">

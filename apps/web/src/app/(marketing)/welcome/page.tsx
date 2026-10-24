@@ -142,7 +142,7 @@ function SectionHeading({
 }) {
   return (
     <div className={cn("mx-auto max-w-2xl text-center", className)}>
-      <p className="font-mono text-xs tracking-widest text-primary uppercase">
+      <p className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
         {eyebrow}
       </p>
       <h2 className="mt-4 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
@@ -166,7 +166,7 @@ function CallsToAction({ className }: { className?: string }) {
       <Button
         nativeButton={false}
         render={<Link href="/signup" />}
-        className="h-11 w-full px-5 text-[15px] shadow-lg shadow-primary/25 sm:w-auto"
+        className="h-11 w-full px-5 text-[15px] sm:w-auto"
       >
         Create your workspace
         <ArrowRight data-icon="inline-end" aria-hidden="true" />
@@ -190,23 +190,11 @@ export default function LandingPage() {
 
       <main>
         {/* Hero */}
-        <section className="relative">
-          <div
-            className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)] bg-[size:56px_56px] opacity-60"
-            aria-hidden="true"
-          />
-          <div
-            className="absolute top-[-12rem] left-1/2 -z-10 h-[36rem] w-[64rem] -translate-x-1/2 rounded-full bg-primary/25 blur-[120px] dark:bg-primary/30"
-            aria-hidden="true"
-          />
-
+        <section>
           <div className="mx-auto max-w-6xl px-6 pt-20 pb-16 sm:pt-28">
             <div className="mx-auto max-w-3xl text-center">
               <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-6xl sm:leading-[1.05]">
-                Company context for{" "}
-                <span className="bg-gradient-to-r from-primary to-[oklch(0.7_0.15_240)] bg-clip-text text-transparent">
-                  AI that already knows your org
-                </span>
+                Company context for AI that already knows your org
               </h1>
               <CallsToAction className="mt-10" />
             </div>
@@ -225,7 +213,7 @@ export default function LandingPage() {
               return (
                 <div key={audience.title} className="flex gap-4 py-8 lg:px-6">
                   <Icon
-                    className="mt-0.5 size-5 shrink-0 text-primary"
+                    className="mt-0.5 size-5 shrink-0 text-muted-foreground"
                     aria-hidden="true"
                   />
                   <div>
@@ -241,17 +229,10 @@ export default function LandingPage() {
         </section>
 
         {/* AI */}
-        <section
-          id="ai"
-          className="relative scroll-mt-16 overflow-hidden py-24 sm:py-32"
-        >
-          <div
-            className="absolute -bottom-40 -left-40 -z-10 size-[32rem] rounded-full bg-primary/20 blur-[120px]"
-            aria-hidden="true"
-          />
+        <section id="ai" className="scroll-mt-16 py-24 sm:py-32">
           <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 lg:grid-cols-2 lg:gap-16">
             <div>
-              <p className="font-mono text-xs tracking-widest text-primary uppercase">
+              <p className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
                 AI-first
               </p>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
@@ -267,7 +248,7 @@ export default function LandingPage() {
                   const Icon = point.icon;
                   return (
                     <div key={point.title} className="flex gap-4">
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 ring-inset">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground">
                         <Icon className="size-5" aria-hidden="true" />
                       </span>
                       <div>
@@ -304,7 +285,7 @@ export default function LandingPage() {
                   className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16"
                 >
                   <div className={cn(index % 2 === 1 && "lg:order-2")}>
-                    <p className="font-mono text-xs tracking-widest text-primary uppercase">
+                    <p className="font-mono text-xs tracking-widest text-muted-foreground uppercase">
                       {feature.eyebrow}
                     </p>
                     <h3 className="mt-4 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
@@ -319,7 +300,7 @@ export default function LandingPage() {
                           key={point}
                           className="flex items-center gap-3 text-sm"
                         >
-                          <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+                          <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground" />
                           {point}
                         </li>
                       ))}
@@ -345,12 +326,12 @@ export default function LandingPage() {
               {STEPS.map((step, index) => (
                 <li key={step.title} className="relative">
                   <div className="flex items-center gap-4">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 font-mono text-sm font-medium text-primary">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-muted font-mono text-sm font-medium text-foreground">
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     {index < STEPS.length - 1 && (
                       <span
-                        className="hidden h-px flex-1 bg-gradient-to-r from-border to-transparent md:block"
+                        className="hidden h-px flex-1 bg-border md:block"
                         aria-hidden="true"
                       />
                     )}
@@ -367,27 +348,21 @@ export default function LandingPage() {
 
         {/* Final call to action */}
         <section className="px-6 pb-24 sm:pb-32">
-          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-primary/20 bg-card px-6 py-20 text-center sm:px-16">
-            <div
-              className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_120%,color-mix(in_oklch,var(--primary)_35%,transparent),transparent)]"
-              aria-hidden="true"
-            />
-            <div className="relative">
-              <div className="mx-auto flex flex-col items-center gap-3">
-                <GraphOrgMark variant="plain" className="size-12" />
-                <span className="text-lg font-semibold tracking-tight">
-                  GraphOrg
-                </span>
-              </div>
-              <h2 className="mx-auto mt-8 max-w-2xl text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
-                Give your AI the map.
-              </h2>
-              <p className="mx-auto mt-5 max-w-xl text-lg text-pretty text-muted-foreground">
-                Set up your workspace and start grounding assistants in your
-                organization today.
-              </p>
-              <CallsToAction className="mt-10" />
+          <div className="mx-auto max-w-6xl rounded-xl border border-border bg-muted px-6 py-20 text-center sm:px-16">
+            <div className="mx-auto flex flex-col items-center gap-3">
+              <GraphOrgMark variant="plain" className="size-12" />
+              <span className="text-lg font-semibold tracking-tight">
+                GraphOrg
+              </span>
             </div>
+            <h2 className="mx-auto mt-8 max-w-2xl text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
+              Give your AI the map.
+            </h2>
+            <p className="mx-auto mt-5 max-w-xl text-lg text-pretty text-muted-foreground">
+              Set up your workspace and start grounding assistants in your
+              organization today.
+            </p>
+            <CallsToAction className="mt-10" />
           </div>
         </section>
       </main>

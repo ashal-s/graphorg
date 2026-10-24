@@ -3,6 +3,9 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { linkCardClass } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
 /**
  * Hub tile used on Directory and Catalog landing pages: icon, title, optional
  * count, description, and an optional footer (chips, avatars, or a hint).
@@ -26,12 +29,15 @@ export function HubSectionCard({
   return (
     <Link
       href={href}
-      className="group flex h-full flex-col gap-5 rounded-xl bg-card p-5 ring-1 ring-foreground/10 transition-all hover:-translate-y-px hover:shadow-md hover:ring-primary/40"
+      className={cn(
+        linkCardClass,
+        "group flex h-full flex-col gap-5 rounded-xl p-5",
+      )}
     >
       <span className="flex items-start justify-between gap-3">
         <Icon className="size-6 text-muted-foreground" aria-hidden="true" />
         <ArrowRight
-          className="size-4 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+          className="size-4 text-muted-foreground/50 transition-colors group-hover:text-foreground"
           aria-hidden="true"
         />
       </span>
