@@ -1,5 +1,5 @@
 import { LoadingState } from "@/components/states/loading-state";
 
 export default function Loading() {
-  return <LoadingState rows={5} />;
+  return <LoadingState variant="cards" rows={6} />;
 }

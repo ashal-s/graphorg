@@ -19,7 +19,10 @@ export function AppHeader({
   others: Workspace[];
 }) {
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-background px-3 md:px-4">
+    <header
+      id="app-chrome"
+      className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-background px-3 md:px-4"
+    >
       <div className="flex min-w-0 items-center gap-2">
         <MobileNav />
         <WorkspaceBreadcrumb current={workspace} others={others} />

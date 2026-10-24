@@ -2,6 +2,10 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/** Quiet hover for a card that is itself a link. No lift, no accent ring. */
+export const linkCardClass =
+  "bg-card ring-1 ring-foreground/10 transition-colors duration-(--duration-enter) ease-(--ease-standard) hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none";
+
 function Card({
   className,
   size = "default",
