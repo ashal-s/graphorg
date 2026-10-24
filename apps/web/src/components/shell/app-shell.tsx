@@ -28,7 +28,7 @@ export function AppShell({
       <AppHeader session={session} workspace={workspace} others={others} />
       <div className="flex min-h-0 flex-1">
         <AppSidebar />
-        <main className="min-w-0 flex-1 animate-in overflow-y-auto p-4 fade-in duration-200 md:p-6">
+        <main className="min-w-0 flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </main>
       </div>

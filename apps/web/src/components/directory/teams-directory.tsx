@@ -7,9 +7,11 @@ import { Building2, ChevronRight, UserRound, Users2 } from "lucide-react";
 import { AvatarStack } from "@/components/shared/avatar-stack";
 import { LiveSearch } from "@/components/shared/live-search";
 import { EmptyState } from "@/components/states/empty-state";
+import { linkCardClass } from "@/components/ui/card";
 import { joinNames } from "@/lib/join-names";
 import type { MembershipLevel } from "@/lib/membership-levels";
 import { matchesSearch } from "@/lib/text-search";
+import { cn } from "@/lib/utils";
 
 export interface DirectoryTeam {
   id: string;
@@ -94,7 +96,10 @@ export function TeamsDirectory({
                 <li key={team.id}>
                   <Link
                     href={`/${team.slug}`}
-                    className="group flex h-full flex-col gap-4 rounded-xl bg-card p-4 ring-1 ring-foreground/10 transition-all hover:-translate-y-px hover:shadow-md hover:ring-primary/40"
+                    className={cn(
+                      linkCardClass,
+                      "flex h-full flex-col gap-4 rounded-xl p-4",
+                    )}
                   >
                     <span className="flex items-start gap-3">
                       <Users2
