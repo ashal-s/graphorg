@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: graphorg-web
+  namespace: graphorg
+data:
+  AUTH_TRUST_HOST: "true"
+  AUTH_URL: http://localhost:30080
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://host.docker.internal:4318
+  OTEL_SERVICE_NAME: graphorg-web
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphorg-web
+  namespace: graphorg
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: graphorg-web
+  template:
+    metadata:
+      labels:
+        app: graphorg-web
+    spec:
+      hostAliases:
+        - ip: "192.168.65.254"
+          hostnames:
+            - host.docker.internal
+      containers:
+        - name: web
+          image: docker.io/library/graphorg-web:local
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: graphorg-web
+            - secretRef:
+                name: graphorg-web
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 384Mi
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphorg-web
+  namespace: graphorg
+spec:
+  selector:
+    app: graphorg-web
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
