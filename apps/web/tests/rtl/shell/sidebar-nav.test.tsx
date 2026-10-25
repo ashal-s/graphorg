@@ -6,12 +6,18 @@ jest.mock("next/navigation", () => ({
   usePathname: () => mockPathname,
 }));
 
+import { AppSidebar } from "@/components/shell/app-sidebar";
 import { HighlightSection } from "@/components/shell/highlight-section";
 import { SidebarNav } from "@/components/shell/sidebar-nav";
 
 describe("SidebarNav", () => {
   beforeEach(() => {
     mockPathname = "/directory";
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it("renders a link for every nav item", () => {
@@ -83,12 +89,52 @@ describe("SidebarNav", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
-  it("hides labels until hover only when collapsible", () => {
+  it("keeps collapsed labels in the accessibility tree", () => {
     const { rerender } = render(<SidebarNav />);
-    expect(screen.getByText("Directory").className).not.toContain("opacity-0");
+    expect(screen.getByText("Directory").className).not.toContain("sr-only");
 
-    rerender(<SidebarNav collapsible />);
-    expect(screen.getByText("Directory").className).toContain("opacity-0");
+    rerender(<SidebarNav collapsed />);
+    expect(screen.getByText("Directory").className).toContain("sr-only");
+    expect(screen.getByRole("link", { name: "Directory" })).toBeInTheDocument();
+  });
+
+  it("pins the sidebar open without hover", async () => {
+    const user = userEvent.setup();
+    render(<AppSidebar />);
+
+    const expand = screen.getByRole("button", { name: "Expand sidebar" });
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("link", { name: "Overview" })).toBeInTheDocument();
+
+    await user.click(expand);
+
+    const collapse = screen.getByRole("button", { name: "Collapse sidebar" });
+    expect(collapse).toHaveAttribute("aria-expanded", "true");
+    expect(window.localStorage.getItem("graphorg.sidebar.expanded")).toBe(
+      "true",
+    );
+    expect(screen.getByText("Directory").className).not.toContain("sr-only");
+  });
+
+  it("keeps the sidebar usable when localStorage is blocked", async () => {
+    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("blocked");
+    });
+    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("blocked");
+    });
+    const user = userEvent.setup();
+    render(<AppSidebar />);
+
+    const expand = screen.getByRole("button", { name: "Expand sidebar" });
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(expand);
+
+    expect(
+      screen.getByRole("button", { name: "Collapse sidebar" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Directory").className).not.toContain("sr-only");
   });
 
   it("highlights the section a page asks for when its URL doesn't say", () => {

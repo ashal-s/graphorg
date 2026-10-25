@@ -758,7 +758,7 @@ export function WorkflowBuilder({
           </div>
 
           {/* Zoom controls */}
-          <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-xs text-muted-foreground shadow-lg">
+          <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card px-2 py-1 text-xs text-muted-foreground shadow-overlay">
             <button
               type="button"
               aria-label="Zoom out"

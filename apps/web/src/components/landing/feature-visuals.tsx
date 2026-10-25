@@ -14,15 +14,11 @@ function Panel({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-border bg-card/60 p-6 shadow-2xl shadow-black/5 sm:p-8 dark:shadow-black/40",
+        "relative overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-overlay sm:p-8",
         className,
       )}
     >
-      <div
-        className="pointer-events-none absolute -top-24 -right-24 size-64 rounded-full bg-primary/15 blur-3xl"
-        aria-hidden="true"
-      />
-      <div className="relative">{children}</div>
+      {children}
     </div>
   );
 }
@@ -105,7 +101,7 @@ export function CatalogVisual() {
     <Panel>
       <div className="rounded-xl border border-border bg-background p-5">
         <div className="flex items-start gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 ring-inset">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
             <Layers className="size-5" aria-hidden="true" />
           </span>
           <div className="min-w-0">
@@ -221,7 +217,7 @@ const CONTEXT_JSON = `{
 
 export function ContextJsonVisual() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-primary/10">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-overlay">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <span className="size-2.5 rounded-full bg-muted-foreground/30" />
         <span className="size-2.5 rounded-full bg-muted-foreground/30" />
@@ -243,14 +239,13 @@ export function ContextJsonVisual() {
   );
 }
 
-/** Colors JSON keys with the accent and leaves values in the foreground. */
+/** Renders quoted JSON tokens in the foreground so keys and values read as text. */
 function highlight(line: string) {
   const parts = line.split(/("[^"]*")/g);
   return parts.map((part, i) => {
     if (!part.startsWith('"')) return part;
-    const isKey = parts[i + 1]?.trimStart().startsWith(":") ?? false;
     return (
-      <span key={i} className={isKey ? "text-primary" : "text-foreground"}>
+      <span key={i} className="text-foreground">
         {part}
       </span>
     );

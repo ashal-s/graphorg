@@ -113,11 +113,11 @@ function NodeChip({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-xl border border-border bg-card/90 py-2.5 pr-4 pl-2.5 shadow-lg shadow-black/5 backdrop-blur-sm dark:shadow-black/30",
+        "flex items-center gap-3 rounded-xl border border-border bg-card py-2.5 pr-4 pl-2.5 shadow-raised",
         className,
       )}
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 ring-inset">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
         <Icon className="size-4" aria-hidden="true" />
       </span>
       <span className="min-w-0">
@@ -136,14 +136,10 @@ function NodeChip({
 function CenterNode() {
   return (
     <div className="relative flex flex-col items-center gap-3">
-      <span
-        className="absolute top-0 size-16 rounded-2xl bg-primary/40 motion-safe:animate-ping [animation-duration:3s]"
-        aria-hidden="true"
-      />
-      <div className="relative flex size-16 items-center justify-center rounded-2xl bg-primary shadow-[0_0_32px_color-mix(in_oklch,var(--primary)_45%,transparent)] ring-1 ring-primary ring-inset [&_.fill-primary]:fill-primary-foreground [&_.stroke-primary]:stroke-primary-foreground">
+      <div className="relative flex size-16 items-center justify-center rounded-2xl bg-primary shadow-overlay text-primary-foreground [&_.fill-primary]:fill-primary-foreground [&_.stroke-primary]:stroke-primary-foreground">
         <GraphOrgMark variant="plain" className="size-9" />
       </div>
-      <span className="rounded-full border border-border bg-card/90 px-3 py-1 text-sm font-medium backdrop-blur-sm">
+      <span className="rounded-full border border-border bg-card px-3 py-1 text-sm font-medium">
         Acme Inc.
       </span>
     </div>

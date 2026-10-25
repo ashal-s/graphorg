@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, UserMinus, UserPlus } from "lucide-react";
 
 import { PersonAvatar } from "@/components/shared/person-avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -273,12 +274,15 @@ export function TeamMembers({
           className="size-12"
         />
         <div className="min-w-0 flex-1">
-          <Link
-            href={`/${member.slug}`}
-            className="block truncate text-sm font-medium after:absolute after:inset-0 after:rounded-xl hover:underline"
-          >
-            {member.name}
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/${member.slug}`}
+              className="block truncate text-sm font-medium after:absolute after:inset-0 after:rounded-xl hover:underline"
+            >
+              {member.name}
+            </Link>
+            <Badge variant="outline">{LEVEL_LABELS[member.teamRole]}</Badge>
+          </div>
           {member.title && (
             <p className="truncate text-sm text-muted-foreground">
               {member.title}
@@ -297,7 +301,6 @@ export function TeamMembers({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    className="text-blue-600 hover:bg-blue-500/10 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-400"
                     aria-label={`Edit level of ${member.name}`}
                     onClick={() => {
                       setError(null);

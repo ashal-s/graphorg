@@ -40,6 +40,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --shadow-raised: var(--elevation-raised);
+  --shadow-overlay: var(--elevation-overlay);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -50,7 +52,7 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.975 0.004 264);
   --foreground: oklch(0.16 0.006 264);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.16 0.006 264);
@@ -61,7 +63,7 @@
   --secondary: oklch(0.97 0.006 264);
   --secondary-foreground: oklch(0.205 0.006 264);
   --muted: oklch(0.97 0.006 264);
-  --muted-foreground: oklch(0.53 0.008 264);
+  --muted-foreground: oklch(0.45 0.01 264);
   --accent: oklch(0.94 0.03 264);
   --accent-foreground: oklch(0.35 0.12 264);
   --destructive: oklch(0.577 0.245 27.325);
@@ -73,8 +75,13 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0.004 264);
+  --radius: 0.5rem;
+  --elevation-raised: 0 1px 2px oklch(0 0 0 / 6%);
+  --elevation-overlay: 0 8px 24px oklch(0 0 0 / 12%);
+  --duration-enter: 150ms;
+  --duration-leave: 100ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --sidebar: oklch(0.975 0.004 264);
   --sidebar-foreground: oklch(0.16 0.006 264);
   --sidebar-primary: oklch(0.55 0.22 264);
   --sidebar-primary-foreground: oklch(0.985 0 0);
@@ -89,7 +96,7 @@
   --foreground: oklch(0.97 0.004 264);
   --card: oklch(0.205 0.008 264);
   --card-foreground: oklch(0.97 0.004 264);
-  --popover: oklch(0.205 0.008 264);
+  --popover: oklch(0.23 0.008 264);
   --popover-foreground: oklch(0.97 0.004 264);
   --primary: oklch(0.55 0.19 264);
   --primary-foreground: oklch(0.985 0 0);
@@ -108,6 +115,8 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  --elevation-raised: 0 1px 2px oklch(0 0 0 / 30%);
+  --elevation-overlay: 0 8px 24px oklch(0 0 0 / 30%);
   --sidebar: oklch(0.19 0.008 264);
   --sidebar-foreground: oklch(0.97 0.004 264);
   --sidebar-primary: oklch(0.55 0.19 264);
@@ -127,6 +136,21 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
