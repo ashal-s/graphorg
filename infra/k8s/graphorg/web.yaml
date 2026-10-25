@@ -24,6 +24,10 @@ spec:
       labels:
         app: graphorg-web
     spec:
+      # Kind pods do not inherit Docker Desktop DNS. This address is
+      # host.docker.internal on this machine. If Postgres or Redis stops
+      # resolving, replace it with the IP from:
+      # docker exec graphorg-worker getent hosts host.docker.internal
       hostAliases:
         - ip: "192.168.65.254"
           hostnames:

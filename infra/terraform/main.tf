@@ -38,9 +38,12 @@ resource "aws_db_instance" "postgres" {
   password          = var.db_password
   db_name           = "graphorg"
 
-  storage_encrypted   = true
-  skip_final_snapshot = true
-  publicly_accessible = false
+  storage_encrypted         = true
+  backup_retention_period   = 7
+  skip_final_snapshot       = false
+  final_snapshot_identifier = "graphorg-final"
+  deletion_protection       = true
+  publicly_accessible       = false
 }
 
 # Compose Redis 7.

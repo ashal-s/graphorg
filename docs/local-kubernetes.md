@@ -8,11 +8,11 @@ kind runs Kubernetes inside Docker. The cluster name is `graphorg` (kubectl cont
 
 `infra/kind/cluster.yaml` defines three nodes. Each node is a Docker container. They share the Docker Desktop VM kernel.
 
-| Node | Role | What runs there |
-| --- | --- | --- |
+| Node                     | Role          | What runs there                                                                      |
+| ------------------------ | ------------- | ------------------------------------------------------------------------------------ |
 | `graphorg-control-plane` | Control plane | API server, scheduler, controller manager, and etcd. App pods are kept off this node |
-| `graphorg-worker` | Worker | Application pods, plus `kindnet` and `kube-proxy` |
-| `graphorg-worker2` | Worker | The same |
+| `graphorg-worker`        | Worker        | Application pods, plus `kindnet` and `kube-proxy`                                    |
+| `graphorg-worker2`       | Worker        | The same                                                                             |
 
 `kindnet` gives pods their IP addresses and routes between nodes. `kube-proxy` implements Service addresses. etcd stores Kubernetes objects. Compose Postgres data is not in etcd. Deleting a pod does not delete the database.
 
@@ -20,11 +20,11 @@ The node image is pinned to Kubernetes 1.34.11 so it matches `kubectl`.
 
 ## Namespaces
 
-| Namespace | Contents |
-| --- | --- |
-| `graphorg` | The web Deployment, Service, ConfigMap, and Secret |
+| Namespace    | Contents                                                                           |
+| ------------ | ---------------------------------------------------------------------------------- |
+| `graphorg`   | The web Deployment, Service, ConfigMap, and Secret                                 |
 | `monitoring` | Empty. Prometheus, Grafana, Tempo, and the OpenTelemetry Collector stay on Compose |
-| `ci` | Empty. Jenkins stays on Compose |
+| `ci`         | Empty. Jenkins stays on Compose                                                    |
 
 ## What runs in `graphorg`
 
@@ -36,7 +36,7 @@ The node image is pinned to Kubernetes 1.34.11 so it matches `kubectl`.
 
 The Secret `graphorg-web` is created with kubectl and is not in git. It holds `DATABASE_URL`, `REDIS_URL`, and `AUTH_SECRET`.
 
-`DATABASE_URL` points at Compose Postgres through `host.docker.internal:5433`. `REDIS_URL` points at Compose Redis on port 6379. Inside a pod, `localhost` is the pod, so those URLs cannot use `localhost`. The pod spec maps `host.docker.internal` to the Docker Desktop host address.
+`DATABASE_URL` points at Compose Postgres through `host.docker.internal:5433`. `REDIS_URL` points at Compose Redis on port 6379. Inside a pod, `localhost` is the pod, so those URLs cannot use `localhost`. The pod spec maps `host.docker.internal` to `192.168.65.254`, the Docker Desktop host address on this machine. Kind pods do not inherit Docker's DNS for that name. If the address changes, read it with `docker exec graphorg-worker getent hosts host.docker.internal` and update `hostAliases` in `infra/k8s/graphorg/web.yaml`.
 
 There is no Horizontal Pod Autoscaler. The replica count stays at 1 until someone runs `kubectl scale`. A rolling update starts a new pod, waits until it is Ready, then removes the old one. `kubectl rollout undo` returns to the previous pod template.
 
@@ -46,15 +46,15 @@ There is no Horizontal Pod Autoscaler. The replica count stays at 1 until someon
 
 Start Postgres and Redis before the pod. Their volumes hold the data.
 
-| Compose service | Host port | Cluster stand-in |
-| --- | --- | --- |
-| `postgres` | 5433 | RDS |
-| `redis` | 6379 | ElastiCache |
-| `otel-collector` | 4318 | The collector the pod exports to |
-| `tempo` | 3200 | Trace store |
-| `prometheus` | 9090 | Metrics store |
-| `grafana` | 3001 | UI for Tempo and Prometheus |
-| `jenkins` | 8080 | CI. It does not deploy this cluster |
+| Compose service  | Host port | Cluster stand-in                    |
+| ---------------- | --------- | ----------------------------------- |
+| `postgres`       | 5433      | RDS                                 |
+| `redis`          | 6379      | ElastiCache                         |
+| `otel-collector` | 4318      | The collector the pod exports to    |
+| `tempo`          | 3200      | Trace store                         |
+| `prometheus`     | 9090      | Metrics store                       |
+| `grafana`        | 3001      | UI for Tempo and Prometheus         |
+| `jenkins`        | 8080      | CI. It does not deploy this cluster |
 
 Grafana at http://localhost:3001 reads traces for the service name `graphorg-web`. Jenkins at http://localhost:8080 runs the `Jenkinsfile` checks inside its own container. The Docker socket is not mounted, so that job does not build the image or roll the Deployment.
 

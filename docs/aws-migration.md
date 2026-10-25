@@ -6,19 +6,19 @@ Production today stays on Vercel, Neon, and Upstash. Moving the website onto EKS
 
 ## Service map
 
-| Local | AWS | Job |
-| --- | --- | --- |
-| kind cluster (`graphorg`) | EKS | Runs the web Deployment |
-| kind nodes (Docker containers) | EC2 instances in a managed node group, or Fargate | The machines that run pods |
-| `graphorg-web:local` loaded with `kind load` | ECR | Stores the web image |
-| Compose Postgres | RDS for PostgreSQL 16 | The org-graph database |
-| Compose Redis | ElastiCache for Redis | Login and Ask AI rate limits |
-| Kubernetes Secret `graphorg-web` | Secrets Manager | `DATABASE_URL`, `REDIS_URL`, `AUTH_SECRET` |
-| `kubectl port-forward` | An AWS load balancer in front of the Service | Public HTTP |
-| Grafana + Tempo | CloudWatch and X-Ray, or Amazon Managed Grafana | Metrics and traces |
-| Pod stdout (`kubectl logs`) | CloudWatch Logs | Log storage |
-| GitHub Actions | GitHub Actions, building on a Linux runner and pushing to ECR | CI and deploy |
-| Jenkins on Compose | Not required | The local mirror of the test checks |
+| Local                                        | AWS                                                           | Job                                        |
+| -------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------ |
+| kind cluster (`graphorg`)                    | EKS                                                           | Runs the web Deployment                    |
+| kind nodes (Docker containers)               | EC2 instances in a managed node group, or Fargate             | The machines that run pods                 |
+| `graphorg-web:local` loaded with `kind load` | ECR                                                           | Stores the web image                       |
+| Compose Postgres                             | RDS for PostgreSQL 16                                         | The org-graph database                     |
+| Compose Redis                                | ElastiCache for Redis                                         | Login and Ask AI rate limits               |
+| Kubernetes Secret `graphorg-web`             | Secrets Manager                                               | `DATABASE_URL`, `REDIS_URL`, `AUTH_SECRET` |
+| `kubectl port-forward`                       | An AWS load balancer in front of the Service                  | Public HTTP                                |
+| Grafana + Tempo                              | CloudWatch and X-Ray, or Amazon Managed Grafana               | Metrics and traces                         |
+| Pod stdout (`kubectl logs`)                  | CloudWatch Logs                                               | Log storage                                |
+| GitHub Actions                               | GitHub Actions, building on a Linux runner and pushing to ECR | CI and deploy                              |
+| Jenkins on Compose                           | Not required                                                  | The local mirror of the test checks        |
 
 ElastiCache is AWS’s name for managed Redis. The app still uses it as a rate limiter. `checkRateLimit` sends `INCR` and `EXPIRE` to `REDIS_URL`. On AWS that URL is the ElastiCache endpoint.
 
@@ -52,6 +52,6 @@ RDS replaces Compose Postgres, not Neon, only if the database moves with the app
 
 ElastiCache replaces Upstash on the same terms. The app does not care which product answers Redis commands.
 
-The paper Terraform sketch for the three data-plane pieces that do not need a VPC is ECR, RDS (`db.t4g.micro`, Postgres 16, encrypted, not public), and ElastiCache (`cache.t4g.micro`, Redis 7.1). The database password is a sensitive variable, not a value in the file. `terraform validate` checks that sketch. `terraform plan` and `terraform apply` contact AWS and can create billed resources. Do not run them.
+ECR does not need a VPC. RDS (`db.t4g.micro`, Postgres 16, encrypted, not public) and ElastiCache (`cache.t4g.micro`, Redis 7.1) do. Without subnet and security-group settings, those two use the account's default VPC, which may not be the network a later EKS cluster uses. The database password is a sensitive variable, not a value in the file. The RDS resource keeps seven days of backups, takes a final snapshot named `graphorg-final` on deletion, and has deletion protection on. `terraform validate` checks that sketch. `terraform plan` and `terraform apply` contact AWS and can create billed resources. Do not run them.
 
 EKS itself is not in that sketch. A cluster also needs a VPC, subnets, and an IAM role. Those are the expensive objects, and they stay out until there is a decision to provision them.

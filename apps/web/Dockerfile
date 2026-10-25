@@ -10,8 +10,10 @@ RUN npm ci --workspace=@graphorg/web --include-workspace-root
 COPY apps/web apps/web
 COPY packages/types packages/types
 COPY packages/tsconfig packages/tsconfig
-RUN npm run build --workspace=@graphorg/web
+RUN npm run build --workspace=@graphorg/web \
+  && chown -R node:node /app
 
+USER node
 ENV NODE_ENV=production
 EXPOSE 3000
 CMD ["npm", "run", "start", "--workspace=@graphorg/web", "--", "--hostname", "0.0.0.0", "--port", "3000"]
