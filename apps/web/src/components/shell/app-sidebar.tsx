@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { PanelLeft } from "lucide-react";
 
 import { SidebarNav } from "@/components/shell/sidebar-nav";
@@ -19,17 +19,30 @@ function subscribe(listener: () => void) {
   };
 }
 
+function readSidebarExpanded() {
+  try {
+    return window.localStorage.getItem(STORAGE_KEY) === "true";
+  } catch {
+    return null;
+  }
+}
+
 function expandedSnapshot() {
-  return window.localStorage.getItem(STORAGE_KEY) === "true";
+  return readSidebarExpanded() ?? false;
 }
 
 function serverSnapshot() {
   return false;
 }
 
-function setSidebarExpanded(expanded: boolean) {
-  window.localStorage.setItem(STORAGE_KEY, String(expanded));
-  listeners.forEach((listener) => listener());
+function persistSidebarExpanded(expanded: boolean) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, String(expanded));
+    listeners.forEach((listener) => listener());
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -38,14 +51,21 @@ function setSidebarExpanded(expanded: boolean) {
  * never revealed by hover alone.
  */
 export function AppSidebar() {
-  const expanded = useSyncExternalStore(
+  const stored = useSyncExternalStore(
     subscribe,
     expandedSnapshot,
     serverSnapshot,
   );
+  const [unsaved, setUnsaved] = useState<boolean | null>(null);
+  const expanded = unsaved ?? stored;
 
   function toggle() {
-    setSidebarExpanded(!expanded);
+    const next = !expanded;
+    if (persistSidebarExpanded(next)) {
+      setUnsaved(null);
+      return;
+    }
+    setUnsaved(next);
   }
 
   return (

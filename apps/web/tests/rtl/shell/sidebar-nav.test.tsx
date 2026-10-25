@@ -16,6 +16,10 @@ describe("SidebarNav", () => {
     window.localStorage.clear();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("renders a link for every nav item", () => {
     render(<SidebarNav />);
 
@@ -109,6 +113,27 @@ describe("SidebarNav", () => {
     expect(window.localStorage.getItem("graphorg.sidebar.expanded")).toBe(
       "true",
     );
+    expect(screen.getByText("Directory").className).not.toContain("sr-only");
+  });
+
+  it("keeps the sidebar usable when localStorage is blocked", async () => {
+    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("blocked");
+    });
+    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("blocked");
+    });
+    const user = userEvent.setup();
+    render(<AppSidebar />);
+
+    const expand = screen.getByRole("button", { name: "Expand sidebar" });
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(expand);
+
+    expect(
+      screen.getByRole("button", { name: "Collapse sidebar" }),
+    ).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("Directory").className).not.toContain("sr-only");
   });
 
