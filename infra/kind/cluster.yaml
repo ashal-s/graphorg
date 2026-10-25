@@ -1,0 +1,20 @@
+# kind owns the control plane. One control-plane node, two workers.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: graphorg
+kubeadmConfigPatches:
+  - |
+    kind: KubeletConfiguration
+    kubeReserved:
+      memory: "256Mi"
+    systemReserved:
+      memory: "256Mi"
+    evictionHard:
+      memory.available: "200Mi"
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.34.11@sha256:44e222ee2132dab25ff87301682f89eb82c7880ea3a1bf543bfe9708fd08d67d
+  - role: worker
+    image: kindest/node:v1.34.11@sha256:44e222ee2132dab25ff87301682f89eb82c7880ea3a1bf543bfe9708fd08d67d
+  - role: worker
+    image: kindest/node:v1.34.11@sha256:44e222ee2132dab25ff87301682f89eb82c7880ea3a1bf543bfe9708fd08d67d
